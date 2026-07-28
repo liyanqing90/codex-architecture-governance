@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Quality Gate"
+  short_description: "以确定性策略校验已验证架构发现、基线、豁免与审核新鲜度"
+  default_prompt: "Use $architecture-quality-gate to evaluate the latest verified architecture review against repository policy."

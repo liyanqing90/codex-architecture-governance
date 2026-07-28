@@ -1,0 +1,27 @@
+schema_version: "1.0"
+project:
+  id: assetkeeper
+  name: AssetKeeper
+  type:
+    - ios-application
+    - reminder-system
+  lifecycle: active
+  criticality: medium
+  owners:
+    - unassigned
+  critical_qualities:
+    - local-data-integrity
+    - notification-reliability
+    - migration-safety
+    - battery-efficiency
+  required_reviews:
+    - project-architecture
+    - mobile-architecture
+    - privacy-review
+  rule_packs:
+    - project-core
+    - mobile
+  data_classification: confidential
+  constraints_file: .architecture/constraints.md
+  critical_flows_file: .architecture/critical-flows.md
+  review_output: .architecture/reviews

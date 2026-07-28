@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/dependency-map.schema.json",
+  "title": "Portfolio dependency map",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "dependencies"],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to",
+          "type",
+          "interface",
+          "criticality",
+          "data_classification",
+          "owner",
+          "documented"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "enum": [
+              "api",
+              "event",
+              "shared-library",
+              "shared-database",
+              "file",
+              "identity",
+              "infrastructure",
+              "manual"
+            ]
+          },
+          "interface": {
+            "type": "string",
+            "minLength": 1
+          },
+          "criticality": {
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "data_classification": {
+            "enum": ["none", "public", "internal", "confidential", "restricted", "mixed"]
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "documented": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

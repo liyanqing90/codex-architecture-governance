@@ -1,0 +1,4 @@
+interface:
+  display_name: "Portfolio Architecture Audit"
+  short_description: "跨项目审计重复建设、技术栈扩散、共享能力与隐性耦合风险"
+  default_prompt: "Use $portfolio-architecture-audit to review all projects registered in the architecture portfolio."

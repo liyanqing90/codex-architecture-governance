@@ -1,0 +1,13 @@
+schema_version: "1.0"
+portfolio:
+  id: example-portfolio
+  name: Example Portfolio
+  owners:
+    - unassigned
+  review_horizon_months: 12
+  review_output: .architecture-portfolio/reviews
+catalogs:
+  shared_capabilities: .architecture-portfolio/shared-capabilities.yaml
+  technologies: .architecture-portfolio/technology-catalog.yaml
+  dependencies: .architecture-portfolio/dependency-map.yaml
+projects: []

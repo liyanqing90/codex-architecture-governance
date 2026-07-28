@@ -1,0 +1,21 @@
+schema_version: "1.0"
+project:
+  id: example-project
+  name: Example Project
+  type:
+    - service
+  lifecycle: active
+  criticality: medium
+  owners:
+    - unassigned
+  critical_qualities:
+    - maintainability
+    - recoverability
+  required_reviews:
+    - project-architecture
+  rule_packs:
+    - project-core
+  data_classification: internal
+  constraints_file: .architecture/constraints.md
+  critical_flows_file: .architecture/critical-flows.md
+  review_output: .architecture/reviews

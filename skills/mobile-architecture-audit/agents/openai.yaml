@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mobile Architecture Audit"
+  short_description: "专项审计移动端本地数据、同步、迁移、通知、状态与隐私边界"
+  default_prompt: "Use $mobile-architecture-audit to audit the mobile and iOS architecture of this repository."

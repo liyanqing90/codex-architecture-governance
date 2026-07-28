@@ -1,0 +1,37 @@
+{
+  "name": "codex-architecture-governance",
+  "version": "0.1.0",
+  "description": "Evidence-backed architecture audits, verification, remediation planning, portfolio reviews, and deterministic quality gates for Codex.",
+  "author": {
+    "name": "Architecture Governance Contributors",
+    "url": "https://github.com/liyanqing90"
+  },
+  "homepage": "https://github.com/liyanqing90/codex-architecture-governance#readme",
+  "repository": "https://github.com/liyanqing90/codex-architecture-governance",
+  "license": "MIT",
+  "keywords": [
+    "architecture",
+    "audit",
+    "governance",
+    "quality-gate",
+    "codex-skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Architecture Governance",
+    "shortDescription": "Evidence-backed architecture governance workflows",
+    "longDescription": "Audit one repository, verify findings, plan remediation, review AI and mobile boundaries, govern a project portfolio, and enforce verified findings with deterministic policy. Local helpers require Python 3.11–3.13 with PyYAML and jsonschema.",
+    "developerName": "Architecture Governance Contributors",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/liyanqing90/codex-architecture-governance",
+    "defaultPrompt": [
+      "Audit this repository's architecture and verify every finding.",
+      "Plan remediation for the latest verified architecture review.",
+      "Evaluate the latest verified review against architecture policy."
+    ]
+  }
+}

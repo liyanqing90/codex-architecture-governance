@@ -1,0 +1,69 @@
+schema_version: "1.0"
+review:
+  id: example-portfolio-19700101
+  kind: portfolio
+  subject:
+    id: example-portfolio
+    name: Example Portfolio
+  performed_at: "1970-01-01T00:00:00+00:00"
+  commits:
+    project-a: unknown
+    project-b: unknown
+  scope:
+    - project-a
+    - project-b
+  verification_state: candidates
+  reviewers:
+    - portfolio-architecture-auditor
+  profile: .architecture-portfolio/portfolio.yaml
+summary:
+  architecture: Replace with a concise system-of-systems description.
+  raw_findings: 1
+  confirmed: 0
+  rejected: 0
+  needs_evidence: 0
+coverage:
+  - rule_id: PORTFOLIO.CAPABILITY.001
+    status: assessed
+    finding_ids:
+      - PORT-EXAMPLE-001
+findings:
+  - id: PORT-EXAMPLE-001
+    kind: risk
+    rule_id: PORTFOLIO.CAPABILITY.001
+    title: Replace with an evidence-backed cross-project finding
+    invariant: Repeated capabilities have an explicit sharing or autonomy decision.
+    severity: medium
+    confidence: 0.65
+    verification:
+      status: candidate
+      rationale: Awaiting verification in every affected project.
+    status: open
+    evidence:
+      - type: source
+        location: project-a:path/to/source
+        observation: Replace with evidence from project A.
+        source_commit: unknown
+      - type: source
+        location: project-b:path/to/source
+        observation: Replace with evidence from project B.
+        source_commit: unknown
+    impact:
+      affected_components:
+        - project-a
+        - project-b
+      failure_mode: Replace with the cross-project cost or propagation path.
+      blast_radius: Replace with the affected projects and consumers.
+    counter_evidence: []
+    first_seen: "1970-01-01"
+    last_seen: "1970-01-01"
+    found_by:
+      - portfolio-architecture-auditor
+    related_findings: []
+    tags:
+      - portfolio
+evidence_sources:
+  - project-a:path/to/source
+  - project-b:path/to/source
+limitations:
+  - Replace with material evidence gaps, or remove this entry.

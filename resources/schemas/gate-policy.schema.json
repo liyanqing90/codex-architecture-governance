@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/gate-policy.schema.json",
+  "title": "Architecture quality gate policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "review_kinds", "block", "waivers"],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "review_kinds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["project", "ai-agent", "mobile", "portfolio"]
+      }
+    },
+    "block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "severities",
+        "statuses",
+        "minimum_confidence",
+        "max_review_age_days",
+        "require_current_commit",
+        "unverified_behavior"
+      ],
+      "properties": {
+        "severities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["critical", "high", "medium", "low", "info"]
+          }
+        },
+        "statuses": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["open", "planned", "in-progress", "resolved", "accepted-risk", "rejected"]
+          }
+        },
+        "minimum_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_review_age_days": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "require_current_commit": {
+          "type": "boolean"
+        },
+        "unverified_behavior": {
+          "enum": ["ignore", "warn", "fail"]
+        }
+      }
+    },
+    "waivers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["finding_id", "reason", "owner", "expires_on"],
+        "properties": {
+          "finding_id": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9._-]{2,63}$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expires_on": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,75 @@
+name: Bug report
+description: Report reproducible incorrect behavior in a Skill, schema, CLI, or gate.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report vulnerabilities or include private repository content.
+        Follow SECURITY.md for suspected security issues.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Plugin version or commit SHA where the behavior occurs.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Skill activation
+        - Skill instructions
+        - Architecture CLI
+        - JSON Schema or template
+        - Quality gate
+        - Packaging or CI
+        - Documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide sanitized inputs and exact commands or prompts.
+      placeholder: |
+        1. Run ...
+        2. Provide ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Validation evidence
+      description: Include sanitized output, exit codes, or artifact excerpts.
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, personal data, and proprietary source.
+          required: true
+        - label: I checked that this is not a vulnerability report.
+          required: true

@@ -1,0 +1,16 @@
+schema_version: "1.0"
+review_kinds:
+  - project
+block:
+  severities:
+    - critical
+    - high
+  statuses:
+    - open
+    - planned
+    - in-progress
+  minimum_confidence: 0.75
+  max_review_age_days: 90
+  require_current_commit: false
+  unverified_behavior: warn
+waivers: []

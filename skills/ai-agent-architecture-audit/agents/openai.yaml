@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Agent Architecture Audit"
+  short_description: "专项审计 Agent、Context、Memory、工具权限、恢复与评测架构"
+  default_prompt: "Use $ai-agent-architecture-audit to audit the AI-agent-specific architecture of this repository."

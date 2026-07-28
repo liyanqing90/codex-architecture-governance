@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/technology-catalog.schema.json",
+  "title": "Portfolio technology catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "technologies"],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "technologies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "category",
+          "projects",
+          "roles",
+          "standard_status",
+          "owner",
+          "rationale"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "projects": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "roles": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "standard_status": {
+            "enum": ["preferred", "allowed", "exception", "retiring", "unknown"]
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

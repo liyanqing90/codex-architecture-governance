@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/baseline.schema.json",
+  "title": "Architecture finding baseline",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "findings"],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "reason", "owner", "recorded_on"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9._-]{2,63}$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "recorded_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "expires_on": {
+            "type": ["string", "null"],
+            "format": "date"
+          }
+        }
+      }
+    }
+  }
+}

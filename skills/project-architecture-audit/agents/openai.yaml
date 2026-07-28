@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Architecture Audit"
+  short_description: "审计单个仓库的架构边界、数据契约、风险与优势并输出证据"
+  default_prompt: "Use $project-architecture-audit to audit this repository using its project architecture profile."

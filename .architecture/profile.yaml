@@ -1,0 +1,27 @@
+schema_version: "1.0"
+project:
+  id: codex-architecture-governance
+  name: Codex Architecture Governance
+  type:
+    - architecture-governance
+    - codex-plugin
+    - developer-tooling
+  lifecycle: active
+  criticality: high
+  owners:
+    - Architecture Governance Contributors
+  critical_qualities:
+    - compatibility
+    - deterministic-enforcement
+    - maintainability
+    - reproducibility
+    - safety
+    - traceability
+  required_reviews:
+    - project-architecture
+  rule_packs:
+    - project-core
+  data_classification: public
+  constraints_file: .architecture/constraints.md
+  critical_flows_file: .architecture/critical-flows.md
+  review_output: .architecture/reviews

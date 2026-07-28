@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/finding.schema.json",
+  "title": "Architecture finding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "kind",
+    "rule_id",
+    "title",
+    "invariant",
+    "severity",
+    "confidence",
+    "verification",
+    "status",
+    "evidence",
+    "impact",
+    "first_seen",
+    "last_seen",
+    "found_by"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9._-]{2,63}$"
+    },
+    "kind": {
+      "enum": ["risk", "strength"]
+    },
+    "rule_id": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9.]{2,79}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3
+    },
+    "invariant": {
+      "type": "string",
+      "minLength": 10
+    },
+    "severity": {
+      "enum": ["critical", "high", "medium", "low", "info"]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "rationale"],
+      "properties": {
+        "status": {
+          "enum": ["candidate", "confirmed", "rejected", "needs-evidence"]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 3
+        },
+        "verified_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "open",
+        "planned",
+        "in-progress",
+        "resolved",
+        "accepted-risk",
+        "rejected"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "location", "observation"],
+        "properties": {
+          "type": {
+            "enum": [
+              "source",
+              "config",
+              "schema",
+              "migration",
+              "test",
+              "runtime",
+              "history",
+              "document"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "minLength": 1
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "observation": {
+            "type": "string",
+            "minLength": 3
+          },
+          "excerpt": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "source_commit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "freshness": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "impact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["affected_components", "failure_mode", "blast_radius"],
+      "properties": {
+        "affected_components": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "failure_mode": {
+          "type": "string",
+          "minLength": 3
+        },
+        "blast_radius": {
+          "type": "string",
+          "minLength": 3
+        }
+      }
+    },
+    "counter_evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "first_seen": {
+      "type": "string",
+      "format": "date"
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date"
+    },
+    "found_by": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "related_findings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9._-]{2,63}$"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      }
+    }
+  }
+}

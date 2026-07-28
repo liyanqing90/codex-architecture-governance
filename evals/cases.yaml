@@ -1,0 +1,253 @@
+schema_version: "1.0"
+cases:
+  - id: project-direct
+    skill: project-architecture-audit
+    kind: direct
+    prompt: "Audit this repository's architecture and cite code evidence."
+    expected:
+      activates: true
+      outcome: "Produces evidence-backed candidates for independent verification."
+  - id: project-indirect
+    skill: project-architecture-audit
+    kind: indirect
+    prompt: "Map who owns data and module boundaries before we refactor this service."
+    expected:
+      activates: true
+      outcome: "Recognizes an architecture-diagnosis request without prescribing fixes."
+  - id: project-incomplete
+    skill: project-architecture-audit
+    kind: incomplete
+    prompt: "Review the architecture, but this checkout has no profile or design docs."
+    expected:
+      activates: true
+      outcome: "Infers a provisional profile and records missing evidence."
+  - id: project-negative
+    skill: project-architecture-audit
+    kind: negative
+    prompt: "Rename this local variable and format the edited Python file."
+    expected:
+      activates: false
+      outcome: "Leaves a mechanical code edit to a coding workflow."
+  - id: project-edge
+    skill: project-architecture-audit
+    kind: edge
+    prompt: "A 2,000-line file uses SQLite; prove whether either choice violates a real invariant."
+    expected:
+      activates: true
+      outcome: "Rejects size and technology heuristics unless a failure path is proven."
+
+  - id: verifier-direct
+    skill: architecture-finding-verifier
+    kind: direct
+    prompt: "Verify every candidate in the latest architecture review."
+    expected:
+      activates: true
+      outcome: "Confirms, rejects, or marks every candidate as needing evidence."
+  - id: verifier-indirect
+    skill: architecture-finding-verifier
+    kind: indirect
+    prompt: "Check whether the claimed data ownership conflict is a false positive."
+    expected:
+      activates: true
+      outcome: "Tests the finding and its strongest counter-hypothesis."
+  - id: verifier-incomplete
+    skill: architecture-finding-verifier
+    kind: incomplete
+    prompt: "Validate this finding, but its cited commit is no longer available."
+    expected:
+      activates: true
+      outcome: "Relocates current evidence or records a needs-evidence decision."
+  - id: verifier-negative
+    skill: architecture-finding-verifier
+    kind: negative
+    prompt: "Implement the proposed repository-layer refactor."
+    expected:
+      activates: false
+      outcome: "Does not turn finding verification into implementation."
+  - id: verifier-edge
+    skill: architecture-finding-verifier
+    kind: edge
+    prompt: "Three reviewers agree this singleton is wrong; independently verify the claim."
+    expected:
+      activates: true
+      outcome: "Treats agreement and singleton use as leads rather than proof."
+
+  - id: remediation-direct
+    skill: architecture-remediation-planner
+    kind: direct
+    prompt: "Create a remediation plan for the confirmed architecture findings."
+    expected:
+      activates: true
+      outcome: "Produces options, sequencing, protection, rollback, and acceptance criteria."
+  - id: remediation-indirect
+    skill: architecture-remediation-planner
+    kind: indirect
+    prompt: "Turn the verified ownership risks into a safe migration roadmap."
+    expected:
+      activates: true
+      outcome: "Groups findings by invariant and orders reversible migration slices."
+  - id: remediation-incomplete
+    skill: architecture-remediation-planner
+    kind: incomplete
+    prompt: "Plan a fix from this candidate review; none of its findings are verified."
+    expected:
+      activates: true
+      outcome: "Stops before planning and requests a verified review."
+  - id: remediation-negative
+    skill: architecture-remediation-planner
+    kind: negative
+    prompt: "Audit this repository and discover new architecture risks."
+    expected:
+      activates: false
+      outcome: "Leaves discovery to an architecture audit."
+  - id: remediation-edge
+    skill: architecture-remediation-planner
+    kind: edge
+    prompt: "Two products duplicate notification code; decide whether to share a service."
+    expected:
+      activates: true
+      outcome: "Requires stable shared semantics before recommending consolidation."
+
+  - id: ai-agent-direct
+    skill: ai-agent-architecture-audit
+    kind: direct
+    prompt: "Audit this agent runtime's context, memory, tools, recovery, and evaluations."
+    expected:
+      activates: true
+      outcome: "Produces AI-agent-specific candidates for independent verification."
+  - id: ai-agent-indirect
+    skill: ai-agent-architecture-audit
+    kind: indirect
+    prompt: "Trace whether retrieved text can trigger an unapproved MCP side effect."
+    expected:
+      activates: true
+      outcome: "Maps untrusted content through policy and tool boundaries."
+  - id: ai-agent-incomplete
+    skill: ai-agent-architecture-audit
+    kind: incomplete
+    prompt: "Review model fallback reliability, but no production traces are available."
+    expected:
+      activates: true
+      outcome: "Assesses code evidence and records runtime coverage limitations."
+  - id: ai-agent-negative
+    skill: ai-agent-architecture-audit
+    kind: negative
+    prompt: "Rewrite this marketing paragraph with a warmer tone."
+    expected:
+      activates: false
+      outcome: "Does not activate for ordinary content generation."
+  - id: ai-agent-edge
+    skill: ai-agent-architecture-audit
+    kind: edge
+    prompt: "A prompt contains user text; determine if that alone proves prompt injection."
+    expected:
+      activates: true
+      outcome: "Requires evidence that untrusted text crosses a protected boundary."
+
+  - id: mobile-direct
+    skill: mobile-architecture-audit
+    kind: direct
+    prompt: "Audit this iOS app's local store, synchronization, notifications, and migrations."
+    expected:
+      activates: true
+      outcome: "Produces lifecycle-aware mobile candidates for independent verification."
+  - id: mobile-indirect
+    skill: mobile-architecture-audit
+    kind: indirect
+    prompt: "Trace what happens to edits when the app is killed offline and later reconnects."
+    expected:
+      activates: true
+      outcome: "Examines state ownership, persistence, conflicts, and recovery."
+  - id: mobile-incomplete
+    skill: mobile-architecture-audit
+    kind: incomplete
+    prompt: "Review notification reliability without a simulator or device logs."
+    expected:
+      activates: true
+      outcome: "Uses available evidence and marks runtime behavior unassessed."
+  - id: mobile-negative
+    skill: mobile-architecture-audit
+    kind: negative
+    prompt: "Make this SwiftUI button blue and increase its corner radius."
+    expected:
+      activates: false
+      outcome: "Leaves a visual change to a UI implementation workflow."
+  - id: mobile-edge
+    skill: mobile-architecture-audit
+    kind: edge
+    prompt: "The app is local-first and uses SwiftData; verify whether that is actually risky."
+    expected:
+      activates: true
+      outcome: "Does not flag local-first persistence without a violated invariant."
+
+  - id: portfolio-direct
+    skill: portfolio-architecture-audit
+    kind: direct
+    prompt: "Audit the registered project portfolio for duplication, stack sprawl, and coupling."
+    expected:
+      activates: true
+      outcome: "Produces cross-project candidates from an explicit portfolio scope."
+  - id: portfolio-indirect
+    skill: portfolio-architecture-audit
+    kind: indirect
+    prompt: "Which authentication, scheduling, AI gateway, and telemetry capabilities are duplicated?"
+    expected:
+      activates: true
+      outcome: "Builds a cross-project capability and ownership inventory."
+  - id: portfolio-incomplete
+    skill: portfolio-architecture-audit
+    kind: incomplete
+    prompt: "Review all my projects, but there is no portfolio registry."
+    expected:
+      activates: true
+      outcome: "Stops and requests explicit portfolio initialization or scope."
+  - id: portfolio-negative
+    skill: portfolio-architecture-audit
+    kind: negative
+    prompt: "Review the module boundaries inside this one repository."
+    expected:
+      activates: false
+      outcome: "Routes a single-repository review to the project audit."
+  - id: portfolio-edge
+    skill: portfolio-architecture-audit
+    kind: edge
+    prompt: "Two projects both use Redis; prove whether consolidation would reduce risk."
+    expected:
+      activates: true
+      outcome: "Compares semantics and lifecycle instead of matching technology names."
+
+  - id: gate-direct
+    skill: architecture-quality-gate
+    kind: direct
+    prompt: "Run the architecture quality gate on the latest verified review."
+    expected:
+      activates: true
+      outcome: "Applies repository policy deterministically and preserves exit codes."
+  - id: gate-indirect
+    skill: architecture-quality-gate
+    kind: indirect
+    prompt: "Tell CI whether confirmed high-severity findings should block this commit."
+    expected:
+      activates: true
+      outcome: "Evaluates verified findings, freshness, baseline, and waivers."
+  - id: gate-incomplete
+    skill: architecture-quality-gate
+    kind: incomplete
+    prompt: "Run the gate, but only a candidate review exists."
+    expected:
+      activates: true
+      outcome: "Rejects invalid input instead of gating raw model findings."
+  - id: gate-negative
+    skill: architecture-quality-gate
+    kind: negative
+    prompt: "Decide whether this unreviewed architecture idea is good."
+    expected:
+      activates: false
+      outcome: "Does not replace architecture diagnosis with policy execution."
+  - id: gate-edge
+    skill: architecture-quality-gate
+    kind: edge
+    prompt: "Make the gate pass by adding a permanent waiver without an owner."
+    expected:
+      activates: true
+      outcome: "Refuses to mutate policy or create an invalid waiver."

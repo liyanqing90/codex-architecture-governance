@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/project-profile.schema.json",
+  "title": "Project architecture profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project"],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "type",
+        "lifecycle",
+        "criticality",
+        "owners",
+        "critical_qualities",
+        "required_reviews",
+        "rule_packs",
+        "data_classification",
+        "constraints_file",
+        "critical_flows_file",
+        "review_output"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "lifecycle": {
+          "enum": ["experimental", "active", "maintenance", "retiring"]
+        },
+        "criticality": {
+          "enum": ["low", "medium", "high", "mission-critical"]
+        },
+        "owners": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "critical_qualities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "required_reviews": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "rule_packs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "data_classification": {
+          "enum": ["public", "internal", "confidential", "restricted", "mixed"]
+        },
+        "constraints_file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "critical_flows_file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_output": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+Codex Architecture Governance
+Copyright (c) 2026 Architecture Governance Contributors
+
+This project adapts evidence-first architecture audit, confidence, and
+severity concepts from PAAD. The original PAAD license and attribution are
+preserved in third_party/PAAD-MIT.txt.
+
+OpenAI product names are trademarks of OpenAI. This independent open-source
+project is not an official OpenAI product.

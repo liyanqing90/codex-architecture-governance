@@ -1,0 +1,29 @@
+schema_version: "1.0"
+project:
+  id: cognera
+  name: Cognera
+  type:
+    - ai-agent-platform
+    - personal-data-system
+  lifecycle: active
+  criticality: high
+  owners:
+    - unassigned
+  critical_qualities:
+    - data-governance
+    - traceability
+    - privacy
+    - recoverability
+    - extensibility
+  required_reviews:
+    - project-architecture
+    - ai-agent-architecture
+    - threat-model
+    - data-architecture
+  rule_packs:
+    - project-core
+    - ai-agent
+  data_classification: restricted
+  constraints_file: .architecture/constraints.md
+  critical_flows_file: .architecture/critical-flows.md
+  review_output: .architecture/reviews

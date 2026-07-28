@@ -1,0 +1,58 @@
+name: Feature request
+description: Propose a focused workflow, contract, or governance improvement.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the recurring user outcome that is currently difficult.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and examples
+      description: Provide sanitized examples showing the gap or repeated failure.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: boundary
+    attributes:
+      label: Likely boundary
+      options:
+        - Existing Skill
+        - New focused Skill
+        - Shared schema or template
+        - Deterministic CLI or quality gate
+        - Evaluation corpus
+        - Repository automation
+        - Unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed outcome
+      description: Explain observable success without prescribing unnecessary technology.
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and risk
+      description: Note affected artifacts, exit codes, policies, or installation behavior.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This request represents one focused, reusable user goal.
+          required: true
+        - label: The proposal does not depend on private project details.
+          required: true

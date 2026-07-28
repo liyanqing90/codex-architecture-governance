@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Finding Verifier"
+  short_description: "逐项复核架构发现、过滤误报并保留完整可追溯的验证结论"
+  default_prompt: "Use $architecture-finding-verifier to verify every candidate finding in the latest architecture review."

@@ -1,0 +1,62 @@
+schema_version: "1.0"
+review:
+  id: example-project-19700101-project
+  kind: project
+  subject:
+    id: example-project
+    name: Example Project
+    repository: .
+  performed_at: "1970-01-01T00:00:00+00:00"
+  commit: unknown
+  scope:
+    - .
+  verification_state: candidates
+  reviewers:
+    - architecture-auditor
+  profile: .architecture/profile.yaml
+summary:
+  architecture: Replace with a concise description of the observed architecture.
+  raw_findings: 1
+  confirmed: 0
+  rejected: 0
+  needs_evidence: 0
+coverage:
+  - rule_id: PROJECT.BOUNDARY.001
+    status: assessed
+    finding_ids:
+      - EXAMPLE-ARC-001
+findings:
+  - id: EXAMPLE-ARC-001
+    kind: risk
+    rule_id: PROJECT.BOUNDARY.001
+    title: Replace with an evidence-backed finding
+    invariant: Replace with the invariant owned by the affected boundary.
+    severity: medium
+    confidence: 0.65
+    verification:
+      status: candidate
+      rationale: Awaiting an independent evidence verification pass.
+    status: open
+    evidence:
+      - type: source
+        location: path/to/source.py:1
+        symbol: example_symbol
+        observation: Replace with a concrete observation from the current source.
+        source_commit: unknown
+    impact:
+      affected_components:
+        - example-component
+      failure_mode: Replace with the credible failure or change-cost path.
+      blast_radius: Replace with the bounded affected scope.
+    counter_evidence: []
+    first_seen: "1970-01-01"
+    last_seen: "1970-01-01"
+    found_by:
+      - architecture-auditor
+    related_findings: []
+    tags:
+      - example
+evidence_sources:
+  - path/to/source.py
+limitations:
+  - Replace with material evidence gaps, or remove this entry.

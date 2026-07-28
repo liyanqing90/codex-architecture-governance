@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Remediation Planner"
+  short_description: "为已确认的架构问题制定选项、依赖、迁移顺序与验收标准"
+  default_prompt: "Use $architecture-remediation-planner to plan remediation for the confirmed architecture findings."

@@ -1,0 +1,15 @@
+schema_version: "1.0"
+source: evals/cases.yaml
+cases:
+  - {id: project-direct, expected_skill: project-architecture-audit}
+  - {id: ai-agent-direct, expected_skill: ai-agent-architecture-audit}
+  - {id: mobile-direct, expected_skill: mobile-architecture-audit}
+  - {id: portfolio-direct, expected_skill: portfolio-architecture-audit}
+  - {id: verifier-direct, expected_skill: architecture-finding-verifier}
+  - {id: solution-direct, expected_skill: architecture-solution-advisor}
+  - {id: remediation-direct, expected_skill: architecture-remediation-planner}
+  - {id: gate-direct, expected_skill: architecture-quality-gate}
+acceptance:
+  activation_cases: 40
+  exact_public_skills: 8
+  negative_cases_must_not_activate: true

@@ -32,7 +32,7 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          python resources/scripts/architecture_tool.py validate-knowledge \
+          python resources/scripts/validate_knowledge.py \
             2>&1 | tee knowledge-freshness.txt
 
       - name: Open or update freshness issue

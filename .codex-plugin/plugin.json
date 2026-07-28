@@ -1,6 +1,6 @@
 {
   "name": "codex-architecture-governance",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Knowledge-backed architecture audits, solution decisions, verification, remediation, portfolio governance, and trustworthy deterministic gates for Codex.",
   "author": {
     "name": "Architecture Governance Contributors",

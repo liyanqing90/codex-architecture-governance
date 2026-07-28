@@ -16,15 +16,25 @@ Read completely:
 - `../../resources/references/solution-decision-contract.md`;
 - the verified review;
 - the project Profile, constraints, and critical flows;
-- `../../resources/knowledge/quality-models/core.yaml`;
-- `../../resources/knowledge/decision-guides/system-style-selection.yaml`;
-- only other catalog files relevant to the decision.
+- the repository-facts and knowledge-selection artifacts bound to the Review;
+- `../../resources/knowledge/manifest.yaml`;
+- only Markdown entries selected for this decision.
 
-Use `quality-models/core.yaml` to normalize quality attributes and
-`decision-guides/system-style-selection.yaml` for mandatory rejection rules.
-Load architecture styles, patterns, technology profiles, reference
-architectures, migrations, or domain guidance only when the decision needs
-them.
+Create a decision-specific selection rather than reusing unrelated audit
+context:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py select-knowledge \
+  --facts <repository-facts.yaml> \
+  --profile <profile.yaml> \
+  --task "<decision problem>" \
+  --skill architecture-solution-advisor \
+  --output <repo>/.architecture/decision-knowledge-selection.yaml
+```
+
+Read every selected Markdown entry completely. The selection must include each
+style, pattern, technology, reference architecture, and migration cited by an
+option.
 
 Stop when no confirmed unresolved finding, quality scenario, or decision
 authority exists. Do not invent scale, team, budget, compliance, or migration
@@ -71,16 +81,20 @@ For a portfolio, use `.architecture-portfolio/reviews/`.
 
 Start from `../../resources/templates/architecture-decision.yaml`. Bind the
 decision to the verified review ID and SHA-256 and bind cited knowledge to the
-current catalog hashes:
+exact Markdown entry hashes:
 
 ```bash
 python3 ../../resources/scripts/architecture_tool.py decision-bindings \
-  --project <repo> --review <verified-review.yaml>
+  --project <repo> \
+  --review <verified-review.yaml> \
+  --knowledge-selection <decision-knowledge-selection.yaml>
 ```
 
 Use only confirmed, non-resolved Finding IDs. Include at least three options,
 the full declared-quality effects and trade-off scorecard, hard eliminations,
-and explicit rejection reasons for every nonselected option.
+explicit rejection reasons for every nonselected option, known facts,
+assumptions, unknowns, compatible migration slices, rollback, and validation.
+Use Architecture Decision schema 1.2 for new decisions.
 
 Validate:
 

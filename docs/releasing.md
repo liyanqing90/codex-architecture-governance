@@ -5,20 +5,29 @@
    `pip-compile --generate-hashes` when dependency ranges change.
 3. Run the full gate from `AGENTS.md`, including `validate-knowledge`,
    `scripts/audit_licenses.py`, and `pip-audit`.
-4. Confirm the archive contains only runtime files:
+4. Validate all ten Markdown Knowledge Packs and confirm no entry is stale:
+
+   ```bash
+   python3 resources/scripts/validate_knowledge.py
+   ```
+
+5. Confirm the 40 routing cases and separate selection, decision,
+   false-positive, and artifact-validity corpora parse and pass their
+   deterministic tests.
+6. Confirm the archive contains only runtime files:
 
    ```bash
    unzip -l dist/codex-architecture-governance-<version>.zip
    ```
 
-5. Verify the checksum on any supported platform:
+7. Verify the checksum on any supported platform:
 
    ```bash
    python3 scripts/verify_checksum.py \
      dist/codex-architecture-governance-<version>.zip.sha256
    ```
 
-6. Generate and inspect the SPDX SBOM:
+8. Generate and inspect the SPDX SBOM:
 
    ```bash
    python3 scripts/generate_sbom.py \
@@ -26,14 +35,16 @@
      --output dist/codex-architecture-governance-<version>.spdx.json
    ```
 
-7. Confirm every dependency package in the SPDX document has a declared
+9. Confirm every dependency package in the SPDX document has a declared
    license and exactly matches `resources/supply-chain/runtime-licenses.json`.
-8. Complete one current Codex installation smoke test and record the surface,
+10. Complete one current Codex installation smoke test and record the surface,
    application version, operating system, and observed Skill routing.
-9. If a behavioral quality claim is planned, preserve a repeated benchmark run
+11. If a behavioral quality claim is planned, preserve a repeated benchmark run
    with identified model, surface, exact plugin version, and scorer output.
-10. Create a signed or annotated `v<version>` tag.
-11. Push the tag. The release workflow re-runs validation, tests, lint,
+12. Confirm migration evidence never preserves a legacy verified label as
+    current 1.2 verification.
+13. Create a signed or annotated `v<version>` tag.
+14. Push the tag. The release workflow re-runs validation, tests, lint,
    formatting, dependency audit, deterministic packaging, checksum, and SBOM
    generation. It creates GitHub provenance and SBOM attestations before
    publishing the ZIP, checksum, and SBOM.

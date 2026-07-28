@@ -16,6 +16,7 @@ candidates, change production code, or recommend fixes. Use
 Read these files completely before auditing:
 
 - `../../resources/references/review-contract.md`
+- `../../resources/references/knowledge-contract.md`
 - `../../resources/references/project-rules.md`
 - `../../resources/rules/project-core.yaml`
 
@@ -38,14 +39,48 @@ Add repeated flags for additional types, qualities, rule packs, owners, and requ
 
 ## Workflow
 
-### 1. Establish scope and provenance
+### 1. Inspect facts and select knowledge
+
+Run the deterministic fact collector before interpreting architecture:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py inspect-repository \
+  --repo <repo> \
+  --output <repo>/.architecture/repository-facts.yaml
+```
+
+If no declared Profile exists, build a provisional one. Keep detected,
+declared, and inferred inputs separate:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py build-profile \
+  --facts <repo>/.architecture/repository-facts.yaml \
+  --output <temporary-profile.yaml>
+```
+
+Select only task-relevant Markdown knowledge and persist the reasons and
+exclusions:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py select-knowledge \
+  --facts <repo>/.architecture/repository-facts.yaml \
+  --profile <profile.yaml> \
+  --task "<current audit request>" \
+  --skill project-architecture-audit \
+  --output <repo>/.architecture/knowledge-selection.yaml
+```
+
+Read every selected entry completely. Do not load the full knowledge tree.
+Treat repository facts as observations, never as risk conclusions.
+
+### 2. Establish scope and provenance
 
 - Resolve the repository root, requested paths, current commit, dirty-tree state, and active guidance.
 - Inventory only source-of-truth inputs relevant to architecture: product and architecture documents, source, migrations, schemas, API or event definitions, deployment configuration, tests, and CI.
 - Record missing or inaccessible evidence as `not_assessed`; never turn absence of inspection into a pass.
 - Redact secrets and personal data from excerpts.
 
-### 2. Build an architecture evidence map
+### 3. Build an architecture evidence map
 
 Map:
 
@@ -58,7 +93,7 @@ Map:
 
 Trace every declared critical flow end to end. Prefer ownership and runtime paths over directory names.
 
-### 3. Assess the rule set
+### 4. Assess the rule set
 
 Assess every machine rule in each Profile `rule_packs` entry and use
 `project-rules.md` as investigation guidance. Load additional specialist audits
@@ -70,7 +105,7 @@ kind, and never allow them to shadow bundled IDs.
 
 For a large or cross-boundary repository, use up to four read-only specialists when subagent tools are available: boundaries, integration/data, runtime/reliability, and security/quality. Keep scopes non-overlapping and retain synthesis and verification in the main agent. If delegation is unavailable, run the same passes sequentially.
 
-### 4. Form candidate findings
+### 5. Form candidate findings
 
 For each candidate:
 
@@ -79,11 +114,13 @@ For each candidate:
 - trace the affected flow and owning boundary;
 - state impact, blast radius, confidence, and counter-evidence;
 - distinguish repository fact, inference, and unknown;
+- record the E1–E5 evidence level, evidence fingerprint, Rule Pack version,
+  profile applicability, selected knowledge, and staleness state;
 - use a stable finding ID.
 
 Do not infer an architecture flaw from file size, import count, a singleton, SQLite, a framework choice, or a directory name. Metrics are investigation leads only.
 
-### 5. Prepare the verification handoff
+### 6. Prepare the verification handoff
 
 Before handing candidates to the verifier:
 
@@ -99,7 +136,7 @@ Do not promote a candidate to a final risk. When the user requested a complete
 or verified review, continue with `$architecture-finding-verifier` after
 persisting the candidate artifact.
 
-### 6. Persist and validate
+### 7. Persist and validate
 
 When the user requested a persistent audit, write:
 
@@ -110,10 +147,18 @@ Start machine-readable output from `../../resources/templates/review.yaml`; repl
 Validate each YAML review:
 
 ```bash
-python3 ../../resources/scripts/architecture_tool.py validate-review <review.yaml>
+python3 ../../resources/scripts/architecture_tool.py validate-review \
+  <review.yaml> --project <repo>
+
+python3 ../../resources/scripts/architecture_tool.py validate-coverage \
+  --project <repo> --review <review.yaml> --allow-candidates
 ```
 
 Resolve the script path from this Skill's directory when invoking it from another repository.
+Use Review schema 1.2 for new audits. Bind the exact repository-facts and
+knowledge-selection files and hashes; enumerate every critical flow and Rule
+Pack rule. A candidate may say `not_assessed` with a reason, but must never
+silently omit coverage.
 
 ## Handoff requirements
 

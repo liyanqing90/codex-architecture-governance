@@ -37,12 +37,19 @@ This project:
   an MCP server;
 - does not make unverified model findings blocking by default.
 
-Trusted schema `1.1` additionally binds repository/Profile/Rule Pack/candidate
+Trusted schemas `1.1` and `1.2` bind repository/Profile/Rule Pack/candidate
 hashes, complete coverage, verification authority, semantic fingerprints, and
-Git/evidence-run evidence. Risk acceptance is a separate two-party, expiring
-registry. V5 supports detached SSH artifact signatures. These are integrity
-controls, not proof of human identity, provider correctness, or system
-security.
+Git/evidence-run evidence. Schema `1.2` also binds deterministic repository
+facts, task-scoped knowledge selection, exact selected entries, evidence
+fingerprints, and critical-flow coverage. Risk acceptance is a separate
+two-party, expiring registry. V5 supports detached SSH artifact signatures.
+These are integrity controls, not proof of human identity, provider
+correctness, or system security.
+
+The repository inspector is intentionally non-interpretive: a detected
+dependency, language, or storage technology cannot create a Finding or
+recommendation. Scope traversal outside the explicit repository root is
+rejected.
 
 Review every provider command before enabling it. The external executable may
 have its own network, credential, file-system, or code-execution behavior; the

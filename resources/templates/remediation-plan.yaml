@@ -1,4 +1,4 @@
-schema_version: "1.1"
+schema_version: "1.2"
 plan:
   id: example-project-19700101-remediation
   source_review: example-project-19700101-project
@@ -13,6 +13,13 @@ items:
   - id: PLAN-EXAMPLE-001
     finding_ids:
       - EXAMPLE-ARC-001
+    finding_bindings:
+      - id: EXAMPLE-ARC-001
+        fingerprint: "0000000000000000000000000000000000000000000000000000000000000000"
+    knowledge_ids:
+      - migration.layered-monolith-to-modular
+    assumptions:
+      - Replace with an implementation assumption whose failure triggers replanning.
     desired_invariant: Replace with the boundary invariant the change must restore.
     owner: unassigned
     recommended_option:

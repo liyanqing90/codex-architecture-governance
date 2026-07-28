@@ -1,0 +1,30 @@
+schema_version: "1.0"
+cases:
+  - id: monolith-vs-microservices
+    decision_guide: decision.monolith-vs-microservices
+    must_compare: [team-autonomy, deployment, isolation, operations, migration]
+    prohibited_shortcut: A large codebase alone requires microservices.
+  - id: sync-vs-async
+    decision_guide: decision.sync-vs-async
+    must_compare: [result-timing, temporal-coupling, ordering, idempotency, recovery]
+    prohibited_shortcut: A queue is inherently more scalable.
+  - id: polling-sse-websocket
+    decision_guide: decision.polling-vs-sse-vs-websocket
+    must_compare: [directionality, freshness, reconnect, fanout, operations]
+    prohibited_shortcut: Real-time always requires WebSocket.
+  - id: rest-graphql-grpc
+    decision_guide: decision.rest-vs-graphql-vs-grpc
+    must_compare: [consumer-shape, contracts, tooling, evolution, operations]
+    prohibited_shortcut: One protocol is universally modern.
+  - id: local-first-server-first
+    decision_guide: decision.local-first-vs-server-first
+    must_compare: [offline-writes, authority, conflicts, migration, privacy]
+    prohibited_shortcut: Weak networks alone require local-first replication.
+  - id: workflow-vs-agent
+    decision_guide: decision.workflow-vs-agent
+    must_compare: [determinism, judgment, recovery, permissions, evaluation]
+    prohibited_shortcut: AI-enabled work must be agentic.
+  - id: single-vs-multi-agent
+    decision_guide: decision.single-agent-vs-multi-agent
+    must_compare: [context-boundary, authority, coordination, evaluation, cost]
+    prohibited_shortcut: Role names justify multiple agents.

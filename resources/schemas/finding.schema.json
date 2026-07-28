@@ -288,6 +288,72 @@
         "minLength": 1
       }
     },
+    "evidence_level": {
+      "enum": ["E1", "E2", "E3", "E4", "E5"]
+    },
+    "evidence_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "fact_inference_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["facts", "inferences", "unknowns"],
+      "properties": {
+        "facts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "inferences": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "unknowns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        }
+      }
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile_conditions"],
+      "properties": {
+        "profile_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        }
+      }
+    },
+    "source_candidate_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3
+      }
+    },
+    "rule_pack_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "staleness_state": {
+      "enum": ["current", "changed-path", "stale", "unknown"]
+    },
     "decision_references": {
       "type": "array",
       "uniqueItems": true,

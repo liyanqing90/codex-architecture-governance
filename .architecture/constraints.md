@@ -5,13 +5,13 @@ Maintainers review them with every release that changes a public contract.
 
 ## Product and business
 
-- The nine public Skill names and their distinct user goals are compatibility
+- The eight public Skill names and their distinct user goals are compatibility
   contracts. Owner: maintainers. Source: plugin manifest and README. Changing
   them requires a documented migration and an appropriate SemVer release.
 - Architecture diagnosis, independent verification, remediation planning, and
   deterministic gating remain separate workflows. Architecture solution
   selection sits between verification and remediation; knowledge curation
-  remains separate from product decisions. Owner: maintainers. Source:
+  remains a maintainer-only workflow separate from product decisions. Owner: maintainers. Source:
   accepted repository layout decision. This boundary is fixed unless a new
   architecture decision supersedes it.
 
@@ -24,8 +24,9 @@ Maintainers review them with every release that changes a public contract.
   contracts under root `resources/`. Owner: maintainers. Source: Codex plugin
   validation. Review when the Codex packaging contract changes.
 - Artifact schemas and CLI exit codes are public contracts. Schema `1.0`
-  remains readable; only trusted `1.1` artifacts enter enforcement. Compatible
-  additions are preferred; incompatible changes require migration guidance.
+  remains readable; trusted `1.1` remains compatible; new project artifacts
+  use facts/selection-bound `1.2`. Compatible additions are preferred;
+  incompatible changes require migration guidance.
 
 ## Security, privacy, and compliance
 
@@ -37,6 +38,8 @@ Maintainers review them with every release that changes a public contract.
 - Candidate model findings cannot block a build. Only schema-valid verified
   findings with complete Rule Pack coverage, provenance, evidence bindings,
   and authorized verification may enter the deterministic quality gate.
+- Repository inspection may report observable technology and artifact facts
+  but must never emit suitability, severity, or remediation conclusions.
 - Initialization may create `.architecture/` or `.architecture-portfolio/`
   only at an explicit target and must refuse to overwrite existing state.
 - Bundled Rule Packs and repository-local organization Rule Packs are separate

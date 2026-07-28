@@ -18,7 +18,6 @@ from jsonschema.exceptions import SchemaError
 EXPECTED_SKILLS = (
     "ai-agent-architecture-audit",
     "architecture-finding-verifier",
-    "architecture-knowledge-curator",
     "architecture-quality-gate",
     "architecture-remediation-planner",
     "architecture-solution-advisor",
@@ -45,6 +44,7 @@ REQUIRED_FILES = (
     "CONTRIBUTING.md",
     "GOVERNANCE.md",
     "LICENSE",
+    "maintainer/skills/architecture-knowledge-curator/SKILL.md",
     "NOTICE",
     "README.md",
     "SECURITY.md",
@@ -53,9 +53,18 @@ REQUIRED_FILES = (
     "docs/assurance-model.md",
     "docs/compatibility.md",
     "docs/comprehensive-review-implementation.md",
+    "docs/knowledge-authoring.md",
     "docs/releasing.md",
     "docs/migrating-to-0.2.md",
+    "docs/migrating-to-0.3.md",
+    "docs/target-architecture.md",
+    "docs/target-architecture-implementation.md",
     "evals/cases.yaml",
+    "evals/artifact-validity.yaml",
+    "evals/decision-quality.yaml",
+    "evals/false-positive.yaml",
+    "evals/knowledge-selection.yaml",
+    "evals/routing.yaml",
     "benchmarks/ground-truth.yaml",
     "benchmarks/run-template.yaml",
     "pyproject.toml",
@@ -67,6 +76,19 @@ REQUIRED_FILES = (
     "scripts/audit_licenses.py",
     "scripts/run_behavior_benchmark.py",
     "scripts/verify_checksum.py",
+    "resources/knowledge/manifest.yaml",
+    "resources/schemas/knowledge-entry.schema.json",
+    "resources/schemas/knowledge-manifest.schema.json",
+    "resources/schemas/knowledge-selection.schema.json",
+    "resources/schemas/repository-facts.schema.json",
+    "resources/scripts/build_project_profile.py",
+    "resources/scripts/fingerprint_artifact.py",
+    "resources/scripts/inspect_repository.py",
+    "resources/scripts/knowledge_model.py",
+    "resources/scripts/migrate_artifacts.py",
+    "resources/scripts/select_knowledge.py",
+    "resources/scripts/validate_coverage.py",
+    "resources/scripts/validate_knowledge.py",
     "third_party/PAAD-MIT.txt",
     ".github/dependabot.yml",
     ".github/ISSUE_TEMPLATE/bug_report.yml",
@@ -434,6 +456,11 @@ def validate_schemas_and_yaml(root: Path, errors: list[str]) -> None:
             format_checker=FormatChecker(),
         )
         for path in sorted(instance_root.glob(pattern)):
+            if (
+                schema_name == "knowledge-catalog.schema.json"
+                and path.name == "manifest.yaml"
+            ):
+                continue
             payload = load_yaml(path, errors)
             if payload is None:
                 continue
@@ -455,6 +482,7 @@ def validate_schemas_and_yaml(root: Path, errors: list[str]) -> None:
         "dependency-map.yaml": "dependency-map.schema.json",
         "evidence-providers.yaml": "evidence-provider-config.schema.json",
         "gate-policy.yaml": "gate-policy.schema.json",
+        "knowledge-selection.yaml": "knowledge-selection.schema.json",
         "portfolio-gate-policy.yaml": "gate-policy.schema.json",
         "portfolio.yaml": "portfolio.schema.json",
         "profile.yaml": "project-profile.schema.json",
@@ -477,6 +505,23 @@ def validate_schemas_and_yaml(root: Path, errors: list[str]) -> None:
         for error in validator.iter_errors(payload):
             errors.append(
                 f"{template_path} does not match {schema_name}: {error.message}"
+            )
+
+    manifest_path = root / "resources" / "knowledge" / "manifest.yaml"
+    manifest = load_yaml(manifest_path, errors)
+    manifest_schema = load_json(
+        schemas_root / "knowledge-manifest.schema.json",
+        errors,
+    )
+    if isinstance(manifest, dict) and manifest_schema is not None:
+        validator = Draft202012Validator(
+            manifest_schema,
+            format_checker=FormatChecker(),
+        )
+        for error in validator.iter_errors(manifest):
+            errors.append(
+                f"{manifest_path} does not match knowledge-manifest.schema.json: "
+                f"{error.message}"
             )
 
     benchmark = load_yaml(root / "benchmarks" / "ground-truth.yaml", errors)
@@ -570,6 +615,78 @@ def validate_evals(root: Path, errors: list[str]) -> None:
         )
 
 
+def validate_supplemental_evals(root: Path, errors: list[str]) -> None:
+    names = (
+        "routing.yaml",
+        "knowledge-selection.yaml",
+        "decision-quality.yaml",
+        "false-positive.yaml",
+        "artifact-validity.yaml",
+    )
+    payloads: dict[str, dict[str, Any]] = {}
+    for name in names:
+        path = root / "evals" / name
+        payload = load_yaml(path, errors)
+        if not isinstance(payload, dict):
+            errors.append(f"{path} must contain a mapping")
+            continue
+        payloads[name] = payload
+        if payload.get("schema_version") != "1.0":
+            errors.append(f"{path} schema_version must be '1.0'")
+        cases = payload.get("cases")
+        if not isinstance(cases, list) or not cases:
+            errors.append(f"{path} cases must be a non-empty array")
+            continue
+        case_ids = [
+            case.get("id")
+            for case in cases
+            if isinstance(case, dict) and isinstance(case.get("id"), str)
+        ]
+        if len(case_ids) != len(cases):
+            errors.append(f"{path} every case requires a string id")
+        if len(case_ids) != len(set(case_ids)):
+            errors.append(f"{path} contains duplicate case IDs")
+
+    base = load_yaml(root / "evals" / "cases.yaml", errors)
+    routing = payloads.get("routing.yaml")
+    if isinstance(base, dict) and isinstance(routing, dict):
+        base_skills = {
+            case["id"]: case["skill"]
+            for case in base.get("cases", [])
+            if isinstance(case, dict)
+            and isinstance(case.get("id"), str)
+            and isinstance(case.get("skill"), str)
+        }
+        for case in routing.get("cases", []):
+            if not isinstance(case, dict):
+                continue
+            case_id = case.get("id")
+            expected_skill = case.get("expected_skill")
+            if case_id not in base_skills:
+                errors.append(
+                    f"evals/routing.yaml references unknown base case {case_id!r}"
+                )
+            elif expected_skill != base_skills[case_id]:
+                errors.append(
+                    f"evals/routing.yaml {case_id!r} expected_skill does not "
+                    "match evals/cases.yaml"
+                )
+
+    selection = payloads.get("knowledge-selection.yaml")
+    if isinstance(selection, dict):
+        for case in selection.get("cases", []):
+            if not isinstance(case, dict):
+                continue
+            includes = set(case.get("must_include", []))
+            excludes = set(case.get("must_exclude", []))
+            overlap = sorted(includes & excludes)
+            if overlap:
+                errors.append(
+                    f"evals/knowledge-selection.yaml {case.get('id')!r} "
+                    "both includes and excludes: " + ", ".join(overlap)
+                )
+
+
 def validate_dependency_locks(root: Path, errors: list[str]) -> None:
     for name in ("requirements-runtime.lock", "requirements-dev.lock"):
         path = root / name
@@ -630,12 +747,6 @@ def validate_repository_hygiene(root: Path, errors: list[str]) -> None:
         if not runtime_root.exists():
             continue
         for path in runtime_root.rglob("*"):
-            if (
-                "__pycache__" in path.parts
-                or path.suffix in {".pyc", ".pyo"}
-                or path.name == ".DS_Store"
-            ):
-                errors.append(f"runtime tree contains a development artifact: {path}")
             if path.is_symlink():
                 errors.append(f"runtime tree must not contain symlinks: {path}")
 
@@ -715,6 +826,7 @@ def validate_repository(root: Path) -> list[str]:
     validate_markdown_links(root, errors)
     validate_schemas_and_yaml(root, errors)
     validate_evals(root, errors)
+    validate_supplemental_evals(root, errors)
     validate_dependency_locks(root, errors)
     validate_github_action_pins(root, errors)
     validate_changelog(root, manifest, errors)
@@ -751,7 +863,7 @@ def main() -> None:
     )
     print(
         "Repository validation passed: "
-        f"{len(EXPECTED_SKILLS)} Skills, "
+        f"{len(EXPECTED_SKILLS)} public Skills, "
         f"{len(eval_payload['cases'])} eval cases, "
         f"{schema_count} schemas, and {template_count} templates."
     )

@@ -7,6 +7,50 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-29
+
+### Added
+
+- Deterministic repository-facts inspection, provisional Profile construction,
+  task-scoped knowledge selection, coverage validation, artifact
+  fingerprinting, and safe legacy Review migration commands.
+- Review, Finding, Architecture Decision, and Remediation Plan schema `1.2`
+  bindings for facts, selected knowledge, critical flows, evidence
+  fingerprints, finding fingerprints, assumptions, and migration slices.
+- Ten Markdown/frontmatter Knowledge Packs containing 205 validated entries:
+  foundations, domains, decision guides, architecture styles, patterns,
+  technology profiles, reference architectures, migration guides,
+  anti-patterns, and case studies.
+- Knowledge manifest and entry schemas, relationship validation, source
+  policy, freshness windows, stale-entry rejection, and explicit selection
+  reasons and exclusions.
+- Dedicated routing, knowledge-selection, decision-quality, false-positive,
+  and artifact-validity evaluation corpora.
+- Target-architecture, knowledge-authoring, 0.3 migration, and implementation
+  documentation plus an accepted decision for the workflow/knowledge/script
+  separation.
+
+### Changed
+
+- The public surface now contains exactly eight workflow Skills. Knowledge
+  curation moved to `maintainer/skills/` because it is a release-maintenance
+  role rather than an end-user architecture workflow.
+- New project initialization records deterministic repository facts and keeps
+  detected, declared, and inferred Profile inputs separate.
+- New audits and decisions use schema `1.2`; schema `1.0` and `1.1` remain
+  readable and trusted `1.1` artifacts retain their 0.2 compatibility path.
+- Architecture knowledge is selected per repository, task, and Skill instead
+  of loading every bundled catalog into context.
+- Plugin and portable CLI version are now `0.3.0`.
+
+### Security
+
+- Legacy verified Reviews are migrated only as candidates. Migration cannot
+  synthesize independent verification, critical-flow coverage, or current
+  trust.
+- Fact, Profile, selection, knowledge-entry, Finding, Review, Decision, Plan,
+  and completion-evidence hashes are checked at their owning boundaries.
+
 ## [0.2.0] - 2026-07-28
 
 ### Added

@@ -13,17 +13,25 @@ Knowledge supports decisions; it does not predetermine them.
 Persist stable and slow-changing knowledge with sources and freshness. Verify
 fast-changing facts from current official sources when used.
 
+Canonical knowledge is Markdown with validated YAML frontmatter and is
+registered by `../knowledge/manifest.yaml`. The ten semantic packs keep
+foundations, domains, decision guides, architecture styles, patterns,
+technology profiles, reference architectures, migration guides,
+anti-patterns, and case studies distinct. Legacy YAML catalogs are read-only
+compatibility inputs.
+
 ## Entry standard
 
 Every entry states:
 
-- the problem and intent;
-- fit and avoid conditions;
-- benefits and liabilities;
-- required capabilities and warning signals;
-- alternatives or migration paths when applicable;
-- official or standards sources;
-- last review date and maximum review age.
+- canonical ID, kind, semantic version, domains, triggers, qualities, and
+  related canonical IDs;
+- the problem and intent, mechanism, fit and avoid conditions;
+- required capabilities, benefits, costs, and failure modes;
+- alternatives, migration, exit, and evidence that changes the recommendation;
+- quality trade-offs and explicitly volatile facts;
+- official or standards sources, source policy, last review date, and maximum
+  review age.
 
 State what the mechanism does not solve. Keep architecture styles separate from
 implementation technologies. Do not encode popularity, a vendor claim, or a
@@ -39,5 +47,5 @@ impact. See `evidence-provider-contract.md`.
 Run:
 
 ```bash
-python3 ../scripts/architecture_tool.py validate-knowledge
+python3 ../scripts/validate_knowledge.py
 ```

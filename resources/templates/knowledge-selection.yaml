@@ -1,0 +1,19 @@
+schema_version: "1.0"
+selection:
+  - id: foundation.evidence-reasoning
+    version: "1.0.0"
+    path: foundations/evidence-reasoning.md
+    sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    reasons:
+      - Replace with a deterministic Skill, fact, profile, task, or explicit-include reason.
+excluded:
+  - id: technology.kubernetes
+    reason: No project fact, profile domain, task trigger, or explicit include selected it.
+inputs:
+  skill: project-architecture-audit
+  task: Replace with the current architecture task.
+  facts_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  profile_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+budget:
+  maximum_entries: 24
+  selected_entries: 1

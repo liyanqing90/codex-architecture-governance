@@ -1,7 +1,7 @@
 # Comprehensive review implementation matrix
 
 This document maps the recommendations in
-`codex-architecture-governance-comprehensive-review.md` against version 0.2.
+`codex-architecture-governance-comprehensive-review.md` against version 0.3.
 It distinguishes executable capability from documentation and from evidence
 that only an external model or repository can produce.
 
@@ -42,11 +42,11 @@ planned as reversible slices, and proven complete with evidence.
 
 ## Architecture capability
 
-| Review requirement | Version 0.2 capability |
+| Review requirement | Version 0.3 capability |
 | --- | --- |
-| Quality-attribute-first assessment | Profile 1.1 contains prioritized quality attributes and measurable source/trigger/environment/target/response/measure scenarios. |
+| Quality-attribute-first assessment | Profile 1.1 contains prioritized quality attributes and measurable source/trigger/environment/target/response/measure scenarios. Version 0.3 also separates deterministic repository facts, declared context, and bounded inference. |
 | Business, team, stage, scale, cost, and operations | Structured business context records team count, ownership, distributed-systems experience, on-call, change frequency, scale, latency, availability, consistency, offline, deployment, budget, deadlines, and stack/migration constraints. |
-| Architecture styles and fit/avoid guidance | Eight catalogs contain 128 sourced entries spanning quality models, styles, patterns, technologies, domains, reference architectures, migrations, and decision guides. |
+| Architecture styles and fit/avoid guidance | Ten Markdown/frontmatter packs contain 205 sourced entries spanning foundations, domains, decision guides, styles, patterns, technologies, references, migrations, anti-patterns, and case studies. The 128 YAML entries remain read-only compatibility data. |
 | Domain and stack depth | Nineteen core/domain Rule Packs cover project, AI agent, mobile, portfolio, frontend, backend, data, real-time, SaaS, identity, trading, IoT, search, media, test, plugin, local-first, desktop, and cloud-native boundaries. |
 | Organization knowledge | Repositories can version schema-validated packs under `.architecture/rules/`; duplicate/shadowing IDs and review-kind mismatches fail. |
 | AI Agent architecture | Dedicated Skill and Rule Pack cover agent/workflow boundaries, context, memory, retrieval provenance, tool authority, injection, side effects, recovery, routing, evaluation, cost, and human control. Knowledge catalogs include agent orchestration and RAG reference guidance. |
@@ -55,13 +55,13 @@ planned as reversible slices, and proven complete with evidence.
 
 ## Solution and evolution
 
-| Review requirement | Version 0.2 capability |
+| Review requirement | Version 0.3 capability |
 | --- | --- |
-| Separate solution authority | `architecture-solution-advisor` and Architecture Decision artifact sit between verified findings and remediation. |
+| Separate solution authority | `architecture-solution-advisor` and Architecture Decision artifact sit between verified findings and remediation. The maintainer-only curator cannot select a project architecture. |
 | Multiple candidates and keep-current | A decision requires at least three options, including keep-current; selected and nonselected options record reasons. |
 | Hard elimination and proportionality | Decision guides encode rejection rules for unjustified microservices, workflow, event sourcing, local-first, and multi-agent designs. |
 | Complete trade-off analysis | Every option records quality effects, business/team/evolution fit, complexity, operations, migration, reversibility, cost, maturity, lock-in, and an eleven-dimension scorecard. |
-| Sourced framework choice | Decisions bind exact architecture-style, pattern, and technology-profile catalog version/hash snapshots. |
+| Sourced framework choice | Schema 1.2 Decisions bind the task selection plus exact per-entry Markdown versions and hashes. |
 | Reversible migration | Plans record slices, prerequisites, compatibility, data migration, deployment, observability, rollback, stop conditions, and acceptance criteria. |
 | Completion rather than recommendation | Completed plan items must bind repository-relative evidence files and SHA-256 values for every declared acceptance evidence type. |
 
@@ -93,9 +93,9 @@ decision knowledge.
 
 ## Evaluation and open-source assurance
 
-| Review requirement | Version 0.2 evidence |
+| Review requirement | Version 0.3 evidence |
 | --- | --- |
-| Skill routing | 45 direct, indirect, incomplete, negative, and edge cases across all nine Skills. |
+| Skill routing | 40 direct, indirect, incomplete, negative, and edge cases across all eight public Skills. Separate corpora cover selection, decisions, false positives, and artifact tampering. |
 | Finding/solution adversarial cases | Ten code fixtures cover benign SQLite, healthy modular monolith, conflicting/shared writers, queue/workflow proportionality, client ownership, documentation contradiction, prompt authority, and single-agent sufficiency. |
 | Evidence validity | The scorer independently resolves fixture path, line range, and exact excerpt; a model validity claim is ignored. |
 | Stability and cost | The harness starts an independent command for each repetition and reports finding/severity stability, duration, and optional token/cost usage. |

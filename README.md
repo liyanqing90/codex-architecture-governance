@@ -17,8 +17,8 @@ candidate audit
 → layered quality gate
 ```
 
-Knowledge curation is a separate maintenance workflow that supplies sourced,
-fresh decision knowledge without selecting a product architecture.
+Knowledge curation is a maintainer-only workflow that supplies sourced, fresh
+decision knowledge without expanding the public end-user Skill surface.
 
 ## Included Skills
 
@@ -32,7 +32,10 @@ fresh decision knowledge without selecting a product architecture.
 | `architecture-solution-advisor` | Compare keep-current and structural options against quality scenarios, constraints, team capability, migration risk, cost, and lock-in. |
 | `architecture-remediation-planner` | Convert an accepted solution decision into ordered migration slices, protections, stop conditions, rollback, and acceptance criteria. |
 | `architecture-quality-gate` | Apply deterministic contract, finding, change, and release policy to trusted artifacts. |
-| `architecture-knowledge-curator` | Maintain quality models, styles, patterns, technology profiles, reference architectures, migrations, rules, and official-source freshness. |
+
+The source-only curator lives at
+`maintainer/skills/architecture-knowledge-curator/`; the installable plugin
+exposes exactly the eight workflows above.
 
 ## What is executable
 
@@ -42,12 +45,15 @@ fresh decision knowledge without selecting a product architecture.
   baselines, risk acceptance, knowledge, providers, rules, and benchmarks;
 - nineteen machine-readable core and domain Rule Packs, plus repository-local
   organization packs, with complete-coverage enforcement;
-- eight sourced architecture knowledge catalogs containing 128 entries;
+- ten Markdown/frontmatter Knowledge Packs containing 205 sourced entries,
+  plus 128 read-only 0.2 compatibility entries;
 - eleven executable Evidence Provider contracts with safe project-local
   configuration, structured-output validation, and tamper-evident run records;
 - a portable Python CLI for initialization, validation, provenance binding,
   Git evidence resolution, review diffing, provider execution, signature
-  verification, benchmark scoring, SARIF, and gates.
+  verification, repository-facts inspection, Profile construction, task-scoped
+  knowledge selection, coverage validation, safe artifact migration,
+  benchmark scoring, SARIF, and gates.
 
 The repository itself owns CI, tests, behavior benchmarks, contribution policy,
 dependency locks, deterministic packaging, SBOM generation, and release
@@ -55,6 +61,9 @@ attestation. The accepted boundaries are recorded in
 [the 1.1 governance decision](docs/decisions/2026-07-28-adopt-trusted-governance-1.1.md).
 The [comprehensive review implementation matrix](docs/comprehensive-review-implementation.md)
 maps every material recommendation to executable capability and evidence.
+The [target architecture](docs/target-architecture.md) and
+[0.3 implementation matrix](docs/target-architecture-implementation.md)
+describe the facts, knowledge, workflow, and trust boundaries.
 
 ## Requirements and installation
 
@@ -97,6 +106,7 @@ The command refuses an existing destination and creates:
 ```text
 .architecture/
 ├── profile.yaml
+├── repository-facts.yaml
 ├── constraints.md
 ├── critical-flows.md
 ├── gate-policy.yaml
@@ -109,6 +119,10 @@ The command refuses an existing destination and creates:
 ```
 
 `profile.yaml` selects project qualities, reviews, and Rule Packs.
+`repository-facts.yaml` contains deterministic observations; it never contains
+a recommendation. Before each audit or decision, `select-knowledge` creates a
+task-scoped `knowledge-selection.yaml` containing exact entry hashes, reasons,
+exclusions, and context budget.
 `constraints.md` records real limits. `critical-flows.md` defines protected
 runtime behavior. Findings, decisions, and plans are stored under `reviews/`.
 Organization rules can be versioned as Rule Packs under
@@ -118,19 +132,22 @@ Validate a configuration:
 
 ```bash
 python3 resources/scripts/architecture_tool.py validate-project /path/to/repository
-python3 resources/scripts/architecture_tool.py validate-knowledge
+python3 resources/scripts/validate_knowledge.py
 ```
 
 ## Trusted reviews and evidence
 
 Schema `1.0` remains readable for migration and historical records. Only schema
-`1.1` can enter deterministic enforcement. A trusted verified review binds:
+`1.1` or `1.2` can enter deterministic enforcement. New project, AI-agent, and
+mobile audits use `1.2`. A trusted verified Review binds:
 
 - repository identity, Git commit, dirty-tree state, profile hash, and explicit
   scope manifest;
+- exact repository-facts and task-scoped knowledge-selection bytes;
 - exact Rule Pack versions and SHA-256 hashes;
 - a source candidate review and its SHA-256;
 - complete coverage for every loaded rule;
+- explicit coverage for every declared critical flow;
 - an authorized verifier, verification run, V0–V5 level, and semantic Finding
   fingerprint;
 - resolvable Git paths, commits, blobs, symbols, line ranges, or declared
@@ -144,6 +161,20 @@ Generate deterministic bindings before independent verification:
 python3 resources/scripts/architecture_tool.py review-bindings \
   --project /path/to/repository \
   --candidate .architecture/reviews/example-candidates.yaml
+```
+
+For a new audit, establish inputs first:
+
+```bash
+python3 resources/scripts/architecture_tool.py inspect-repository \
+  --repo /path/to/repository \
+  --output /path/to/repository/.architecture/repository-facts.yaml
+python3 resources/scripts/architecture_tool.py select-knowledge \
+  --facts /path/to/repository/.architecture/repository-facts.yaml \
+  --profile /path/to/repository/.architecture/profile.yaml \
+  --task "Current architecture audit" \
+  --skill project-architecture-audit \
+  --output /path/to/repository/.architecture/knowledge-selection.yaml
 ```
 
 Then validate and resolve evidence:
@@ -185,21 +216,25 @@ python3 resources/scripts/architecture_tool.py review-diff \
 
 ## Decisions, plans, and risk acceptance
 
-Solution decisions must reference a trusted review by ID and SHA-256. Schema
-`1.1` decisions compare at least three options, including keep-current, bind an
-exact knowledge snapshot, and score quality, business, team, evolution,
-maturity, lock-in, and complexity trade-offs. Generate their hashes first:
+Solution decisions must reference a trusted Review by ID and SHA-256. Schema
+`1.2` Decisions compare at least three options, including keep-current, bind
+the exact task selection and per-entry Markdown versions and hashes, and score
+quality, business, team, evolution, maturity, lock-in, and complexity
+trade-offs. Generate their hashes first:
 
 ```bash
 python3 resources/scripts/architecture_tool.py decision-bindings \
-  --project . --review verified.yaml
+  --project . --review verified.yaml \
+  --knowledge-selection .architecture/knowledge-selection.yaml
 python3 resources/scripts/architecture_tool.py validate-decision \
   decision.yaml --review verified.yaml --project . --require-accepted
 ```
 
 Plans bind the accepted decision and source review. A plan marked complete must
 provide repository-relative, SHA-256-bound acceptance evidence for every
-declared evidence type:
+declared evidence type. Schema `1.2` items also bind Finding fingerprints,
+selected knowledge IDs, assumptions, migration slices, rollback, and stop
+conditions:
 
 ```bash
 python3 resources/scripts/architecture_tool.py validate-plan \
@@ -245,7 +280,9 @@ publishes the Check summary and updates a pull-request comment.
 ## Behavior evaluation
 
 `evals/cases.yaml` contains one direct, indirect, incomplete, negative, and
-edge activation case for each of the nine Skills. `benchmarks/` adds ten
+edge activation case for each of the eight public Skills: 40 cases total.
+Separate corpora cover routing, knowledge selection, decision quality,
+false-positive resistance, and artifact tampering. `benchmarks/` adds ten
 adversarial code fixtures with ground truth, forbidden over-design
 recommendations, and metrics for precision, recall, severity agreement,
 evidence validity, prohibited recommendations, repeated-trial stability,
@@ -272,7 +309,7 @@ Run the local gate:
 ```bash
 python3 scripts/validate_repository.py
 python3 resources/scripts/architecture_tool.py validate-project .
-python3 resources/scripts/architecture_tool.py validate-knowledge
+python3 resources/scripts/validate_knowledge.py
 python3 -m pytest
 python3 -m ruff check .
 python3 -m ruff format --check .
@@ -280,15 +317,16 @@ python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/codex-architecture-governance-0.2.0.zip \
-  --output dist/codex-architecture-governance-0.2.0.spdx.json
+  --archive dist/codex-architecture-governance-0.3.0.zip \
+  --output dist/codex-architecture-governance-0.3.0.spdx.json
 ```
 
 CI runs the supported Python boundary on Linux, macOS, and Windows. Tagged
 releases rebuild the deterministic ZIP, attach its checksum and SPDX SBOM, and
 create GitHub provenance plus SBOM attestations. See
 [release verification](docs/releasing.md), [compatibility](docs/compatibility.md),
-and the [assurance model](docs/assurance-model.md). A scheduled workflow checks
+the [0.3 migration guide](docs/migrating-to-0.3.md), and the
+[assurance model](docs/assurance-model.md). A scheduled workflow checks
 knowledge freshness and opens or updates an issue; it never silently rewrites
 sourced decision knowledge.
 

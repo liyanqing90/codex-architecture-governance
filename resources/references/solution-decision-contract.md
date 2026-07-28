@@ -16,7 +16,8 @@ quality-attribute effects, business/team/evolution fit, complexity tier,
 implementation and operational complexity, maturity and lock-in, migration
 risk, reversibility, cost, and the complete trade-off scorecard.
 
-Use the catalogs under `../knowledge/` as maintained decision evidence:
+Use the task-scoped Markdown entries selected from
+`../knowledge/manifest.yaml` as maintained decision evidence:
 
 - quality model for vocabulary and scenarios;
 - styles for system organization;
@@ -27,7 +28,7 @@ Use the catalogs under `../knowledge/` as maintained decision evidence:
 - domain guidance for specialist requirements;
 - decision guides for hard rejection rules.
 
-Catalog entries do not override project evidence. A technology's capability
+Knowledge entries do not override project evidence. A technology's capability
 does not prove project fit.
 
 ## Status and authority
@@ -38,16 +39,20 @@ does not prove project fit.
 - `superseded`: replaced by another recorded decision.
 
 Bind the decision to the verified Review ID and file SHA-256. Bind every cited
-architecture style, pattern, and technology profile to the exact current
-catalog version and SHA-256. Include only confirmed, unresolved Finding IDs.
-Record hard eliminations, why every nonselected option was rejected, all
-decision makers, and at least one measurable revisit trigger.
+architecture style, pattern, technology profile, reference architecture, and
+migration guide to the exact selected entry version and SHA-256. Bind the
+selection artifact itself. Include only confirmed, unresolved Finding IDs.
+Record known facts, assumptions, unknowns, hard eliminations, why every
+nonselected option was rejected, compatible migration slices, all decision
+makers, and at least one measurable revisit trigger.
 
 Generate the non-inferable bindings with:
 
 ```bash
 python3 ../scripts/architecture_tool.py decision-bindings \
-  --project <repository-root> --review <verified-review.yaml>
+  --project <repository-root> \
+  --review <verified-review.yaml> \
+  --knowledge-selection <decision-knowledge-selection.yaml>
 ```
 
 Validate with:

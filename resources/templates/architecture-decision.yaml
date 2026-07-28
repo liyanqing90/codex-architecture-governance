@@ -1,4 +1,4 @@
-schema_version: "1.1"
+schema_version: "1.2"
 decision:
   id: ADR-EXAMPLE-001
   source_review: example-project-19700101-project
@@ -7,6 +7,8 @@ decision:
   decision_makers:
     - unassigned
   status: proposed
+  knowledge_selection_path: .architecture/knowledge-selection.yaml
+  knowledge_selection_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
 problem:
   quality_attributes:
     - maintainability
@@ -16,10 +18,15 @@ problem:
     - EXAMPLE-ARC-001
   assumptions:
     - Replace with an assumption whose failure changes the decision.
+  known_facts:
+    - Replace with a directly observed and source-bound fact.
+  unknowns:
+    - Replace with an unresolved input that affects confidence.
 knowledge_snapshot:
-  - {kind: architecture-style, catalog_version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-  - {kind: pattern, catalog_version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-  - {kind: technology-profile, catalog_version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+  - {id: style.modular-monolith, version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+  - {id: pattern.feature-flag, version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+  - {id: technology.import-linter, version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+  - {id: migration.layered-monolith-to-modular, version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
 options:
   - id: keep-current
     title: Keep the current architecture and apply a local correction
@@ -64,7 +71,7 @@ options:
     title: Apply a bounded structural improvement inside current deployment boundaries
     complexity_tier: low
     architecture_styles:
-      - modular-monolith
+      - style.modular-monolith
     patterns: []
     technologies: []
     benefits:
@@ -105,7 +112,7 @@ options:
     title: Replace with a materially viable structural alternative
     complexity_tier: medium
     architecture_styles:
-      - modular-monolith
+      - style.modular-monolith
     patterns: []
     technologies: []
     benefits:
@@ -149,3 +156,10 @@ revisit_triggers:
 acceptance_evidence:
   - Replace with observable decision acceptance evidence.
 hard_eliminations: []
+migration:
+  slices:
+    - Introduce the selected behavior behind a compatible boundary.
+    - Verify acceptance evidence before contracting the old path.
+  rollback: Restore the previous routing while the old path remains compatible.
+  validation:
+    - Prove the primary quality scenario and one adjacent negative path.

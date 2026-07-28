@@ -21,6 +21,12 @@ Read these files completely:
    `.architecture-portfolio/` policy, baseline, risk-acceptance registry, and
    explicitly supplied or newest-by-`performed_at` verified review.
 2. Validate all inputs before evaluating them.
+   For Review 1.2, first run:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py validate-coverage \
+  --project <repo> --review <verified-review.yaml>
+```
 3. Run the deterministic gate:
 
 ```bash
@@ -58,6 +64,9 @@ Resolve the script path from this Skill's directory.
 - Treat expired baselines, waivers, and risk acceptances as inactive.
 - Reject legacy `1.0` artifacts for enforcement while preserving migration
   readability.
+- Accept trusted 1.1 artifacts during the compatibility window; require 1.2
+  facts, knowledge selection, and critical-flow bindings for newly produced
+  artifacts.
 - Require passed, hash-valid provider runs for configured release evidence and
   V4/V5 verification.
 - Require every complete plan item to cover its declared acceptance evidence

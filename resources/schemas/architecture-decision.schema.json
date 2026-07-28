@@ -7,7 +7,7 @@
   "required": ["schema_version", "decision", "problem", "knowledge_snapshot", "options", "selected_option", "rationale", "revisit_triggers"],
   "properties": {
     "schema_version": {
-      "const": "1.1"
+      "enum": ["1.1", "1.2"]
     },
     "decision": {
       "type": "object",
@@ -45,6 +45,14 @@
         "supersedes": {
           "type": "string",
           "pattern": "^[A-Z][A-Z0-9._-]{2,63}$"
+        },
+        "knowledge_selection_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "knowledge_selection_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
         }
       }
     },
@@ -83,30 +91,67 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "known_facts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "unknowns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
         }
       }
     },
     "knowledge_snapshot": {
       "type": "array",
-      "minItems": 3,
+      "minItems": 1,
       "uniqueItems": true,
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["kind", "catalog_version", "sha256"],
-        "properties": {
-          "kind": {
-            "enum": ["architecture-style", "pattern", "technology-profile"]
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "catalog_version", "sha256"],
+            "properties": {
+              "kind": {
+                "enum": ["architecture-style", "pattern", "technology-profile"]
+              },
+              "catalog_version": {
+                "type": "string",
+                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
           },
-          "catalog_version": {
-            "type": "string",
-            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
-          },
-          "sha256": {
-            "type": "string",
-            "pattern": "^[a-f0-9]{64}$"
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "version", "sha256"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 3
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
           }
-        }
+        ]
       }
     },
     "options": {
@@ -285,6 +330,63 @@
           }
         }
       }
+    },
+    "migration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slices", "rollback", "validation"],
+      "properties": {
+        "slices": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "rollback": {
+          "type": "string",
+          "minLength": 3
+        },
+        "validation": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        }
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": "1.2"
+          }
+        }
+      },
+      "then": {
+        "required": ["migration"],
+        "properties": {
+          "decision": {
+            "required": [
+              "knowledge_selection_path",
+              "knowledge_selection_sha256"
+            ]
+          },
+          "problem": {
+            "required": ["known_facts", "unknowns"]
+          },
+          "knowledge_snapshot": {
+            "items": {
+              "required": ["id", "version", "sha256"]
+            }
+          }
+        }
+      }
+    }
+  ]
 }

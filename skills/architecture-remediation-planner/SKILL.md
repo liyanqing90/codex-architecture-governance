@@ -35,6 +35,9 @@ contract has materially changed. Stop when the decision remains proposed.
    - rollback or containment strategy;
    - measurable acceptance criteria and the evidence type that will prove each
      one.
+   - exact Finding IDs and fingerprints;
+   - Knowledge IDs from the accepted Decision;
+   - assumptions that trigger replanning.
 5. Order work by risk reduction, dependency, and reversibility—not severity alone.
 6. Mark changes involving schemas, persisted data, public contracts, authorization, production infrastructure, or destructive effects as governed/high-risk work.
 
@@ -50,6 +53,9 @@ Write:
 For portfolio work, use `.architecture-portfolio/reviews/`.
 
 Start from `../../resources/templates/remediation-plan.yaml`; replace every example value and remove unused example entries.
+Use Remediation Plan schema 1.2 for new plans. It must bind the trusted 1.2
+Review, accepted 1.2 Decision, every Finding fingerprint, and only Knowledge
+IDs present in that Decision's selection.
 
 Validate the machine-readable plan and its source chain:
 

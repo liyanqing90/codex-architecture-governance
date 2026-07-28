@@ -17,6 +17,7 @@ import yaml
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_PATH = ROOT / "resources" / "scripts" / "architecture_tool.py"
+sys.path.insert(0, str(SCRIPT_PATH.parent))
 SPEC = importlib.util.spec_from_file_location("architecture_tool", SCRIPT_PATH)
 assert SPEC and SPEC.loader
 architecture_tool = importlib.util.module_from_spec(SPEC)
@@ -369,9 +370,222 @@ class ArchitectureToolTests(unittest.TestCase):
         target = self.init_project()
         self.assertEqual(target, self.root / ".architecture")
         validated = architecture_tool.validate_project(self.root)
-        self.assertEqual(len(validated), 7)
+        self.assertEqual(len(validated), 8)
         with self.assertRaises(architecture_tool.ArchitectureError):
             architecture_tool.init_project(self.project_args())
+
+    def test_legacy_review_migration_downgrades_trust_and_binds_inputs(
+        self,
+    ) -> None:
+        config_root = self.init_project()
+        critical_flows = config_root / "critical-flows.md"
+        critical_flows.write_text(
+            "# Critical flows\n\n"
+            "## Durable save\n\n"
+            "A write must reach its authoritative owner exactly once.\n",
+            encoding="utf-8",
+        )
+        profile_path = config_root / "profile.yaml"
+        facts_path = config_root / "repository-facts.yaml"
+        selection = architecture_tool.select_knowledge(
+            facts_path,
+            profile_path=profile_path,
+            task="Migrate the project architecture review contract.",
+            skill="project-architecture-audit",
+            maximum_entries=16,
+        )
+        selection_path = config_root / "knowledge-selection.yaml"
+        self.write_yaml(selection_path, selection)
+        review_path = self.write_review()
+        migrated_path = config_root / "reviews" / "migrated-candidates.yaml"
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "resources" / "scripts" / "migrate_artifacts.py"),
+                "--project",
+                str(self.root),
+                "--review",
+                str(review_path),
+                "--facts",
+                str(facts_path),
+                "--knowledge-selection",
+                str(selection_path),
+                "--output",
+                str(migrated_path),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        migrated = architecture_tool.load_yaml(migrated_path)
+        self.assertEqual(migrated["schema_version"], "1.2")
+        self.assertEqual(migrated["review"]["verification_state"], "candidates")
+        self.assertTrue(
+            all(
+                finding["verification"]["status"] == "candidate"
+                for finding in migrated["findings"]
+            )
+        )
+        self.assertIn(
+            "Legacy conclusions were deliberately downgraded to candidates.",
+            migrated["limitations"],
+        )
+        architecture_tool.validate_review(
+            migrated_path,
+            rule_pack_ids=["project-core"],
+            strict_trust=True,
+            repository_root=self.root,
+        )
+
+        stale_selection = copy.deepcopy(migrated)
+        stale_selection["selected_knowledge"][0]["sha256"] = "0" * 64
+        stale_path = config_root / "reviews" / "stale-selection.yaml"
+        self.write_yaml(stale_path, stale_selection)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "selected_knowledge does not match",
+        ):
+            architecture_tool.validate_review(
+                stale_path,
+                rule_pack_ids=["project-core"],
+                strict_trust=True,
+                repository_root=self.root,
+            )
+
+        missing_flow = copy.deepcopy(migrated)
+        missing_flow["critical_flow_coverage"] = []
+        missing_flow_path = config_root / "reviews" / "missing-flow.yaml"
+        self.write_yaml(missing_flow_path, missing_flow)
+        with self.assertRaises(architecture_tool.ArchitectureError):
+            architecture_tool.validate_review(
+                missing_flow_path,
+                rule_pack_ids=["project-core"],
+                strict_trust=True,
+                repository_root=self.root,
+            )
+
+        verified = copy.deepcopy(migrated)
+        verified["review"]["id"] = "test-project-12-verified"
+        verified["review"]["verification_state"] = "verified"
+        verified["review"]["reviewers"] = ["architecture-verifier"]
+        verified["review"]["verification_run"] = {
+            "id": "verification-12",
+            "surface": "pytest",
+            "started_at": "2026-07-28T09:59:00+00:00",
+            "completed_at": "2026-07-28T10:01:00+00:00",
+        }
+        verified["review"]["source_candidate"] = {
+            "path": str(migrated_path.relative_to(self.root)),
+            "review_id": migrated["review"]["id"],
+            "sha256": architecture_tool.file_sha256(migrated_path),
+        }
+        verified["summary"]["confirmed"] = len(verified["findings"])
+        for finding in verified["findings"]:
+            finding["verification"] = {
+                "status": "confirmed",
+                "rationale": "Independent test verification confirmed the invariant.",
+            }
+        verified["critical_flow_coverage"] = [
+            {"id": "durable-save", "status": "assessed"}
+        ]
+        verified_path = config_root / "reviews" / "verified-12.yaml"
+        self.write_yaml(verified_path, verified)
+        architecture_tool.validate_review(verified_path)
+
+        _, knowledge = architecture_tool.validate_knowledge_tree(
+            ROOT / "resources" / "knowledge",
+            schema_root=ROOT / "resources" / "schemas",
+            today=date(2026, 7, 29),
+        )
+        decision = architecture_tool.load_yaml(
+            ROOT / "resources" / "templates" / "architecture-decision.yaml"
+        )
+        decision["decision"].update(
+            {
+                "id": "ADR-TEST-012",
+                "source_review": verified["review"]["id"],
+                "source_review_sha256": architecture_tool.file_sha256(verified_path),
+                "status": "accepted",
+                "decision_makers": ["architecture-owner"],
+            }
+        )
+        decision["problem"]["finding_ids"] = ["TEST-DATA-001"]
+        decision["knowledge_snapshot"] = [
+            {
+                "id": entry_id,
+                "version": knowledge[entry_id].metadata["version"],
+                "sha256": knowledge[entry_id].sha256,
+            }
+            for entry_id in (
+                "style.modular-monolith",
+                "pattern.feature-flag",
+                "technology.import-linter",
+                "migration.layered-monolith-to-modular",
+            )
+        ]
+        decision_path = config_root / "reviews" / "decision-12.yaml"
+        self.write_yaml(decision_path, decision)
+        architecture_tool.validate_decision(
+            decision_path,
+            review_path=verified_path,
+            require_accepted=True,
+        )
+
+        plan = architecture_tool.load_yaml(
+            ROOT / "resources" / "templates" / "remediation-plan.yaml"
+        )
+        plan["plan"].update(
+            {
+                "source_review": verified["review"]["id"],
+                "source_review_sha256": architecture_tool.file_sha256(verified_path),
+                "source_decision": decision["decision"]["id"],
+                "source_decision_sha256": architecture_tool.file_sha256(decision_path),
+            }
+        )
+        plan["items"][0]["finding_ids"] = ["TEST-DATA-001"]
+        plan["items"][0]["finding_bindings"] = [
+            {
+                "id": "TEST-DATA-001",
+                "fingerprint": verified["findings"][0]["fingerprint"],
+            }
+        ]
+        plan_path = config_root / "reviews" / "plan-12.yaml"
+        self.write_yaml(plan_path, plan)
+        architecture_tool.validate_plan(
+            plan_path,
+            review_path=verified_path,
+            decision_path=decision_path,
+        )
+
+        stale_plan = copy.deepcopy(plan)
+        stale_plan["items"][0]["finding_bindings"][0]["fingerprint"] = "0" * 64
+        stale_plan_path = config_root / "reviews" / "stale-plan-12.yaml"
+        self.write_yaml(stale_plan_path, stale_plan)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "stale fingerprint",
+        ):
+            architecture_tool.validate_plan(
+                stale_plan_path,
+                review_path=verified_path,
+                decision_path=decision_path,
+            )
+
+        unknown_knowledge = copy.deepcopy(plan)
+        unknown_knowledge["items"][0]["knowledge_ids"] = ["technology.not-selected"]
+        unknown_path = config_root / "reviews" / "unknown-knowledge-12.yaml"
+        self.write_yaml(unknown_path, unknown_knowledge)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "knowledge absent",
+        ):
+            architecture_tool.validate_plan(
+                unknown_path,
+                review_path=verified_path,
+                decision_path=decision_path,
+            )
 
     def test_project_can_load_a_repository_local_rule_pack(self) -> None:
         config_root = architecture_tool.init_project(self.project_args())
@@ -432,7 +646,7 @@ class ArchitectureToolTests(unittest.TestCase):
 
     def test_repository_dogfood_configuration_is_valid(self) -> None:
         validated = architecture_tool.validate_project(ROOT)
-        self.assertEqual(len(validated), 7)
+        self.assertEqual(len(validated), 8)
 
     def test_evidence_provider_run_binds_and_revalidates_output(self) -> None:
         self.init_project()
@@ -680,6 +894,16 @@ class ArchitectureToolTests(unittest.TestCase):
         decision = architecture_tool.load_yaml(
             ROOT / "resources" / "templates" / "architecture-decision.yaml"
         )
+        decision["schema_version"] = "1.1"
+        decision["decision"].pop("knowledge_selection_path")
+        decision["decision"].pop("knowledge_selection_sha256")
+        decision["problem"].pop("known_facts")
+        decision["problem"].pop("unknowns")
+        decision.pop("migration")
+        for option in decision["options"]:
+            option["architecture_styles"] = [
+                value.removeprefix("style.") for value in option["architecture_styles"]
+            ]
         decision["decision"].update(
             {
                 "id": "ADR-TEST-001",
@@ -699,6 +923,10 @@ class ArchitectureToolTests(unittest.TestCase):
         plan = architecture_tool.load_yaml(
             ROOT / "resources" / "templates" / "remediation-plan.yaml"
         )
+        plan["schema_version"] = "1.1"
+        plan["items"][0].pop("finding_bindings")
+        plan["items"][0].pop("knowledge_ids")
+        plan["items"][0].pop("assumptions")
         plan["plan"].update(
             {
                 "id": "2026-07-28-test-remediation",
@@ -1229,7 +1457,7 @@ class ArchitectureToolTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(process.returncode, 0, process.stderr)
-        self.assertEqual(process.stdout.strip(), "architecture_tool.py 0.2.0")
+        self.assertEqual(process.stdout.strip(), "architecture_tool.py 0.3.0")
 
 
 if __name__ == "__main__":

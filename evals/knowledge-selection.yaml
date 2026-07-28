@@ -1,0 +1,51 @@
+schema_version: "1.0"
+cases:
+  - id: react-fastapi-postgresql
+    skill: project-architecture-audit
+    facts: [react, vite, fastapi, postgresql]
+    task: Review frontend, API, and relational data ownership.
+    must_include:
+      - technology.react
+      - technology.vite
+      - technology.fastapi
+      - technology.postgresql
+      - domain.web-frontend
+      - domain.backend-api
+    must_exclude:
+      - technology.kubernetes
+      - technology.apache-kafka
+      - domain.mobile
+  - id: explicit-negative-scope
+    skill: project-architecture-audit
+    facts: [react, fastapi, postgresql]
+    task: Review this system without Kafka, Kubernetes, Event Sourcing, iOS, or multi-agent design.
+    must_exclude:
+      - technology.apache-kafka
+      - technology.kubernetes
+      - pattern.cqrs-event-sourcing
+      - domain.mobile
+      - decision.single-agent-vs-multi-agent
+  - id: ai-agent-lens
+    skill: ai-agent-architecture-audit
+    facts: [openai-agents-sdk, postgresql]
+    task: Review tool authority, memory, recovery, and human approval.
+    must_include:
+      - domain.ai-agent
+      - decision.workflow-vs-agent
+      - decision.single-agent-vs-multi-agent
+  - id: mobile-lens
+    skill: mobile-architecture-audit
+    facts: [swift, sqlite]
+    task: Review offline edits, synchronization, migrations, and notifications.
+    must_include:
+      - domain.mobile
+      - decision.local-first-vs-server-first
+      - technology.sqlite
+  - id: context-budget
+    skill: architecture-solution-advisor
+    facts: [fastapi, postgresql]
+    task: Compare a bounded API architecture decision.
+    maximum_entries: 12
+    requirements:
+      - all required Skill foundations remain selected
+      - every omitted entry records an exclusion reason

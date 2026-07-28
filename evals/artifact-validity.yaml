@@ -1,0 +1,26 @@
+schema_version: "1.0"
+cases:
+  - id: facts-hash-tamper
+    artifact: Review 1.2
+    mutation: Change repository-facts bytes after Review creation.
+    expected: validation-error
+  - id: selection-hash-tamper
+    artifact: Review 1.2
+    mutation: Change selected knowledge or selection bytes.
+    expected: validation-error
+  - id: missing-critical-flow
+    artifact: Review 1.2
+    mutation: Omit one declared critical flow from coverage.
+    expected: validation-error
+  - id: stale-decision-entry
+    artifact: Architecture Decision 1.2
+    mutation: Change a selected knowledge entry hash or version.
+    expected: validation-error
+  - id: stale-finding-binding
+    artifact: Remediation Plan 1.2
+    mutation: Bind an earlier Finding fingerprint after semantics change.
+    expected: validation-error
+  - id: legacy-trust-promotion
+    artifact: Migrated Review
+    mutation: Preserve a legacy confirmed status without independent 1.2 verification.
+    expected: migration-must-downgrade-to-candidate

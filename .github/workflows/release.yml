@@ -54,7 +54,7 @@ jobs:
         run: python resources/scripts/architecture_tool.py validate-project .
 
       - name: Validate architecture knowledge
-        run: python resources/scripts/architecture_tool.py validate-knowledge
+        run: python resources/scripts/validate_knowledge.py
 
       - name: Run tests
         run: python -m pytest

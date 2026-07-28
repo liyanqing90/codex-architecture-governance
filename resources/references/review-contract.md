@@ -214,5 +214,8 @@ Use `review-diff --before <old> --after <new> --project <repo>` to compare
 finding and coverage evolution between trusted snapshots.
 
 Schema `1.0` remains readable for migration. Deterministic enforcement requires
-trusted `1.1` metadata, complete machine Rule Pack coverage, source bindings,
-and evidence resolution according to policy.
+trusted `1.1` or `1.2` metadata, complete machine Rule Pack coverage, source
+bindings, and evidence resolution according to policy. New project, AI-agent,
+and mobile Reviews use `1.2` and also bind repository facts, task-scoped
+knowledge selection, selected entry snapshots, fact/inference boundaries, and
+every declared critical flow.

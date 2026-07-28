@@ -9,6 +9,8 @@ Maintain a distributable Codex plugin containing focused architecture-governance
 - `.codex-plugin/plugin.json`: installable plugin manifest.
 - `.architecture/`: this repository's own architecture profile and policy.
 - `skills/<skill-name>/`: one user goal per Skill.
+- `maintainer/skills/`: source-only release-maintenance workflows that are not
+  part of the public plugin surface.
 - `resources/`: runtime contracts, schemas, knowledge, rules, evidence providers, templates, and the portable CLI used by the Skills.
 - `evals/cases.yaml`: activation and boundary cases for every Skill.
 - `benchmarks/`: adversarial architecture fixtures and behavioral ground truth.
@@ -39,7 +41,7 @@ Run the full local gate:
 ```bash
 python3 scripts/validate_repository.py
 python3 resources/scripts/architecture_tool.py validate-project .
-python3 resources/scripts/architecture_tool.py validate-knowledge
+python3 resources/scripts/validate_knowledge.py
 python3 -m pytest
 python3 -m ruff check .
 python3 -m ruff format --check .
@@ -48,14 +50,21 @@ python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/codex-architecture-governance-0.2.0.zip \
-  --output dist/codex-architecture-governance-0.2.0.spdx.json
+  --archive dist/codex-architecture-governance-0.3.0.zip \
+  --output dist/codex-architecture-governance-0.3.0.spdx.json
 ```
+
+The accepted target boundary is recorded in
+`docs/decisions/2026-07-29-adopt-workflow-knowledge-script-separation.md`.
 
 ## Code review rules
 
 - Flag a finding or quality gate that can be produced from unverified model output or incomplete Rule Pack coverage.
 - Flag trusted artifacts whose identity, profile, rule, candidate, decision, or fingerprint hashes are not validated.
+- Flag schema 1.2 Reviews that omit facts, knowledge selection, selected entry,
+  fact/inference, or critical-flow bindings.
+- Flag a migration that preserves a legacy verification status without a new
+  independent verification run.
 - Flag Evidence Provider execution that invokes a shell, escapes the project,
   omits executable/config/output hashes, or treats malformed structured output
   as passing.

@@ -1,0 +1,26 @@
+schema_version: "1.0"
+cases:
+  - id: large-file
+    lead: A source file has 2,000 lines.
+    required_proof: Trace a violated invariant and affected flow.
+    forbidden_conclusion: File size is an architecture defect.
+  - id: sqlite
+    lead: The project uses SQLite.
+    required_proof: Trace writer concurrency, authority, durability, and scale requirements.
+    forbidden_conclusion: SQLite is inherently unsuitable.
+  - id: singleton
+    lead: A service is exposed through a singleton.
+    required_proof: Trace lifecycle, shared-state, concurrency, and test isolation failure.
+    forbidden_conclusion: Singleton syntax proves harmful global state.
+  - id: queue-worker
+    lead: Long work uses a queue and database status.
+    required_proof: Show timers, signals, approval, compensation, or recovery needs it cannot meet.
+    forbidden_conclusion: Every long task requires a workflow engine.
+  - id: server-cache-mobile
+    lead: A mobile client caches server data locally.
+    required_proof: Show durable offline writes and reconciliation requirements.
+    forbidden_conclusion: A local cache makes the application local-first.
+  - id: single-agent
+    lead: One agent invokes multiple typed tools.
+    required_proof: Show distinct context or authority boundaries with measured benefit.
+    forbidden_conclusion: Tool count requires a multi-agent system.

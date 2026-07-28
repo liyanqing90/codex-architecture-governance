@@ -106,8 +106,8 @@
   attestations.
 - Authoritative owner: plugin manifest version and packaging script.
 - Side effects: replaces generated assets only in the explicit output directory.
-- Failure and recovery behavior: missing files, symlinks, or runtime cache
-  artifacts stop packaging before publication.
+- Failure and recovery behavior: missing files or symlinks stop packaging;
+  caches and development artifacts are excluded from the runtime allowlist.
 - Idempotency boundary: identical source bytes produce identical archive bytes.
 - Security/privacy boundary: tests, evals, caches, repository guidance, and
   private review artifacts are excluded.

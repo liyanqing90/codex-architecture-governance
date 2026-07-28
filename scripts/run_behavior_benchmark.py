@@ -231,7 +231,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--surface", required=True)
-    parser.add_argument("--skill-version", default="0.2.0")
+    parser.add_argument("--skill-version", default="0.3.0")
     parser.add_argument("--timeout", type=int, default=600)
     parser.add_argument("--repetitions", type=int, default=1, choices=range(1, 21))
     parser.add_argument(

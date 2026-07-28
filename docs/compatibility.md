@@ -32,8 +32,15 @@ time-bound and must not be represented as universal compatibility.
 
 ## Artifact compatibility
 
-- Schema `1.0` is readable in 0.2.
-- Only trusted schema `1.1` enters deterministic enforcement.
+- Schema `1.0` is readable history in 0.3.
+- Trusted schema `1.1` remains enforceable for 0.2 compatibility.
+- Schema `1.2` is the current project, AI-agent, mobile, Decision, and Plan
+  contract. It binds repository facts, selected Markdown knowledge, critical
+  flows, evidence and Finding fingerprints, assumptions, and migrations.
+- Aggregate Portfolio Reviews continue to use the trusted `1.1` portfolio
+  contract in 0.3; per-project facts and selections are hash-bound evidence.
+- The 128 YAML knowledge entries remain read-only compatibility data. New
+  Decisions use the 205 Markdown entries registered by the ten-pack manifest.
 - Repository-local Rule Packs are supported under `.architecture/rules/` and
   must use Rule Pack schema `1.1`; organization packs cannot shadow bundled IDs.
 - Evidence Provider commands are project configuration, not portable defaults.
@@ -45,8 +52,12 @@ time-bound and must not be represented as universal compatibility.
 - CLI success, policy failure, and invalid-input exit codes remain `0`, `1`,
   and `2`.
 - Public Skill names are compatibility contracts.
+- The public surface contains eight Skills. The Knowledge Curator moved to
+  `maintainer/skills/` and is no longer a routed plugin workflow.
 - Breaking schema, CLI, or Skill-name changes require a major release after
   `1.0.0`; during `0.x`, they require explicit migration guidance and a minor
   release at minimum.
 
-See [the 0.2 migration guide](migrating-to-0.2.md).
+See [the 0.3 migration guide](migrating-to-0.3.md). The
+[0.2 migration guide](migrating-to-0.2.md) remains available for older
+artifacts.

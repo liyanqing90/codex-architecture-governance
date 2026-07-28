@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/knowledge-manifest.schema.json",
+  "title": "Architecture knowledge manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "content_version",
+    "format",
+    "packs",
+    "compatibility"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "2.0"
+    },
+    "content_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "format": {
+      "const": "markdown-frontmatter"
+    },
+    "packs": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path", "kind", "required"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9/-]*$"
+          },
+          "kind": {
+            "enum": [
+              "foundation",
+              "domain",
+              "decision-guide",
+              "architecture-style",
+              "pattern",
+              "technology-profile",
+              "reference-architecture",
+              "migration-guide",
+              "anti-pattern",
+              "case-study"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["legacy_yaml_catalogs", "legacy_artifact_schemas"],
+      "properties": {
+        "legacy_yaml_catalogs": {
+          "enum": ["read-only", "unsupported"]
+        },
+        "legacy_artifact_schemas": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+$"
+          }
+        }
+      }
+    }
+  }
+}

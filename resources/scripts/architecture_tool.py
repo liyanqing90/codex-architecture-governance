@@ -18,6 +18,11 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
+from build_project_profile import ProfileBuildError, build_profile, derive_domains
+from inspect_repository import InspectionError, inspect_repository
+from knowledge_model import KnowledgeError, validate_knowledge_tree
+from select_knowledge import SelectionError, select_knowledge
+
 try:
     import yaml
     from jsonschema import Draft202012Validator, FormatChecker
@@ -50,7 +55,7 @@ VERIFICATION_LEVEL_ORDER = {
     "V4": 4,
     "V5": 5,
 }
-TOOL_VERSION = "0.2.0"
+TOOL_VERSION = "0.3.0"
 REVIEW_KIND_CORE_PACK = {
     "project": "project-core",
     "ai-agent": "ai-agent-core",
@@ -873,6 +878,33 @@ def validate_review(
                 raise ArchitectureError(
                     f"{path} finding {finding_id} fingerprint does not match content"
                 )
+        if data["schema_version"] == "1.2":
+            required_finding_fields = (
+                "fingerprint",
+                "evidence_level",
+                "evidence_fingerprint",
+                "fact_inference_boundary",
+                "applicability",
+                "source_candidate_ids",
+                "rule_pack_version",
+                "staleness_state",
+                "quality_attribute_impacts",
+                "decision_references",
+            )
+            missing_finding_fields = [
+                field for field in required_finding_fields if field not in finding
+            ]
+            if missing_finding_fields:
+                raise ArchitectureError(
+                    f"{path} 1.2 finding {finding_id} is missing: "
+                    + ", ".join(missing_finding_fields)
+                )
+            expected_evidence_fingerprint = canonical_sha256(finding["evidence"])
+            if finding["evidence_fingerprint"] != expected_evidence_fingerprint:
+                raise ArchitectureError(
+                    f"{path} finding {finding_id} evidence_fingerprint "
+                    "does not match evidence"
+                )
 
     review_state = data["review"]["verification_state"]
     verification_states = [finding["verification"]["status"] for finding in findings]
@@ -899,10 +931,10 @@ def validate_review(
         )
 
     if strict_trust:
-        if data["schema_version"] != "1.1":
+        if data["schema_version"] not in {"1.1", "1.2"}:
             raise ArchitectureError(
                 f"{path} uses legacy schema {data['schema_version']}; "
-                "migrate to 1.1 before deterministic enforcement"
+                "migrate to 1.1 or 1.2 before deterministic enforcement"
             )
         required_review_fields = (
             "repository_identity",
@@ -1137,6 +1169,170 @@ def validate_review(
             raise ArchitectureError(
                 f"{path} profile hash does not match {profile_path}"
             )
+        if data["schema_version"] == "1.2":
+            profile = validate_file(profile_path, "project-profile.schema.json")
+            facts_binding = data["repository_facts"]
+            facts_path = require_within_root(
+                root,
+                root / facts_binding["path"],
+                "review.repository_facts.path",
+            )
+            facts = validate_file(facts_path, "repository-facts.schema.json")
+            if facts_binding["sha256"] != file_sha256(facts_path):
+                raise ArchitectureError(
+                    f"{path} repository facts hash does not match {facts_path}"
+                )
+            declared_facts_root = Path(facts["repository"]["root"])
+            facts_root = (
+                root
+                if declared_facts_root == Path()
+                else declared_facts_root.expanduser().resolve()
+            )
+            if facts_root != root:
+                raise ArchitectureError(
+                    f"{path} repository facts describe a different root"
+                )
+            facts_commit = facts["repository"]["commit"]
+            review_commit = data["review"].get("commit", "unknown")
+            if (
+                facts_commit != "unknown"
+                and review_commit != "unknown"
+                and facts_commit != review_commit
+            ):
+                raise ArchitectureError(
+                    f"{path} repository facts commit does not match the Review"
+                )
+            profile_facts = profile["project"].get("repository_facts")
+            if profile_facts is None:
+                raise ArchitectureError(
+                    f"{path} 1.2 Profile has no repository_facts binding"
+                )
+            profile_facts_path = require_within_root(
+                root,
+                root / profile_facts["path"],
+                "profile.project.repository_facts.path",
+            )
+            if (
+                profile_facts_path != facts_path
+                or profile_facts["sha256"] != facts_binding["sha256"]
+            ):
+                raise ArchitectureError(
+                    f"{path} Profile and Review bind different repository facts"
+                )
+            selection_binding = data["knowledge_selection"]
+            selection_path = require_within_root(
+                root,
+                root / selection_binding["path"],
+                "review.knowledge_selection.path",
+            )
+            selection = validate_file(
+                selection_path,
+                "knowledge-selection.schema.json",
+            )
+            if selection_binding["sha256"] != file_sha256(selection_path):
+                raise ArchitectureError(
+                    f"{path} knowledge selection hash does not match {selection_path}"
+                )
+            if selection["inputs"]["facts_sha256"] != facts_binding["sha256"]:
+                raise ArchitectureError(
+                    f"{path} knowledge selection is bound to different facts"
+                )
+            if (
+                selection["inputs"].get("profile_sha256")
+                != data["review"]["profile_sha256"]
+            ):
+                raise ArchitectureError(
+                    f"{path} knowledge selection is bound to a different profile"
+                )
+            selected = {
+                item["id"]: {
+                    "version": item["version"],
+                    "sha256": item["sha256"],
+                }
+                for item in data["selected_knowledge"]
+            }
+            if len(selected) != len(data["selected_knowledge"]):
+                raise ArchitectureError(f"{path} repeats a selected knowledge ID")
+            expected_selected = {
+                item["id"]: {
+                    "version": item["version"],
+                    "sha256": item["sha256"],
+                }
+                for item in selection["selection"]
+            }
+            if selected != expected_selected:
+                raise ArchitectureError(
+                    f"{path} selected_knowledge does not match its selection artifact"
+                )
+            try:
+                _, bundled_knowledge = validate_knowledge_tree(
+                    KNOWLEDGE_ROOT,
+                    schema_root=SCHEMA_ROOT,
+                )
+            except KnowledgeError as exc:
+                raise ArchitectureError(str(exc)) from exc
+            for entry_id, snapshot in selected.items():
+                entry = bundled_knowledge.get(entry_id)
+                if entry is None:
+                    raise ArchitectureError(
+                        f"{path} selects unknown knowledge {entry_id}"
+                    )
+                if snapshot["version"] != entry.metadata["version"]:
+                    raise ArchitectureError(
+                        f"{path} knowledge {entry_id} version is stale"
+                    )
+                if snapshot["sha256"] != entry.sha256:
+                    raise ArchitectureError(
+                        f"{path} knowledge {entry_id} hash is stale"
+                    )
+            selected_paths = {
+                item["id"]: item["path"] for item in selection["selection"]
+            }
+            for entry_id, entry in bundled_knowledge.items():
+                if entry_id not in selected_paths:
+                    continue
+                expected_path = entry.path.relative_to(KNOWLEDGE_ROOT).as_posix()
+                if selected_paths[entry_id] != expected_path:
+                    raise ArchitectureError(
+                        f"{path} knowledge {entry_id} selection path is stale"
+                    )
+            critical_flows_path = require_within_root(
+                root,
+                root / profile["project"]["critical_flows_file"],
+                "profile.project.critical_flows_file",
+            )
+            headings = re.findall(
+                r"^## (?!Flow template\s*$)(.+?)\s*$",
+                critical_flows_path.read_text(encoding="utf-8"),
+                flags=re.MULTILINE,
+            )
+            expected_flow_ids = {slugify(heading) for heading in headings}
+            flow_coverage = {
+                item["id"]: item for item in data["critical_flow_coverage"]
+            }
+            if len(flow_coverage) != len(data["critical_flow_coverage"]):
+                raise ArchitectureError(f"{path} repeats a critical-flow coverage ID")
+            if set(flow_coverage) != expected_flow_ids:
+                missing = sorted(expected_flow_ids - set(flow_coverage))
+                unknown = sorted(set(flow_coverage) - expected_flow_ids)
+                details = []
+                if missing:
+                    details.append("missing " + ", ".join(missing))
+                if unknown:
+                    details.append("unknown " + ", ".join(unknown))
+                raise ArchitectureError(
+                    f"{path} critical-flow coverage mismatch: " + "; ".join(details)
+                )
+            for flow_id, item in flow_coverage.items():
+                if item["status"] != "assessed" and not item.get("reason"):
+                    raise ArchitectureError(
+                        f"{path} critical flow {flow_id} requires a reason"
+                    )
+                if review_state == "verified" and item["status"] == "not_assessed":
+                    raise ArchitectureError(
+                        f"{path} verified review leaves critical flow "
+                        f"{flow_id} not assessed"
+                    )
         reviewed_commit = data["review"].get("commit")
         provider_runs: dict[Path, dict[str, Any]] = {}
         for reference in data.get("tool_evidence", []):
@@ -1209,7 +1405,16 @@ def validate_review(
                 root / source["path"],
                 "review.source_candidate.path",
             )
-            candidate = validate_review(candidate_path)
+            candidate = (
+                validate_review(
+                    candidate_path,
+                    rule_pack_ids=rule_pack_ids,
+                    strict_trust=True,
+                    repository_root=root,
+                )
+                if data["schema_version"] == "1.2"
+                else validate_review(candidate_path)
+            )
             if candidate["review"]["verification_state"] != "candidates":
                 raise ArchitectureError(
                     f"{path} source candidate is not a candidate review"
@@ -1260,6 +1465,8 @@ def decision_knowledge_snapshot() -> list[dict[str, str]]:
     result: list[dict[str, str]] = []
     seen: set[str] = set()
     for catalog_path in sorted(KNOWLEDGE_ROOT.rglob("*.yaml")):
+        if catalog_path.name == "manifest.yaml":
+            continue
         catalog = validate_file(
             catalog_path,
             "knowledge-catalog.schema.json",
@@ -1306,41 +1513,76 @@ def validate_decision(
         raise ArchitectureError(f"{path} must include a keep-current option")
     quality_attributes = set(data["problem"]["quality_attributes"])
     knowledge_ids: dict[str, set[str]] = {}
-    knowledge_records: dict[str, tuple[Path, dict[str, Any]]] = {}
-    for catalog_path in sorted(KNOWLEDGE_ROOT.rglob("*.yaml")):
-        catalog = validate_file(
-            catalog_path,
-            "knowledge-catalog.schema.json",
-        )
-        if catalog["kind"] in knowledge_records:
-            raise ArchitectureError(
-                f"Bundled knowledge has multiple catalogs for {catalog['kind']}"
+    snapshots_by_id: dict[str, dict[str, Any]] = {}
+    if data["schema_version"] == "1.1":
+        knowledge_records: dict[str, tuple[Path, dict[str, Any]]] = {}
+        for catalog_path in sorted(KNOWLEDGE_ROOT.rglob("*.yaml")):
+            if catalog_path.name == "manifest.yaml":
+                continue
+            catalog = validate_file(
+                catalog_path,
+                "knowledge-catalog.schema.json",
             )
-        knowledge_records[catalog["kind"]] = (catalog_path, catalog)
-        knowledge_ids.setdefault(catalog["kind"], set()).update(
-            entry["id"] for entry in catalog["entries"]
-        )
-    snapshots = {item["kind"]: item for item in data["knowledge_snapshot"]}
-    if len(snapshots) != len(data["knowledge_snapshot"]):
-        raise ArchitectureError(f"{path} repeats a knowledge snapshot kind")
-    required_snapshot_kinds = {
-        "architecture-style",
-        "pattern",
-        "technology-profile",
-    }
-    if set(snapshots) != required_snapshot_kinds:
-        raise ArchitectureError(
-            f"{path} knowledge snapshot must contain exactly: "
-            + ", ".join(sorted(required_snapshot_kinds))
-        )
-    for kind, snapshot in snapshots.items():
-        catalog_path, catalog = knowledge_records[kind]
-        if snapshot["catalog_version"] != catalog["catalog_version"]:
-            raise ArchitectureError(
-                f"{path} {kind} catalog version does not match bundled knowledge"
+            if catalog["kind"] in knowledge_records:
+                raise ArchitectureError(
+                    f"Bundled knowledge has multiple catalogs for {catalog['kind']}"
+                )
+            knowledge_records[catalog["kind"]] = (catalog_path, catalog)
+            knowledge_ids.setdefault(catalog["kind"], set()).update(
+                entry["id"] for entry in catalog["entries"]
             )
-        if snapshot["sha256"] != file_sha256(catalog_path):
-            raise ArchitectureError(f"{path} {kind} knowledge snapshot hash is stale")
+        snapshots = {item["kind"]: item for item in data["knowledge_snapshot"]}
+        if len(snapshots) != len(data["knowledge_snapshot"]):
+            raise ArchitectureError(f"{path} repeats a knowledge snapshot kind")
+        required_snapshot_kinds = {
+            "architecture-style",
+            "pattern",
+            "technology-profile",
+        }
+        if set(snapshots) != required_snapshot_kinds:
+            raise ArchitectureError(
+                f"{path} knowledge snapshot must contain exactly: "
+                + ", ".join(sorted(required_snapshot_kinds))
+            )
+        for kind, snapshot in snapshots.items():
+            catalog_path, catalog = knowledge_records[kind]
+            if snapshot["catalog_version"] != catalog["catalog_version"]:
+                raise ArchitectureError(
+                    f"{path} {kind} catalog version does not match bundled knowledge"
+                )
+            if snapshot["sha256"] != file_sha256(catalog_path):
+                raise ArchitectureError(
+                    f"{path} {kind} knowledge snapshot hash is stale"
+                )
+    else:
+        try:
+            _, markdown_knowledge = validate_knowledge_tree(
+                KNOWLEDGE_ROOT,
+                schema_root=SCHEMA_ROOT,
+            )
+        except KnowledgeError as exc:
+            raise ArchitectureError(str(exc)) from exc
+        snapshots_by_id = {item["id"]: item for item in data["knowledge_snapshot"]}
+        if len(snapshots_by_id) != len(data["knowledge_snapshot"]):
+            raise ArchitectureError(f"{path} repeats a knowledge snapshot ID")
+        kind_map = {
+            "architecture-style": "architecture-style",
+            "pattern": "pattern",
+            "technology-profile": "technology-profile",
+        }
+        for entry_id, snapshot in snapshots_by_id.items():
+            entry = markdown_knowledge.get(entry_id)
+            if entry is None:
+                raise ArchitectureError(
+                    f"{path} snapshots unknown knowledge {entry_id}"
+                )
+            if snapshot["version"] != entry.metadata["version"]:
+                raise ArchitectureError(f"{path} knowledge {entry_id} version is stale")
+            if snapshot["sha256"] != entry.sha256:
+                raise ArchitectureError(f"{path} knowledge {entry_id} hash is stale")
+            entry_kind = entry.metadata["kind"]
+            if entry_kind in kind_map:
+                knowledge_ids.setdefault(kind_map[entry_kind], set()).add(entry_id)
     reference_fields = {
         "architecture_styles": "architecture-style",
         "patterns": "pattern",
@@ -1422,6 +1664,46 @@ def validate_decision(
                     f"{path} decision uses quality attributes absent from the "
                     "project Profile: " + ", ".join(unknown_quality)
                 )
+        if data["schema_version"] == "1.2":
+            selection_path = require_within_root(
+                root,
+                root / data["decision"]["knowledge_selection_path"],
+                "decision.knowledge_selection_path",
+            )
+            selection = validate_file(
+                selection_path,
+                "knowledge-selection.schema.json",
+            )
+            if data["decision"]["knowledge_selection_sha256"] != file_sha256(
+                selection_path
+            ):
+                raise ArchitectureError(
+                    f"{path} knowledge selection hash does not match {selection_path}"
+                )
+            selection_snapshot = {
+                item["id"]: {
+                    "version": item["version"],
+                    "sha256": item["sha256"],
+                }
+                for item in selection["selection"]
+            }
+            decision_snapshot = {
+                entry_id: {
+                    "version": snapshot["version"],
+                    "sha256": snapshot["sha256"],
+                }
+                for entry_id, snapshot in snapshots_by_id.items()
+            }
+            if decision_snapshot != selection_snapshot:
+                raise ArchitectureError(
+                    f"{path} knowledge snapshot does not match selection artifact"
+                )
+            if profile_path.is_file() and selection["inputs"].get(
+                "profile_sha256"
+            ) != file_sha256(profile_path):
+                raise ArchitectureError(
+                    f"{path} knowledge selection is bound to another profile"
+                )
     if review_path is not None:
         review_path = review_path.resolve()
         review = (
@@ -1435,10 +1717,16 @@ def validate_decision(
             else validate_review(review_path)
         )
         if (
-            review["schema_version"] != "1.1"
+            review["schema_version"] not in {"1.1", "1.2"}
             or review["review"]["verification_state"] != "verified"
         ):
-            raise ArchitectureError(f"{path} requires a trusted 1.1 source review")
+            raise ArchitectureError(
+                f"{path} requires a trusted 1.1 or 1.2 source review"
+            )
+        if data["schema_version"] == "1.2" and review["schema_version"] != "1.2":
+            raise ArchitectureError(
+                f"{path} schema 1.2 requires a trusted 1.2 source review"
+            )
         if data["decision"]["source_review"] != review["review"]["id"]:
             raise ArchitectureError(
                 f"{path} source_review does not match {review_path}"
@@ -1483,7 +1771,7 @@ def validate_plan(
                 f"{path} plans finding IDs more than once: " + ", ".join(duplicates)
             )
         planned_findings.update(item["finding_ids"])
-        if data["schema_version"] == "1.1":
+        if data["schema_version"] in {"1.1", "1.2"}:
             required_item_fields = (
                 "migration_type",
                 "data_compatibility",
@@ -1534,6 +1822,17 @@ def validate_plan(
                             f"{path} completion evidence hash does not match "
                             f"{evidence_path}"
                         )
+        if data["schema_version"] == "1.2":
+            bindings = {binding["id"]: binding for binding in item["finding_bindings"]}
+            if len(bindings) != len(item["finding_bindings"]):
+                raise ArchitectureError(
+                    f"{path} item {item_id} repeats a finding binding"
+                )
+            if set(bindings) != set(item["finding_ids"]):
+                raise ArchitectureError(
+                    f"{path} item {item_id} finding_bindings must exactly "
+                    "match finding_ids"
+                )
 
     review: dict[str, Any] | None = None
     if review_path is not None:
@@ -1541,13 +1840,18 @@ def validate_plan(
         review = validate_review(review_path)
         if review["review"]["verification_state"] != "verified":
             raise ArchitectureError(f"{path} requires a verified source review")
-        if data["schema_version"] == "1.1" and review["schema_version"] != "1.1":
-            raise ArchitectureError(f"{path} requires a trusted 1.1 source review")
+        if data["schema_version"] in {
+            "1.1",
+            "1.2",
+        } and review["schema_version"] not in {"1.1", "1.2"}:
+            raise ArchitectureError(
+                f"{path} requires a trusted 1.1 or 1.2 source review"
+            )
         if data["plan"]["source_review"] != review["review"]["id"]:
             raise ArchitectureError(
                 f"{path} source_review does not match {review_path}"
             )
-        if data["schema_version"] == "1.1" and data["plan"].get(
+        if data["schema_version"] in {"1.1", "1.2"} and data["plan"].get(
             "source_review_sha256"
         ) != file_sha256(review_path):
             raise ArchitectureError(
@@ -1565,15 +1869,31 @@ def validate_plan(
                 f"{path} plans non-confirmed or resolved findings: "
                 + ", ".join(unknown)
             )
+        if data["schema_version"] == "1.2":
+            if review["schema_version"] != "1.2":
+                raise ArchitectureError(
+                    f"{path} schema 1.2 requires a trusted 1.2 source review"
+                )
+            review_findings = {finding["id"]: finding for finding in review["findings"]}
+            for item in data["items"]:
+                for binding in item["finding_bindings"]:
+                    finding = review_findings[binding["id"]]
+                    if binding["fingerprint"] != finding["fingerprint"]:
+                        raise ArchitectureError(
+                            f"{path} item {item['id']} has a stale fingerprint "
+                            f"for {binding['id']}"
+                        )
 
-    if data["schema_version"] == "1.1":
+    if data["schema_version"] in {"1.1", "1.2"}:
         if review_path is None:
             raise ArchitectureError(
-                f"{path} schema 1.1 requires --review for source validation"
+                f"{path} schema {data['schema_version']} requires --review "
+                "for source validation"
             )
         if decision_path is None:
             raise ArchitectureError(
-                f"{path} schema 1.1 requires --decision for source validation"
+                f"{path} schema {data['schema_version']} requires --decision "
+                "for source validation"
             )
         decision_path = decision_path.resolve()
         decision = validate_decision(
@@ -1595,6 +1915,21 @@ def validate_plan(
             raise ArchitectureError(
                 f"{path} plans findings absent from the accepted decision"
             )
+        if data["schema_version"] == "1.2":
+            if decision["schema_version"] != "1.2":
+                raise ArchitectureError(
+                    f"{path} schema 1.2 requires an accepted 1.2 decision"
+                )
+            decision_knowledge = {item["id"] for item in decision["knowledge_snapshot"]}
+            for item in data["items"]:
+                unknown_knowledge = sorted(
+                    set(item["knowledge_ids"]) - decision_knowledge
+                )
+                if unknown_knowledge:
+                    raise ArchitectureError(
+                        f"{path} item {item['id']} references knowledge absent "
+                        "from the accepted decision: " + ", ".join(unknown_knowledge)
+                    )
     return data
 
 
@@ -1645,10 +1980,20 @@ def validate_baseline(path: Path) -> dict[str, Any]:
 
 def validate_knowledge(today: date | None = None) -> dict[str, Any]:
     evaluation_date = today or datetime.now(UTC).date()
+    try:
+        manifest, markdown_entries = validate_knowledge_tree(
+            KNOWLEDGE_ROOT,
+            schema_root=SCHEMA_ROOT,
+            today=evaluation_date,
+        )
+    except KnowledgeError as exc:
+        raise ArchitectureError(str(exc)) from exc
     catalogs: list[str] = []
     entries: dict[str, Path] = {}
     stale: list[str] = []
     for path in sorted(KNOWLEDGE_ROOT.rglob("*.yaml")):
+        if path.name == "manifest.yaml":
+            continue
         payload = validate_file(path, "knowledge-catalog.schema.json")
         catalogs.append(str(path))
         for entry in payload["entries"]:
@@ -1701,6 +2046,8 @@ def validate_knowledge(today: date | None = None) -> dict[str, Any]:
     return {
         "catalogs": len(catalogs),
         "entries": len(entries),
+        "knowledge_packs": len(manifest["packs"]),
+        "markdown_entries": len(markdown_entries),
         "rule_packs": len(rule_packs),
         "providers": len(provider_ids),
         "stale": stale,
@@ -1772,6 +2119,19 @@ def validate_project(root: Path) -> list[Path]:
     provider_config_path = config_root / "evidence-providers.yaml"
 
     profile = validate_file(profile_path, "project-profile.schema.json")
+    repository_facts_path: Path | None = None
+    if "repository_facts" in profile["project"]:
+        binding = profile["project"]["repository_facts"]
+        repository_facts_path = resolve_from_root(root, binding["path"])
+        validate_file(
+            repository_facts_path,
+            "repository-facts.schema.json",
+        )
+        if binding["sha256"] != file_sha256(repository_facts_path):
+            raise ArchitectureError(
+                f"{profile_path} repository facts hash does not match "
+                f"{repository_facts_path}"
+            )
     review_requirements = validate_profile_review_requirements(profile, profile_path)
     policy = validate_file(policy_path, "gate-policy.schema.json")
     validate_baseline(baseline_path)
@@ -1806,6 +2166,8 @@ def validate_project(root: Path) -> list[Path]:
         policy_path,
         baseline_path,
     ]
+    if repository_facts_path is not None:
+        validated.append(repository_facts_path)
     if risk_acceptance_path.is_file():
         validated.append(risk_acceptance_path)
     validated.append(provider_config_path)
@@ -1830,7 +2192,7 @@ def validate_project(root: Path) -> list[Path]:
             review = validate_review(
                 artifact,
                 rule_pack_ids=profile["project"]["rule_packs"],
-                strict_trust=payload.get("schema_version") == "1.1"
+                strict_trust=payload.get("schema_version") in {"1.1", "1.2"}
                 and payload["review"].get("verification_state") == "verified",
                 repository_root=root,
             )
@@ -1968,7 +2330,7 @@ def validate_portfolio(root: Path) -> list[Path]:
             review = validate_review(
                 artifact,
                 rule_pack_ids=["portfolio-core"],
-                strict_trust=payload.get("schema_version") == "1.1"
+                strict_trust=payload.get("schema_version") in {"1.1", "1.2"}
                 and payload["review"].get("verification_state") == "verified",
                 repository_root=root,
             )
@@ -2087,6 +2449,9 @@ def init_project(args: argparse.Namespace) -> Path:
         (staged / "evidence").mkdir()
         (staged / "rules").mkdir()
         (staged / "rules" / ".gitkeep").touch()
+        repository_facts = inspect_repository(root)
+        facts_path = staged / "repository-facts.yaml"
+        write_yaml(facts_path, repository_facts)
 
         profile = load_yaml(TEMPLATE_ROOT / "profile.yaml")
         profile["project"].update(
@@ -2103,6 +2468,25 @@ def init_project(args: argparse.Namespace) -> Path:
                 "review_requirements": review_requirements,
                 "rule_packs": selected_packs,
                 "data_classification": args.data_classification,
+                "repository_facts": {
+                    "path": ".architecture/repository-facts.yaml",
+                    "sha256": file_sha256(facts_path),
+                },
+                "required_knowledge_domains": derive_domains(repository_facts),
+                "profile_sources": {
+                    "detected": [".architecture/repository-facts.yaml"],
+                    "declared": [],
+                    "inferred": [
+                        {
+                            "inference": (
+                                "Knowledge domains inferred from deterministic "
+                                "repository facts."
+                            ),
+                            "confidence": 0.8,
+                            "basis": [".architecture/repository-facts.yaml"],
+                        }
+                    ],
+                },
             }
         )
         validate_data(
@@ -3851,6 +4235,38 @@ def build_parser() -> argparse.ArgumentParser:
     append_repeatable(project, "--review", "reviews")
     append_repeatable(project, "--rule-pack", "rule_packs")
 
+    inspect_parser = subparsers.add_parser(
+        "inspect-repository",
+        help="Write deterministic repository facts without architecture judgments.",
+    )
+    inspect_parser.add_argument("--repo", default=".")
+    inspect_parser.add_argument("--output", required=True)
+    append_repeatable(inspect_parser, "--scope", "scopes")
+    inspect_parser.add_argument("--force", action="store_true")
+
+    build_profile_parser = subparsers.add_parser(
+        "build-profile",
+        help="Build a sourced project profile from repository facts.",
+    )
+    build_profile_parser.add_argument("--facts", required=True)
+    build_profile_parser.add_argument("--declared")
+    build_profile_parser.add_argument("--output", required=True)
+    build_profile_parser.add_argument("--force", action="store_true")
+
+    select_parser = subparsers.add_parser(
+        "select-knowledge",
+        help="Select a bounded, explainable set of Markdown knowledge entries.",
+    )
+    select_parser.add_argument("--facts", required=True)
+    select_parser.add_argument("--profile")
+    select_parser.add_argument("--task", required=True)
+    select_parser.add_argument("--skill", required=True)
+    select_parser.add_argument("--max-entries", type=int, default=24)
+    append_repeatable(select_parser, "--include", "includes")
+    append_repeatable(select_parser, "--exclude", "excludes")
+    select_parser.add_argument("--output", required=True)
+    select_parser.add_argument("--force", action="store_true")
+
     portfolio = subparsers.add_parser(
         "init-portfolio",
         help="Create .architecture-portfolio configuration.",
@@ -3879,6 +4295,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     validate_review_parser.add_argument("path")
     validate_review_parser.add_argument("--project")
+
+    coverage_parser = subparsers.add_parser(
+        "validate-coverage",
+        help="Validate trusted Rule Pack, critical-flow, and knowledge coverage.",
+    )
+    coverage_parser.add_argument("--project", required=True)
+    coverage_parser.add_argument("--review", required=True)
+    coverage_parser.add_argument("--allow-candidates", action="store_true")
+
+    fingerprint_parser = subparsers.add_parser(
+        "fingerprint-artifact",
+        help="Print canonical, file, and Finding fingerprints.",
+    )
+    fingerprint_parser.add_argument("path")
+    fingerprint_parser.add_argument("--subject-id")
 
     validate_plan_parser = subparsers.add_parser(
         "validate-plan",
@@ -3978,6 +4409,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     decision_bindings_parser.add_argument("--project", required=True)
     decision_bindings_parser.add_argument("--review", required=True)
+    decision_bindings_parser.add_argument(
+        "--knowledge-selection",
+        help=(
+            "Selection artifact for a 1.2 decision; defaults to the source "
+            "review's selection."
+        ),
+    )
 
     benchmark_parser = subparsers.add_parser(
         "benchmark-score",
@@ -4023,6 +4461,56 @@ def run(args: argparse.Namespace) -> int:
         target = init_portfolio(args)
         print(f"Initialized portfolio architecture configuration: {target}")
         return 0
+    if args.command == "inspect-repository":
+        output = Path(args.output).expanduser().resolve()
+        if output.exists() and not args.force:
+            raise ArchitectureError(
+                f"Refusing to overwrite existing output without --force: {output}"
+            )
+        payload = inspect_repository(
+            Path(args.repo),
+            scope_values=args.scopes or None,
+        )
+        output.parent.mkdir(parents=True, exist_ok=True)
+        write_yaml(output, payload)
+        print(f"Repository facts written: {output}")
+        return 0
+    if args.command == "build-profile":
+        output = Path(args.output).expanduser().resolve()
+        if output.exists() and not args.force:
+            raise ArchitectureError(
+                f"Refusing to overwrite existing output without --force: {output}"
+            )
+        payload = build_profile(
+            Path(args.facts),
+            declared_path=Path(args.declared) if args.declared else None,
+        )
+        output.parent.mkdir(parents=True, exist_ok=True)
+        write_yaml(output, payload)
+        print(f"Project profile written: {output}")
+        return 0
+    if args.command == "select-knowledge":
+        output = Path(args.output).expanduser().resolve()
+        if output.exists() and not args.force:
+            raise ArchitectureError(
+                f"Refusing to overwrite existing output without --force: {output}"
+            )
+        payload = select_knowledge(
+            Path(args.facts),
+            profile_path=Path(args.profile) if args.profile else None,
+            task=args.task,
+            skill=args.skill,
+            maximum_entries=args.max_entries,
+            includes=args.includes,
+            excludes=args.excludes,
+        )
+        output.parent.mkdir(parents=True, exist_ok=True)
+        write_yaml(output, payload)
+        print(
+            f"Knowledge selection written: {output} "
+            f"({payload['budget']['selected_entries']} entries)"
+        )
+        return 0
     if args.command == "validate-project":
         validated = validate_project(Path(args.root))
         print(f"Project architecture configuration is valid ({len(validated)} files).")
@@ -4049,6 +4537,77 @@ def run(args: argparse.Namespace) -> int:
         else:
             validate_review(Path(args.path).resolve())
         print("Architecture review is valid.")
+        return 0
+    if args.command == "validate-coverage":
+        project_root = Path(args.project).resolve()
+        profile = validate_file(
+            project_root / ".architecture" / "profile.yaml",
+            "project-profile.schema.json",
+        )
+        review_path = Path(args.review)
+        if not review_path.is_absolute():
+            review_path = project_root / review_path
+        review = validate_review(
+            review_path.resolve(),
+            rule_pack_ids=profile["project"]["rule_packs"],
+            strict_trust=True,
+            repository_root=project_root,
+        )
+        if (
+            not args.allow_candidates
+            and review["review"]["verification_state"] != "verified"
+        ):
+            raise ArchitectureError(
+                f"{review_path} is a candidate review; verified coverage is required"
+            )
+        if not review.get("coverage_complete"):
+            raise ArchitectureError(f"{review_path} declares incomplete coverage")
+        print(
+            "Architecture coverage is valid "
+            f"({len(review['coverage'])} rules, "
+            f"{len(review.get('critical_flow_coverage', []))} critical flows, "
+            f"{len(review.get('selected_knowledge', []))} knowledge entries)."
+        )
+        return 0
+    if args.command == "fingerprint-artifact":
+        artifact_path = Path(args.path).resolve()
+        payload = load_yaml(artifact_path)
+        result: dict[str, Any] = {
+            "path": str(artifact_path),
+            "file_sha256": file_sha256(artifact_path),
+            "canonical_sha256": canonical_sha256(payload),
+        }
+        if "review" in payload:
+            subject = payload["review"]["subject"]["id"]
+            result["kind"] = "review"
+            result["artifact_id"] = payload["review"]["id"]
+            result["findings"] = [
+                {
+                    "id": finding["id"],
+                    "fingerprint": finding_fingerprint(subject, finding),
+                    "evidence_fingerprint": canonical_sha256(finding["evidence"]),
+                }
+                for finding in payload["findings"]
+            ]
+        elif "decision" in payload:
+            result["kind"] = "architecture-decision"
+            result["artifact_id"] = payload["decision"]["id"]
+        elif "plan" in payload:
+            result["kind"] = "remediation-plan"
+            result["artifact_id"] = payload["plan"]["id"]
+        elif "id" in payload and "rule_id" in payload:
+            if not args.subject_id:
+                raise ArchitectureError("A standalone Finding requires --subject-id")
+            result["kind"] = "finding"
+            result["artifact_id"] = payload["id"]
+            result["finding_fingerprint"] = finding_fingerprint(
+                args.subject_id,
+                payload,
+            )
+            result["evidence_fingerprint"] = canonical_sha256(payload["evidence"])
+        else:
+            result["kind"] = "generic-artifact"
+        print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
     if args.command == "validate-plan":
         validate_plan(
@@ -4182,13 +4741,51 @@ def run(args: argparse.Namespace) -> int:
             strict_trust=True,
             repository_root=project_root,
         )
+        if args.knowledge_selection:
+            selection_path = Path(args.knowledge_selection)
+        elif review["schema_version"] == "1.2":
+            selection_path = Path(review["knowledge_selection"]["path"])
+        else:
+            selection_path = None
+        if selection_path is not None:
+            if not selection_path.is_absolute():
+                selection_path = project_root / selection_path
+            selection_path = require_within_root(
+                project_root,
+                selection_path,
+                "decision knowledge selection",
+            )
+            selection = validate_file(
+                selection_path,
+                "knowledge-selection.schema.json",
+            )
+            binding_result = {
+                "schema_version": "1.2",
+                "source_review": review["review"]["id"],
+                "source_review_sha256": file_sha256(review_path),
+                "knowledge_selection_path": selection_path.relative_to(
+                    project_root
+                ).as_posix(),
+                "knowledge_selection_sha256": file_sha256(selection_path),
+                "knowledge_snapshot": [
+                    {
+                        "id": item["id"],
+                        "version": item["version"],
+                        "sha256": item["sha256"],
+                    }
+                    for item in selection["selection"]
+                ],
+            }
+        else:
+            binding_result = {
+                "schema_version": "1.1",
+                "source_review": review["review"]["id"],
+                "source_review_sha256": file_sha256(review_path),
+                "knowledge_snapshot": decision_knowledge_snapshot(),
+            }
         print(
             json.dumps(
-                {
-                    "source_review": review["review"]["id"],
-                    "source_review_sha256": file_sha256(review_path),
-                    "knowledge_snapshot": decision_knowledge_snapshot(),
-                },
+                binding_result,
                 indent=2,
                 ensure_ascii=False,
             )
@@ -4242,7 +4839,13 @@ def main() -> int:
     args = parser.parse_args()
     try:
         return run(args)
-    except ArchitectureError as exc:
+    except (
+        ArchitectureError,
+        InspectionError,
+        KnowledgeError,
+        ProfileBuildError,
+        SelectionError,
+    ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 

@@ -8,13 +8,15 @@ Codex forward tests.
 `python3 scripts/validate_repository.py` verifies:
 
 - plugin identity and Semantic Versioning;
-- the exact nine Skill names;
+- the exact eight public Skill names;
 - frontmatter, folder naming, descriptions, line budgets, and UI metadata;
 - local Markdown links;
 - JSON Schema validity and parseable YAML templates;
 - one direct, indirect, incomplete, negative, and edge case per Skill;
-- absence of caches, placeholders, and development artifacts from runtime
-  directories.
+- parseable routing, knowledge-selection, decision-quality, false-positive,
+  and artifact-validity corpora;
+- absence of placeholders and symlinks from runtime directories; packaging
+  excludes caches and development artifacts.
 
 Static validation proves structure and coverage. It does not prove that a model
 will select the right Skill or produce a high-quality review.
@@ -22,6 +24,16 @@ will select the right Skill or produce a high-quality review.
 ## Behavioral forward tests
 
 Use `evals/cases.yaml` as the source corpus.
+
+The 0.3 evaluation sets have separate responsibilities:
+
+| Corpus | Proves |
+| --- | --- |
+| `routing.yaml` | Exact public Skill activation and negative boundaries |
+| `knowledge-selection.yaml` | Relevant inclusion, important exclusion, reasons, and budget |
+| `decision-quality.yaml` | Quality-first comparison and prohibited shortcuts |
+| `false-positive.yaml` | Leads are not promoted without an invariant and failure path |
+| `artifact-validity.yaml` | Hash, fingerprint, coverage, and migration tampering fails |
 
 For each case:
 
@@ -105,3 +117,7 @@ rather than averaging model output before scoring.
 A release may state behavioral results only when the run artifact is preserved
 with an identified model/surface and the exact plugin version. Until then, the
 repository claims corpus and harness coverage, not model quality.
+
+A deterministic release report may cover repository contracts, selector cases,
+and artifact tamper tests without claiming model behavior. A model-quality
+report still requires an actual external run.

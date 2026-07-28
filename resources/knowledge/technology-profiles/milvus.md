@@ -1,0 +1,98 @@
+---
+id: technology.milvus
+kind: technology-profile
+version: 1.0.0
+status: active
+domains:
+- vector-database
+triggers:
+- milvus
+quality_attributes: []
+related: []
+legacy_ids:
+- technology-profile:milvus
+last_reviewed: '2026-07-28'
+review_after_days: 90
+source_policy: official-docs-required
+sources:
+- title: Milvus Documentation
+  url: https://milvus.io/docs
+  authority: official
+dynamic_facts: true
+version_range: Current supported stable releases; verify official documentation before a project
+  decision.
+---
+
+# Milvus
+
+## Problem and intent
+
+- Serve large-scale vector similarity workloads with specialized indexes
+- filtering
+- and distributed storage.
+
+## Mechanism
+
+- Serve large-scale vector similarity workloads with specialized indexes
+
+## Fit when
+
+- Measured vector volume
+- latency
+- throughput
+- or isolation justifies a dedicated retrieval platform.
+
+## Avoid when
+
+- PostgreSQL plus pgvector or a managed search service meets the need more simply.
+
+## Required capabilities
+
+- vector-platform-operations
+- retrieval-evaluation
+- data-synchronization
+
+## Benefits
+
+- Specialized vector indexing and horizontal retrieval scale.
+
+## Costs and liabilities
+
+- Dedicated operations
+- consistency
+- metadata joins
+- backups
+- evaluation
+- and ecosystem coupling.
+
+## Failure modes
+
+- The mechanism is adopted by convention without a traced failure path.
+
+## Alternatives
+
+- pgvector
+- managed-vector-service
+
+## Migration and exit
+
+- Introduce the mechanism behind a compatible boundary, verify it, then remove the old path.
+
+## Evidence to inspect
+
+- Trace the owning boundary, direct configuration or code, affected consumers, failure path, tests, and current operational evidence.
+- For technology capabilities, confirm volatile behavior from the cited official source at decision time.
+
+## Evidence that changes the recommendation
+
+- A simpler option meeting the same measurable quality scenario should replace this recommendation.
+- Missing ownership, compatibility, recovery, cost, or operational capability invalidates adoption until resolved.
+
+## Quality trade-offs
+
+- Balance business fit, reliability, maintainability, cost, and cognitive load.
+
+## Volatile facts
+
+- Product versions, support status, compatibility, security advisories, licensing, pricing, and service limits are time-sensitive and must be rechecked.
+- Stable mechanism guidance remains separate from current vendor or release information.

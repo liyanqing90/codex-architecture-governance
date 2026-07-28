@@ -1,4 +1,4 @@
-schema_version: "1.1"
+schema_version: "1.2"
 review:
   id: example-project-19700101-project
   kind: project
@@ -64,6 +64,25 @@ findings:
     found_by:
       - architecture-auditor
     related_findings: []
+    quality_attribute_impacts:
+      - maintainability
+    evidence_level: E2
+    evidence_fingerprint: "0000000000000000000000000000000000000000000000000000000000000000"
+    fact_inference_boundary:
+      facts:
+        - Replace with one directly observed repository fact.
+      inferences:
+        - Replace with one bounded interpretation of the facts.
+      unknowns:
+        - Replace with evidence that remains unavailable.
+    applicability:
+      profile_conditions:
+        - Replace with the profile condition that makes this Finding applicable.
+    source_candidate_ids:
+      - example-project-19700101-project
+    rule_pack_version: "1.0.0"
+    staleness_state: unknown
+    decision_references: []
     tags:
       - example
 evidence_sources:
@@ -71,3 +90,19 @@ evidence_sources:
 limitations:
   - Replace with material evidence gaps, or remove this entry.
 coverage_complete: false
+repository_facts:
+  path: .architecture/repository-facts.yaml
+  sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+knowledge_selection:
+  path: .architecture/knowledge-selection.yaml
+  sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+selected_knowledge:
+  - id: foundation.evidence-reasoning
+    version: "1.0.0"
+    sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+critical_flow_coverage:
+  - id: example-critical-flow
+    status: not_assessed
+    reason: Replace with the assessment result after tracing the flow.
+unknowns:
+  - Replace with a material unknown, or use an empty list.

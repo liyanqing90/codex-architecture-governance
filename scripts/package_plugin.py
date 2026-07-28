@@ -70,7 +70,10 @@ def collect_runtime_files(root: Path) -> list[Path]:
         files.extend(
             path.relative_to(root)
             for path in source.rglob("*")
-            if path.is_file() or path.is_symlink()
+            if (path.is_file() or path.is_symlink())
+            and not FORBIDDEN_PARTS.intersection(path.relative_to(root).parts)
+            and path.suffix not in FORBIDDEN_SUFFIXES
+            and path.name != ".DS_Store"
         )
     unique = sorted(set(files), key=lambda path: path.as_posix())
     for path in unique:

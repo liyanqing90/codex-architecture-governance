@@ -1,0 +1,19 @@
+schema_version: "2.0"
+content_version: "2.0.0"
+format: markdown-frontmatter
+packs:
+  - {id: foundations, path: foundations, kind: foundation, required: true}
+  - {id: domains, path: domains, kind: domain, required: true}
+  - {id: decision-guides, path: decision-guides, kind: decision-guide, required: true}
+  - {id: architecture-styles, path: architecture-styles, kind: architecture-style, required: true}
+  - {id: patterns, path: patterns, kind: pattern, required: true}
+  - {id: technology-profiles, path: technology-profiles, kind: technology-profile, required: true}
+  - {id: reference-architectures, path: reference-architectures, kind: reference-architecture, required: true}
+  - {id: migration-guides, path: migration-guides, kind: migration-guide, required: true}
+  - {id: anti-patterns, path: anti-patterns, kind: anti-pattern, required: true}
+  - {id: case-studies, path: case-studies, kind: case-study, required: true}
+compatibility:
+  legacy_yaml_catalogs: read-only
+  legacy_artifact_schemas:
+    - "1.0"
+    - "1.1"

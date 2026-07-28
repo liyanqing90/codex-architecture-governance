@@ -15,7 +15,9 @@ Read these files completely:
 - `../../resources/references/evidence-provider-contract.md`.
 
 Load the candidate review and the repository Profile, constraints, policy, and
-configured Evidence Providers when present.
+configured Evidence Providers when present. For Review 1.2, also load and
+verify the bound repository-facts and knowledge-selection artifacts before
+inspecting any conclusion.
 
 ## Verification procedure
 
@@ -31,6 +33,9 @@ configured Evidence Providers when present.
 4. State the claimed invariant and attempt the strongest counter-hypothesis.
 5. Confirm that the evidence proves an architecture relationship or failure mode rather than a stylistic preference.
 6. Check the owning boundary, affected components, severity, confidence, and rule ID.
+   Recompute the evidence fingerprint and preserve the candidate's facts,
+   inferences, unknowns, applicability, Rule Pack version, and selected
+   Knowledge bindings unless new evidence explicitly changes them.
 7. Merge genuine duplicates while retaining all original IDs and contributing reviewers.
 8. Assign the honest verification level:
    - `V0`: same-run self-check;
@@ -76,7 +81,9 @@ risks and strengths in the human report. Record the verification rationale,
 level, structured verifier identity, run ID, time, candidate hash, and
 calculated Finding fingerprint for every verified item. Set
 `coverage_complete: true` only after every loaded Rule Pack rule appears
-exactly once.
+exactly once and every declared critical flow is assessed or explicitly
+not-applicable. A verified 1.2 Review may not leave a critical flow
+`not_assessed`.
 
 Preserve the source review structure defined by
 `../../resources/templates/review.yaml` or
@@ -87,6 +94,8 @@ Validate the result:
 ```bash
 python3 ../../resources/scripts/architecture_tool.py validate-review \
   <verified-review.yaml> --project <repo>
+python3 ../../resources/scripts/architecture_tool.py validate-coverage \
+  --project <repo> --review <verified-review.yaml>
 python3 ../../resources/scripts/architecture_tool.py verify-evidence \
   --repo <repo> --review <verified-review.yaml>
 python3 ../../resources/scripts/architecture_tool.py verify-review-signature \

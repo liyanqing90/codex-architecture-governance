@@ -30,7 +30,7 @@ project:
         trigger: A public Skill, CLI, or artifact contract changes.
         environment: Upgrade validation against retained 1.0 artifacts.
         target: Public plugin and artifact compatibility boundaries.
-        response: Legacy artifacts remain readable and trusted enforcement requires 1.1.
+        response: Legacy artifacts remain readable and new enforcement uses 1.2 without invalidating trusted 1.1.
         measure: Compatibility and migration tests pass without silent contract change.
     - id: reliability.deterministic-enforcement
       priority: critical
@@ -50,7 +50,7 @@ project:
       priority: critical
       rationale: Verification, evidence, decisions, and risk acceptance must bind to identity and source.
       target:
-        trusted_artifact_schema: "1.1"
+        trusted_artifact_schema: "1.2"
       evidence:
         - Hash, identity, and evidence-resolution tests
       scenario:
@@ -73,7 +73,7 @@ project:
         environment: Supported development and CI environments.
         target: The changed governance module and its references.
         response: Contracts and references validate without unrelated runtime coupling.
-        measure: Repository validation and all 45 Skill routing cases remain complete.
+        measure: Repository validation and all 40 public Skill routing cases remain complete.
   business_context:
     product_stage: early
     team_count: 1
@@ -99,7 +99,33 @@ project:
     prohibited_services:
       - Required hosted runtime
     migration_limits:
-      - Read legacy 1.0 artifacts but require 1.1 for deterministic enforcement.
+      - Read legacy 1.0 and trusted 1.1 artifacts; require 1.2 for new project review chains.
+  required_knowledge_domains:
+    - backend-api
+    - data
+    - delivery
+    - plugin-platform
+    - testing
+  repository_facts:
+    path: .architecture/repository-facts.yaml
+    sha256: 04c165095edae6dd42d920bf69bb3ef229fabdcb32648d12e1e64a152f5805ea
+  profile_sources:
+    detected:
+      - .architecture/repository-facts.yaml
+    declared:
+      - .architecture/constraints.md
+      - .architecture/critical-flows.md
+    inferred:
+      - inference: Python is the governance runtime; Swift occurs only in a mobile benchmark fixture.
+        confidence: 1.0
+        basis:
+          - resources/scripts/architecture_tool.py
+          - benchmarks/fixtures/server-cache-mobile/Repository.swift
+      - inference: Plugin, test automation, and architecture governance are declared product domains rather than dependency-derived technology facts.
+        confidence: 1.0
+        basis:
+          - .codex-plugin/plugin.json
+          - .architecture/constraints.md
   required_reviews:
     - project-architecture
   review_requirements:

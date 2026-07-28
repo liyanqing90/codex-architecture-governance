@@ -7,7 +7,7 @@
   "required": ["schema_version", "plan", "items"],
   "properties": {
     "schema_version": {
-      "enum": ["1.0", "1.1"]
+      "enum": ["1.0", "1.1", "1.2"]
     },
     "plan": {
       "type": "object",
@@ -91,6 +91,42 @@
             "items": {
               "type": "string",
               "pattern": "^[A-Z][A-Z0-9._-]{2,63}$"
+            }
+          },
+          "finding_bindings": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "fingerprint"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9._-]{2,63}$"
+                },
+                "fingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            }
+          },
+          "knowledge_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 3
+            }
+          },
+          "assumptions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 3
             }
           },
           "desired_invariant": {
@@ -305,7 +341,7 @@
     {
       "if": {
         "properties": {
-          "schema_version": {"const": "1.1"}
+          "schema_version": {"enum": ["1.1", "1.2"]}
         }
       },
       "then": {
@@ -327,6 +363,26 @@
                 "stop_conditions",
                 "acceptance_evidence_types",
                 "completion_evidence"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.2"}
+        }
+      },
+      "then": {
+        "properties": {
+          "items": {
+            "items": {
+              "required": [
+                "finding_bindings",
+                "knowledge_ids",
+                "assumptions"
               ]
             }
           }

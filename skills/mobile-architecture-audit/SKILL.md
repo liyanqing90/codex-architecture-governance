@@ -12,23 +12,31 @@ Assess correctness across application lifecycle transitions, unreliable networks
 Read these files completely:
 
 - `../../resources/references/review-contract.md`
+- `../../resources/references/knowledge-contract.md`
 - `../../resources/references/mobile-rules.md`
 - `../../resources/rules/mobile-core.yaml`
-- `../../resources/knowledge/domains/catalog.yaml`
+- `../../resources/knowledge/manifest.yaml`
 
 Load the project profile, constraints, and critical flows. Pair with `project-architecture-audit` for backend, shared contracts, or full-product scope.
 
 ## Workflow
 
-1. Map state ownership across views, domain logic, repositories, local stores, caches, remote APIs, extensions, widgets, and background tasks.
-2. Trace the critical flows through cold launch, foreground/background transitions, offline mode, retries, cancellation, and process termination.
-3. Trace schema and data migrations, including downgrade assumptions, partial failure, backup/restore, and store corruption handling.
-4. Trace synchronization identities, ordering, conflict policy, tombstones, idempotency, and eventual consistency.
-5. Inspect notification scheduling, authorization changes, timezone and calendar behavior, deduplication, cancellation, and reconciliation.
-6. Inspect network caching, stale data policy, connectivity assumptions, request cancellation, and error recovery.
-7. Inspect SwiftUI or equivalent state lifetimes, actor/thread isolation, observation boundaries, and test seams.
-8. Inspect privacy manifests, permission purpose, sensitive storage, logs, analytics, and data deletion.
-9. Assess battery, background execution, and resource pressure against actual product requirements.
+1. Ensure `.architecture/repository-facts.yaml` exists by running
+   `architecture_tool.py inspect-repository`; detection is evidence about the
+   stack, not a conclusion about suitability.
+2. Run `architecture_tool.py select-knowledge` with
+   `--skill mobile-architecture-audit`, the exact task, facts, and Profile.
+   Persist `.architecture/knowledge-selection-mobile.yaml`, read every selected
+   Markdown entry completely, and do not load unrelated packs.
+3. Map state ownership across views, domain logic, repositories, local stores, caches, remote APIs, extensions, widgets, and background tasks.
+4. Trace the critical flows through cold launch, foreground/background transitions, offline mode, retries, cancellation, and process termination.
+5. Trace schema and data migrations, including downgrade assumptions, partial failure, backup/restore, and store corruption handling.
+6. Trace synchronization identities, ordering, conflict policy, tombstones, idempotency, and eventual consistency.
+7. Inspect notification scheduling, authorization changes, timezone and calendar behavior, deduplication, cancellation, and reconciliation.
+8. Inspect network caching, stale data policy, connectivity assumptions, request cancellation, and error recovery.
+9. Inspect SwiftUI or equivalent state lifetimes, actor/thread isolation, observation boundaries, and test seams.
+10. Inspect privacy manifests, permission purpose, sensitive storage, logs, analytics, and data deletion.
+11. Assess battery, background execution, and resource pressure against actual product requirements.
 
 Do not flag local-first architecture, SQLite/Core Data/SwiftData, singletons, or client-side logic without proving a violated product invariant.
 
@@ -43,7 +51,16 @@ Write persistent artifacts under `.architecture/reviews/` using kind `mobile`:
 
 Start machine-readable output from `../../resources/templates/review.yaml` and set `review.kind` to `mobile`.
 
-Validate YAML with `architecture_tool.py validate-review`.
+Use Review schema 1.2. Bind the exact repository-facts and mobile knowledge
+selection paths and hashes, preserve fact/inference boundaries, enumerate
+critical-flow coverage, and validate with:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py validate-review \
+  <review.yaml> --project <repo>
+python3 ../../resources/scripts/architecture_tool.py validate-coverage \
+  --project <repo> --review <review.yaml> --allow-candidates
+```
 
 Hand off architecture, candidate strengths and risks, lifecycle and
 critical-flow impact, coverage, counter-evidence, and limitations. Use

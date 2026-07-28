@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: search-recommendation
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: SEARCH.INDEX.001, domain: index-consistency, invariant: "Index creation, update, deletion, alias cutover, backfill, and source reconciliation are explicit.", evidence_requirements: ["Trace a source mutation through indexing and repair."], quality_attributes: [reliability]}
+  - {id: SEARCH.RELEVANCE.001, domain: relevance, invariant: "Ranking quality has versioned datasets, metrics, segment analysis, and release thresholds.", evidence_requirements: ["Inspect offline evaluation and online guardrails."], quality_attributes: [functional-suitability]}
+  - {id: SEARCH.FRESHNESS.001, domain: freshness, invariant: "Freshness targets and stale or missing-document behavior are measurable per content class.", evidence_requirements: ["Inspect lag percentiles, alerts, and user-visible fallback."], quality_attributes: [reliability, performance-efficiency]}
+  - {id: SEARCH.PRIVACY.001, domain: retrieval-authorization, invariant: "Indexing and retrieval preserve deletion, tenant, document, and field-level authorization.", evidence_requirements: ["Attempt unauthorized retrieval through filters, caches, vectors, and snippets."], quality_attributes: [security, privacy]}
+  - {id: SEARCH.EXPERIMENT.001, domain: experimentation, invariant: "Ranking experiments isolate cohorts, protect guardrail metrics, and remain attributable and reversible.", evidence_requirements: ["Inspect assignment, exposure, rollback, and decision records."], quality_attributes: [safety, maintainability]}

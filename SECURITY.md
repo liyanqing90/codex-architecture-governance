@@ -31,8 +31,28 @@ This project:
 - can write `.architecture/` and `.architecture-portfolio/` artifacts when the
   user requests initialization or persistence;
 - executes a local Python CLI for schema validation and policy evaluation;
-- does not require network access, credentials, telemetry, or an MCP server;
+- can execute only explicitly enabled, project-configured Evidence Provider
+  commands without a shell, under an environment allowlist and timeout;
+- does not itself require or supply network access, credentials, telemetry, or
+  an MCP server;
 - does not make unverified model findings blocking by default.
+
+Trusted schema `1.1` additionally binds repository/Profile/Rule Pack/candidate
+hashes, complete coverage, verification authority, semantic fingerprints, and
+Git/evidence-run evidence. Risk acceptance is a separate two-party, expiring
+registry. V5 supports detached SSH artifact signatures. These are integrity
+controls, not proof of human identity, provider correctness, or system
+security.
+
+Review every provider command before enabling it. The external executable may
+have its own network, credential, file-system, or code-execution behavior; the
+runner's hashing and capture make that behavior attributable but do not make an
+untrusted tool safe.
+
+Release ZIPs are deterministic and accompanied by SHA-256, SPDX SBOM, and
+GitHub provenance/SBOM attestations. Consumers should verify both the digest
+and attestation. See [docs/assurance-model.md](docs/assurance-model.md) for
+threats and residual risks.
 
 Architecture findings are analysis, not a substitute for a dedicated security
 assessment. The quality gate proves policy evaluation of supplied artifacts; it

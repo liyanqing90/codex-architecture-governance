@@ -25,6 +25,10 @@
       "type": "string",
       "pattern": "^[A-Z][A-Z0-9._-]{2,63}$"
     },
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
     "kind": {
       "enum": ["risk", "strength"]
     },
@@ -67,6 +71,42 @@
         "verified_at": {
           "type": "string",
           "format": "date-time"
+        },
+        "level": {
+          "enum": ["V0", "V1", "V2", "V3", "V4", "V5"]
+        },
+        "verifier": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "identity", "run_id"],
+          "properties": {
+            "type": {
+              "enum": ["human", "agent", "ci"]
+            },
+            "identity": {
+              "type": "string",
+              "minLength": 1
+            },
+            "run_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "source_candidate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["review_id", "sha256"],
+          "properties": {
+            "review_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
         }
       }
     },
@@ -97,12 +137,41 @@
               "test",
               "runtime",
               "history",
-              "document"
+              "document",
+              "tool"
             ]
           },
           "location": {
             "type": "string",
             "minLength": 1
+          },
+          "repository": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commit": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{7,64}$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "line_start": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "line_end": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "blob_sha": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{40,64}$"
+          },
+          "excerpt_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
           },
           "symbol": {
             "type": "string"
@@ -122,8 +191,37 @@
           "freshness": {
             "type": "string",
             "minLength": 1
+          },
+          "provider_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "provider_run": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provider_run_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {"const": "tool"}
+              },
+              "required": ["type"]
+            },
+            "then": {
+              "required": [
+                "provider_id",
+                "provider_run",
+                "provider_run_sha256"
+              ]
+            }
+          }
+        ]
       }
     },
     "impact": {
@@ -175,6 +273,22 @@
       }
     },
     "related_findings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9._-]{2,63}$"
+      }
+    },
+    "quality_attribute_impacts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "decision_references": {
       "type": "array",
       "uniqueItems": true,
       "items": {

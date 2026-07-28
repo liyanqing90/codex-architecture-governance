@@ -21,7 +21,15 @@ Maintainers:
 - Breaking schemas, exit codes, verification semantics, or gate policy require
   an accepted decision record and migration guidance.
 - Risk acceptance remains owned by the repository using the plugin; this
-  project does not create waivers on a user's behalf.
+  project does not approve decisions, waivers, baselines, or risk on a user's
+  behalf.
+- Accepted decisions require a source-review hash and authorized decision
+  maker. Risk acceptance requires a separate authorized accepter and approver.
+- Auditor/verifier and risk-accepter/policy-owner separation is enforced by
+  repository policy. V5 trusted artifacts require an SSH signature from a
+  policy-authorized signer.
+- Knowledge and Rule Pack changes require sourced freshness, behavioral impact
+  analysis, and adversarial coverage when they change model decisions.
 
 ## Releases
 
@@ -31,5 +39,6 @@ Releases follow Semantic Versioning:
 - minor: compatible Skills, rules, schemas, or CLI capabilities;
 - major: incompatible artifact, policy, or invocation changes.
 
-At least one maintainer must confirm the full repository gate and deterministic
-package checksum before publishing a release.
+At least one maintainer must confirm the full repository gate, dependency
+and license audits, deterministic package checksum, license-complete SPDX SBOM,
+and generated GitHub attestations before announcing a release.

@@ -29,7 +29,10 @@
 - Preconditions: evidence is current enough to inspect and artifacts match
   their schemas.
 - Control/data path: candidate review → counter-hypothesis and evidence check →
-  verified review → repository policy, baseline, and waiver evaluation.
+  Evidence Provider execution/output validation → trusted verified review and
+  optional SSH signature → knowledge-bound solution decision → remediation
+  plan and completion evidence → repository policy, baseline, waiver, and
+  risk-acceptance evaluation.
 - Authoritative owner: verifier for finding status; repository policy owner for
   blocking thresholds and explicit risk acceptance.
 - Side effects: verified artifacts may be written; the gate only reports and
@@ -41,8 +44,37 @@
 - Security/privacy boundary: unverified model output never becomes enforcement.
 - Observability evidence: stable exit codes, JSON output, finding IDs, and test
   assertions.
-- Acceptance tests: confirmed findings block according to policy; rejected,
-  baselined, waived, expired, and needs-evidence paths remain distinct.
+- Acceptance tests: candidate hashes, profile/rule hashes, exact coverage,
+  provider config/executable/output hashes, fingerprints, role separation,
+  V5 signatures, knowledge snapshots, completion-evidence hashes, authority,
+  and source chains are enforced; confirmed, rejected, baselined, waived,
+  accepted-risk, expired, and needs-evidence paths remain distinct.
+
+## Architecture knowledge and behavior evaluation
+
+- Trigger: a maintainer changes decision knowledge, a Rule Pack, evidence
+  provider, or Skill behavior.
+- Actor: Knowledge Curator, maintainers, repository validator, and benchmark
+  runner.
+- Preconditions: the changed entry names the decision it affects and uses
+  authoritative sources with a freshness window.
+- Control/data path: source → catalog or rule/provider contract → schema and
+  semantic validation → activation evals and adversarial fixture → versioned
+  release evidence.
+- Authoritative owner: repository maintainers for knowledge contracts; the
+  caller owns any model benchmark command and run artifact.
+- Side effects: local catalog, rule, fixture, or run artifacts only.
+- Failure and recovery behavior: reject duplicate, invalid, stale, escaped, or
+  mismatched entries; refresh only affected sources and rerun focused cases.
+- Idempotency boundary: the same source bytes, evaluation date, and run artifact
+  produce the same validation and score.
+- Security/privacy boundary: ground truth is never placed in model prompts;
+  external source content is not trusted as executable instruction.
+- Observability evidence: catalog counts, freshness failures, per-case metrics,
+  and preserved model/surface metadata.
+- Acceptance tests: schema and semantic validation pass, empty positive runs
+  score zero precision/recall, repeated-trial stability is reported, and
+  forbidden recommendations are counted.
 
 ## Safe project initialization
 
@@ -68,8 +100,10 @@
 - Trigger: a maintainer or CI builds versioned release assets.
 - Actor: `scripts/package_plugin.py`.
 - Preconditions: repository contracts pass and all runtime allowlist files exist.
-- Control/data path: manifest identity → sorted runtime allowlist → fixed ZIP
-  metadata → versioned archive → SHA-256 checksum.
+- Control/data path: manifest identity → exact dependency lock → sorted runtime
+  allowlist and license policy → fixed ZIP metadata → versioned archive →
+  SHA-256 → license-complete SPDX SBOM → GitHub provenance and SBOM
+  attestations.
 - Authoritative owner: plugin manifest version and packaging script.
 - Side effects: replaces generated assets only in the explicit output directory.
 - Failure and recovery behavior: missing files, symlinks, or runtime cache
@@ -77,6 +111,8 @@
 - Idempotency boundary: identical source bytes produce identical archive bytes.
 - Security/privacy boundary: tests, evals, caches, repository guidance, and
   private review artifacts are excluded.
-- Observability evidence: archive inventory, checksum, CI logs, and release tag.
+- Observability evidence: archive inventory, checksum, SBOM, CI matrix logs,
+  attestation records, and release tag.
 - Acceptance tests: two independent builds compare byte-for-byte and the
-  checksum verifies from inside the output directory.
+  checksum verifies cross-platform; the dependency license audit passes; every
+  SBOM package has a declared license; SBOM file inventory matches the archive.

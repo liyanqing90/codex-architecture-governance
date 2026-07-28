@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: local-first
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: LOCAL.AUTHORITY.001, domain: replica-authority, invariant: "Local and remote replicas have explicit authority, identity, version, and convergence semantics.", evidence_requirements: ["Trace concurrent edits on disconnected peers."], quality_attributes: [reliability]}
+  - {id: LOCAL.SYNC.001, domain: synchronization, invariant: "Change capture, cursors, retries, deduplication, ordering, conflicts, and tombstones are durable and testable.", evidence_requirements: ["Exercise reconnect after prolonged partition and repeated delivery."], quality_attributes: [recoverability, reliability]}
+  - {id: LOCAL.MIGRATION.001, domain: local-schema, invariant: "Local schema and sync protocol migrations support every declared mixed-version path and recovery mode.", evidence_requirements: ["Test upgrades with pending local changes and old peers."], quality_attributes: [compatibility, recoverability]}
+  - {id: LOCAL.SECURITY.001, domain: local-data-security, invariant: "Device storage, backups, logs, export, deletion, and key lifecycle meet data classification requirements.", evidence_requirements: ["Trace sensitive data beyond the running application."], quality_attributes: [security, privacy]}
+  - {id: LOCAL.STORAGE.001, domain: bounded-storage, invariant: "Replica, attachment, history, tombstone, and outbox growth have quotas, compaction, and low-space behavior.", evidence_requirements: ["Inspect long-lived and near-full-device behavior."], quality_attributes: [performance-efficiency, reliability]}

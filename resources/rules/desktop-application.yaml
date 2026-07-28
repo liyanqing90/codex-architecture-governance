@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: desktop-application
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: DESKTOP.STATE.001, domain: local-state, invariant: "User documents, preferences, caches, credentials, and transient UI state have distinct lifecycles and recovery.", evidence_requirements: ["Inspect crash and version-upgrade recovery."], quality_attributes: [reliability, maintainability]}
+  - {id: DESKTOP.UPDATE.001, domain: application-update, invariant: "Updates are authentic, compatible, staged where possible, power-loss safe, and recoverable.", evidence_requirements: ["Inspect signature, downgrade, rollback, and partial-install behavior."], quality_attributes: [security, recoverability]}
+  - {id: DESKTOP.OS.001, domain: operating-system-integration, invariant: "Filesystem, keychain, notifications, background work, deep links, and permissions follow platform lifecycle semantics.", evidence_requirements: ["Inspect denial, revocation, sleep, restart, and multiple-instance paths."], quality_attributes: [compatibility, reliability]}
+  - {id: DESKTOP.IPC.001, domain: local-ipc, invariant: "Helper processes and local services authenticate peers, validate messages, bound resources, and version contracts.", evidence_requirements: ["Trace untrusted local client input to privileged operations."], quality_attributes: [security, compatibility]}
+  - {id: DESKTOP.PRIVACY.001, domain: device-privacy, invariant: "Telemetry, crash reports, recent files, previews, clipboard, and local backups do not leak sensitive content.", evidence_requirements: ["Inspect OS-visible artifacts and consent controls."], quality_attributes: [privacy, security]}

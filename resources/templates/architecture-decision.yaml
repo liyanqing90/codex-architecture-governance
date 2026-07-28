@@ -1,0 +1,151 @@
+schema_version: "1.1"
+decision:
+  id: ADR-EXAMPLE-001
+  source_review: example-project-19700101-project
+  source_review_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  decided_at: "1970-01-01T00:00:00+00:00"
+  decision_makers:
+    - unassigned
+  status: proposed
+problem:
+  quality_attributes:
+    - maintainability
+  constraints:
+    - Replace with an authoritative constraint.
+  finding_ids:
+    - EXAMPLE-ARC-001
+  assumptions:
+    - Replace with an assumption whose failure changes the decision.
+knowledge_snapshot:
+  - {kind: architecture-style, catalog_version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+  - {kind: pattern, catalog_version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+  - {kind: technology-profile, catalog_version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+options:
+  - id: keep-current
+    title: Keep the current architecture and apply a local correction
+    complexity_tier: keep-current
+    architecture_styles: []
+    patterns: []
+    technologies: []
+    benefits:
+      - Preserves current operating simplicity.
+    liabilities:
+      - State the confirmed risk that remains or the local change cost.
+    assumptions:
+      - The current deployment boundary remains appropriate.
+    quality_attribute_effects:
+      - attribute: maintainability
+        effect: improves
+        rationale: The local correction restores the owning boundary.
+    business_fit: Preserves the current product and delivery model.
+    team_fit: Uses capabilities already owned by the current team.
+    evolution_fit: Preserves an incremental path if measured constraints later change.
+    implementation_complexity: low
+    operational_complexity: low
+    migration_risk: low
+    reversibility: easy
+    cost: low
+    technical_maturity: mature
+    lock_in: none
+    tradeoff_scores:
+      business_fit: 2
+      quality_fit: 1
+      team_fit: 2
+      implementation: 2
+      operations: 2
+      migration: 2
+      reversibility: 2
+      cost: 2
+      maturity: 2
+      lock_in: 2
+      evolution: 1
+    rejected_reasons: []
+  - id: low-complexity-option
+    title: Apply a bounded structural improvement inside current deployment boundaries
+    complexity_tier: low
+    architecture_styles:
+      - modular-monolith
+    patterns: []
+    technologies: []
+    benefits:
+      - Improves the owning boundary without adding a distributed runtime.
+    liabilities:
+      - Requires an incremental caller and ownership migration.
+    assumptions:
+      - One deployment and current operational model remain appropriate.
+    quality_attribute_effects:
+      - attribute: maintainability
+        effect: improves
+        rationale: Deterministic module boundaries reduce cross-owner change.
+    business_fit: Preserves current release and product boundaries.
+    team_fit: Requires only repository-level architecture tests and ownership.
+    evolution_fit: Creates an extraction seam without requiring future extraction.
+    implementation_complexity: low
+    operational_complexity: low
+    migration_risk: low
+    reversibility: easy
+    cost: low
+    technical_maturity: mature
+    lock_in: low
+    tradeoff_scores:
+      business_fit: 1
+      quality_fit: 2
+      team_fit: 2
+      implementation: 1
+      operations: 2
+      migration: 1
+      reversibility: 2
+      cost: 2
+      maturity: 2
+      lock_in: 1
+      evolution: 2
+    rejected_reasons:
+      - State why the local correction is sufficient under current evidence.
+  - id: structural-option
+    title: Replace with a materially viable structural alternative
+    complexity_tier: medium
+    architecture_styles:
+      - modular-monolith
+    patterns: []
+    technologies: []
+    benefits:
+      - State the quality attribute improved by this option.
+    liabilities:
+      - State the additional implementation or operational burden.
+    assumptions:
+      - State the evidence required for this option to remain suitable.
+    quality_attribute_effects:
+      - attribute: maintainability
+        effect: improves
+        rationale: Explain the mechanism and owning boundary.
+    business_fit: State how this option satisfies the current product stage and flow.
+    team_fit: State the delivery and operating capability this option requires.
+    evolution_fit: State which demonstrated future change this option protects.
+    implementation_complexity: medium
+    operational_complexity: low
+    migration_risk: medium
+    reversibility: moderate
+    cost: medium
+    technical_maturity: stable
+    lock_in: low
+    tradeoff_scores:
+      business_fit: 0
+      quality_fit: 2
+      team_fit: 0
+      implementation: -1
+      operations: 0
+      migration: -1
+      reversibility: 0
+      cost: 0
+      maturity: 1
+      lock_in: 1
+      evolution: 2
+    rejected_reasons:
+      - State why this option loses under current evidence.
+selected_option: keep-current
+rationale: Replace with the evidence-backed tradeoff and explain why non-selected options lose.
+revisit_triggers:
+  - Replace with a measurable change in scale, team, quality target, or constraint.
+acceptance_evidence:
+  - Replace with observable decision acceptance evidence.
+hard_eliminations: []

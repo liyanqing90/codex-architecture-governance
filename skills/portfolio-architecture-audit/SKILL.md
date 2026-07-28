@@ -13,6 +13,8 @@ Read these files completely:
 
 - `../../resources/references/review-contract.md`
 - `../../resources/references/portfolio-rules.md`
+- `../../resources/rules/portfolio-core.yaml`
+- `../../resources/knowledge/decision-guides/system-style-selection.yaml`
 
 Load `.architecture-portfolio/portfolio.yaml`, `shared-capabilities.yaml`, `technology-catalog.yaml`, and `dependency-map.yaml`. The registry defines scope. Do not silently discover unrelated repositories. If the registry is missing, stop and ask the user to initialize or identify the intended projects.
 

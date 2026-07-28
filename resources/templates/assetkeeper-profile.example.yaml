@@ -1,26 +1,91 @@
-schema_version: "1.0"
+schema_version: "1.1"
 project:
   id: assetkeeper
   name: AssetKeeper
-  type:
-    - ios-application
-    - reminder-system
+  type: [ios-application, reminder-system]
   lifecycle: active
   criticality: medium
-  owners:
-    - unassigned
+  owners: [unassigned]
   critical_qualities:
     - local-data-integrity
     - notification-reliability
     - migration-safety
     - battery-efficiency
+  quality_attributes:
+    - id: reliability.local-data-integrity
+      priority: critical
+      rationale: User assets and reminder state must survive process and schema changes.
+      target: {migration_data_loss: zero}
+      evidence: [Versioned migration and recovery tests]
+      scenario:
+        source: A user upgrades with existing local records.
+        trigger: The application opens the new storage schema.
+        environment: Supported iOS upgrade and storage conditions.
+        target: Local asset, reminder, and notification state.
+        response: Data migrates atomically or fails without corrupting the prior store.
+        measure: Fixture migrations preserve every required record and relationship.
+    - id: reliability.notification
+      priority: high
+      rationale: A declared reminder must not be silently duplicated or omitted by app state changes.
+      target: {duplicate_schedules: zero}
+      evidence: [Notification scheduling and permission-state tests]
+      scenario:
+        source: A user creates, edits, or deletes a reminder.
+        trigger: Notification permission and background state vary.
+        environment: Foreground, background, restart, and permission change.
+        target: Local notification schedule and reminder owner.
+        response: Scheduling is reconciled idempotently and limitations are visible.
+        measure: Tests observe exactly the expected pending notification identifiers.
+    - id: performance-efficiency.battery
+      priority: high
+      rationale: Reminder reliability must not depend on unbounded polling or background work.
+      target: {unbounded_polling: prohibited}
+      evidence: [Background scheduling and energy review]
+      scenario:
+        source: The operating system suspends or limits background execution.
+        trigger: A refresh or synchronization window expires.
+        environment: Normal mobile energy and lifecycle constraints.
+        target: Background work and network scheduling.
+        response: Work stops safely and resumes from durable state when rescheduled.
+        measure: No busy loop or duplicate task remains after expiration.
+  business_context:
+    product_stage: early
+    team_count: 1
+    ownership_model: Single mobile product owner.
+    operational_maturity: low
+    distributed_system_experience: limited
+    on_call: false
+    change_frequency: frequent
+    regulatory_constraints: [Platform privacy and notification permission requirements]
+    user_scale: Personal and small-team use until evidence shows otherwise.
+    throughput: Human-scale asset and reminder operations.
+    latency_targets: Local interactions should remain responsive.
+    availability_target: Core local data remains usable without a service.
+    data_volume: Device-scale asset and reminder data.
+    consistency: Local store is authoritative unless a sync service is explicitly introduced.
+    offline_requirement: full
+    deployment_model: Native iOS application with platform background scheduling.
+    budget: constrained
+    deadlines: Preserve App Store-compatible incremental releases.
+    required_stack: [Swift, SwiftUI]
+    prohibited_services: []
+    migration_limits:
+      - Never replace the local store without a tested data migration.
   required_reviews:
     - project-architecture
     - mobile-architecture
     - privacy-review
-  rule_packs:
-    - project-core
-    - mobile
+  review_requirements:
+    - id: project-architecture
+      kind: project
+      rule_packs: [project-core, local-first]
+    - id: mobile-architecture
+      kind: mobile
+      rule_packs: [mobile-core]
+    - id: privacy-review
+      kind: mobile
+      rule_packs: [mobile-core]
+  rule_packs: [project-core, mobile-core, local-first]
   data_classification: confidential
   constraints_file: .architecture/constraints.md
   critical_flows_file: .architecture/critical-flows.md

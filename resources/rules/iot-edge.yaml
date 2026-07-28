@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: iot-edge
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: IOT.IDENTITY.001, domain: device-identity, invariant: "Each device has provisioned, rotatable, revocable identity bound to inventory and ownership.", evidence_requirements: ["Trace manufacture or enrollment through decommissioning."], quality_attributes: [security]}
+  - {id: IOT.COMMAND.001, domain: device-command, invariant: "Commands define authorization, expiry, ordering, deduplication, acknowledgement, and safe offline behavior.", evidence_requirements: ["Exercise delayed, replayed, duplicated, and unauthorized commands."], quality_attributes: [safety, reliability]}
+  - {id: IOT.UPDATE.001, domain: firmware-update, invariant: "Updates are signed, compatible, staged, observable, power-loss safe, and recoverable.", evidence_requirements: ["Inspect signature verification, rollout rings, and rollback."], quality_attributes: [security, recoverability]}
+  - {id: IOT.CONNECTIVITY.001, domain: intermittent-connectivity, invariant: "Edge buffering, synchronization, time, storage limits, and reconnect behavior tolerate prolonged partitions.", evidence_requirements: ["Trace data and commands across disconnection and clock drift."], quality_attributes: [reliability]}
+  - {id: IOT.SAFETY.001, domain: physical-safety, invariant: "Unsafe actuator states are prevented by local deterministic controls independent of cloud availability.", evidence_requirements: ["Inspect fail-safe state and authority boundary."], quality_attributes: [safety]}

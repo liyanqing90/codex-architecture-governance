@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Solution Advisor"
+  short_description: "根据质量属性、约束与知识库比较架构方案并形成可追踪决策"
+  default_prompt: "Use $architecture-solution-advisor to compare architecture options and produce an evidence-backed decision."

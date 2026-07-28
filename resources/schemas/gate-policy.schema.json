@@ -7,7 +7,7 @@
   "required": ["schema_version", "review_kinds", "block", "waivers"],
   "properties": {
     "schema_version": {
-      "const": "1.0"
+      "enum": ["1.0", "1.1"]
     },
     "review_kinds": {
       "type": "array",
@@ -59,6 +59,18 @@
         },
         "unverified_behavior": {
           "enum": ["ignore", "warn", "fail"]
+        },
+        "minimum_verification_level": {
+          "enum": ["V0", "V1", "V2", "V3", "V4", "V5"]
+        },
+        "freshness_strategy": {
+          "enum": ["time-window", "exact-commit", "ancestor", "diff-aware"]
+        },
+        "require_clean_tree": {
+          "type": "boolean"
+        },
+        "require_evidence_resolution": {
+          "type": "boolean"
         }
       }
     },
@@ -77,6 +89,10 @@
             "type": "string",
             "minLength": 3
           },
+          "finding_fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
           "owner": {
             "type": "string",
             "minLength": 1
@@ -84,9 +100,192 @@
           "expires_on": {
             "type": "string",
             "format": "date"
+          },
+          "approved_by": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "risk_acceptances_file": {
+      "type": "string",
+      "minLength": 1
+    },
+    "roles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["auditors", "verifiers", "decision_makers", "risk_acceptors", "policy_owners", "maintainers"],
+      "properties": {
+        "auditors": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "verifiers": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "decision_makers": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "risk_acceptors": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "policy_owners": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "maintainers": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}
+      }
+    },
+    "role_separation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["separate"],
+      "properties": {
+        "separate": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["left", "right"],
+            "properties": {
+              "left": {
+                "enum": ["auditors", "verifiers", "decision_makers", "risk_acceptors", "policy_owners", "maintainers"]
+              },
+              "right": {
+                "enum": ["auditors", "verifiers", "decision_makers", "risk_acceptors", "policy_owners", "maintainers"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "stages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "finding", "change", "release"],
+      "properties": {
+        "contract": {"type": "boolean"},
+        "finding": {"type": "boolean"},
+        "change": {"type": "boolean"},
+        "release": {"type": "boolean"}
+      }
+    },
+    "release_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required_review_kinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["project", "ai-agent", "mobile", "portfolio"]}
+        },
+        "required_evidence_types": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "source",
+              "config",
+              "schema",
+              "migration",
+              "test",
+              "runtime",
+              "history",
+              "document",
+              "tool",
+              "static",
+              "contract",
+              "security",
+              "supply-chain"
+            ]
+          }
+        },
+        "required_provider_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "require_accepted_decisions": {"type": "boolean"},
+        "require_completed_plans": {"type": "boolean"},
+        "require_no_dirty_tree": {"type": "boolean"}
+      }
+    },
+    "change_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "critical_paths",
+        "public_contract_paths",
+        "migration_paths",
+        "security_paths",
+        "require_fresh_review_on_critical_change",
+        "require_decision_on_public_contract_change",
+        "require_plan_on_migration_change"
+      ],
+      "properties": {
+        "critical_paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "public_contract_paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "migration_paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "security_paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "require_fresh_review_on_critical_change": {"type": "boolean"},
+        "require_decision_on_public_contract_change": {"type": "boolean"},
+        "require_plan_on_migration_change": {"type": "boolean"}
+      }
+    },
+    "artifact_signatures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_signers_file", "namespace"],
+      "properties": {
+        "allowed_signers_file": {"type": "string", "minLength": 1},
+        "namespace": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.1"}
+        }
+      },
+      "then": {
+        "required": [
+          "risk_acceptances_file",
+          "roles",
+          "role_separation",
+          "stages",
+          "release_requirements",
+          "change_requirements"
+        ],
+        "properties": {
+          "block": {
+            "required": [
+              "minimum_verification_level",
+              "freshness_strategy",
+              "require_clean_tree",
+              "require_evidence_resolution"
+            ]
+          },
+          "waivers": {
+            "items": {
+              "required": [
+                "finding_fingerprint",
+                "approved_by"
+              ]
+            }
           }
         }
       }
     }
-  }
+  ]
 }

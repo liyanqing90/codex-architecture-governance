@@ -48,6 +48,7 @@ class PackagePluginTests(unittest.TestCase):
             self.assertIn("LICENSE", names)
             self.assertIn("NOTICE", names)
             self.assertIn("requirements.txt", names)
+            self.assertIn("requirements-runtime.lock", names)
             self.assertEqual(timestamps, {package_plugin.FIXED_ZIP_TIME})
             self.assertFalse(any(name.startswith(".architecture/") for name in names))
             self.assertFalse(any(name.startswith("scripts/") for name in names))

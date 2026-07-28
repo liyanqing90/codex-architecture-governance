@@ -8,7 +8,7 @@ Codex forward tests.
 `python3 scripts/validate_repository.py` verifies:
 
 - plugin identity and Semantic Versioning;
-- the exact seven Skill names;
+- the exact nine Skill names;
 - frontmatter, folder naming, descriptions, line budgets, and UI metadata;
 - local Markdown links;
 - JSON Schema validity and parseable YAML templates;
@@ -49,3 +49,59 @@ A release candidate should:
 
 Record model and Codex surface when publishing behavioral results. Treat them
 as time-bound evidence, not a permanent guarantee.
+
+## Adversarial architecture benchmark
+
+`benchmarks/ground-truth.yaml` is a separate behavior corpus. Its ten fixtures
+cover false-positive resistance, modular-monolith proportionality, real data
+ownership conflicts, queue versus durable workflow proportionality, mobile
+client/server ownership, documentation/code contradictions, shared-database
+coupling, and injected tool authority.
+
+The ground truth records expected rule IDs and severity plus forbidden
+over-design recommendations. A run must use the same case IDs and record the
+model, Codex surface, Skill version, and run time. Score it with:
+
+```bash
+python3 resources/scripts/architecture_tool.py benchmark-score \
+  --ground-truth benchmarks/ground-truth.yaml \
+  --run benchmark-run.yaml
+```
+
+Metrics are:
+
+- Finding precision and recall by rule ID;
+- severity agreement on true positives;
+- evidence validity recomputed from fixture-contained file/line/excerpt
+  references;
+- hits on fixture-specific forbidden recommendations;
+- finding and severity stability across repeated independent trials;
+- mean duration and optional token/cost usage.
+
+An empty run has zero precision when expected positives exist. It is not a
+successful baseline. `benchmarks/run-template.yaml` only proves schema and
+scorer operation; it is not a model result.
+
+The caller-supplied harness deliberately does not embed a vendor command:
+
+```bash
+python3 scripts/run_behavior_benchmark.py \
+  --model MODEL --surface SURFACE --repetitions 3 \
+  --output benchmark-run.yaml -- \
+  command --skill '{skill}' --repo '{fixture}' --prompt '{prompt}'
+```
+
+The command must emit JSON with `observed_findings` and
+`observed_recommendations`. Every observed Finding supplies repository-relative
+`path`, `line_start`, `line_end`, and exact `excerpt` evidence. The harness and
+scorer independently resolve these references inside the fixture; a
+caller-supplied validity assertion is not trusted. Use a clean task per case
+and never include the ground-truth expectations in the model prompt. Each
+repetition launches a new command process; the harness records every trial
+rather than averaging model output before scoring.
+
+## Release evidence
+
+A release may state behavioral results only when the run artifact is preserved
+with an identified model/surface and the exact plugin version. Until then, the
+repository claims corpus and harness coverage, not model quality.

@@ -13,6 +13,8 @@ Read these files completely:
 
 - `../../resources/references/review-contract.md`
 - `../../resources/references/ai-agent-rules.md`
+- `../../resources/rules/ai-agent-core.yaml`
+- `../../resources/knowledge/domains/catalog.yaml`
 
 Load the project's profile, constraints, and critical flows. Use `project-architecture-audit` as well when the request covers the whole product rather than only AI-specific boundaries.
 

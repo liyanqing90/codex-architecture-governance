@@ -9,8 +9,9 @@ Maintain a distributable Codex plugin containing focused architecture-governance
 - `.codex-plugin/plugin.json`: installable plugin manifest.
 - `.architecture/`: this repository's own architecture profile and policy.
 - `skills/<skill-name>/`: one user goal per Skill.
-- `resources/`: runtime contracts, schemas, templates, and the portable CLI used by the Skills.
+- `resources/`: runtime contracts, schemas, knowledge, rules, evidence providers, templates, and the portable CLI used by the Skills.
 - `evals/cases.yaml`: activation and boundary cases for every Skill.
+- `benchmarks/`: adversarial architecture fixtures and behavioral ground truth.
 - `scripts/`: repository validation and deterministic packaging.
 - `tests/`: executable behavior and repository-contract tests.
 
@@ -30,7 +31,7 @@ Maintain a distributable Codex plugin containing focused architecture-governance
 Install development dependencies:
 
 ```bash
-python3 -m pip install -r requirements-dev.txt
+python3 -m pip install --require-hashes -r requirements-dev.lock
 ```
 
 Run the full local gate:
@@ -38,15 +39,27 @@ Run the full local gate:
 ```bash
 python3 scripts/validate_repository.py
 python3 resources/scripts/architecture_tool.py validate-project .
+python3 resources/scripts/architecture_tool.py validate-knowledge
 python3 -m pytest
 python3 -m ruff check .
 python3 -m ruff format --check .
+python3 -m pip_audit -r requirements-runtime.lock
+python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --output-dir dist
+python3 scripts/verify_checksum.py dist/*.zip.sha256
+python3 scripts/generate_sbom.py \
+  --archive dist/codex-architecture-governance-0.2.0.zip \
+  --output dist/codex-architecture-governance-0.2.0.spdx.json
 ```
 
 ## Code review rules
 
-- Flag a finding or quality gate that can be produced from unverified model output.
+- Flag a finding or quality gate that can be produced from unverified model output or incomplete Rule Pack coverage.
+- Flag trusted artifacts whose identity, profile, rule, candidate, decision, or fingerprint hashes are not validated.
+- Flag Evidence Provider execution that invokes a shell, escapes the project,
+  omits executable/config/output hashes, or treats malformed structured output
+  as passing.
+- Flag accepted risk without separate authorized accepter and approver identities.
 - Flag a Skill description that overlaps another Skill without a distinct user goal.
 - Flag scripts that can overwrite an existing `.architecture` or `.architecture-portfolio` directory.
 - Flag review artifacts whose counts, finding references, verification state, or policy outcome are not schema-validated.

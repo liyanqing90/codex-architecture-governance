@@ -1,4 +1,4 @@
-schema_version: "1.0"
+schema_version: "1.1"
 project:
   id: example-project
   name: Example Project
@@ -11,8 +11,65 @@ project:
   critical_qualities:
     - maintainability
     - recoverability
+  quality_attributes:
+    - id: maintainability
+      priority: high
+      rationale: Changes must remain bounded to an owned module.
+      target:
+        architecture_boundary_tests: required
+      evidence:
+        - Repository architecture tests
+      scenario:
+        source: A maintainer changes one owned module.
+        trigger: A feature or correction modifies module behavior.
+        environment: Normal development and CI.
+        target: The owning module and its public boundary.
+        response: The change remains bounded and boundary violations fail deterministically.
+        measure: Architecture boundary tests pass with no undeclared dependency.
+    - id: reliability.recoverability
+      priority: high
+      rationale: Critical flows must recover from expected interruption.
+      target:
+        recovery_test: required
+      evidence:
+        - Critical-flow recovery test
+      scenario:
+        source: An expected infrastructure or process interruption occurs.
+        trigger: A critical flow is interrupted after durable work begins.
+        environment: Normal operation under declared failure conditions.
+        target: The critical flow state owner.
+        response: The flow resumes, compensates, or terminates without duplicate effects.
+        measure: Recovery tests prove the declared terminal outcome.
+  business_context:
+    product_stage: early
+    team_count: 1
+    ownership_model: Single accountable product team.
+    operational_maturity: medium
+    distributed_system_experience: limited
+    on_call: false
+    change_frequency: frequent
+    regulatory_constraints: []
+    user_scale: Unknown during initialization.
+    throughput: Unknown during initialization.
+    latency_targets: No explicit target during initialization.
+    availability_target: No explicit target during initialization.
+    data_volume: Unknown during initialization.
+    consistency: Define per critical flow.
+    offline_requirement: none
+    deployment_model: Single project-owned deployment.
+    budget: constrained
+    deadlines: No explicit deadline during initialization.
+    required_stack: []
+    prohibited_services: []
+    migration_limits:
+      - Preserve public and persisted contracts.
   required_reviews:
     - project-architecture
+  review_requirements:
+    - id: project-architecture
+      kind: project
+      rule_packs:
+        - project-core
   rule_packs:
     - project-core
   data_classification: internal

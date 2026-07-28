@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: cloud-native-platform
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: CLOUD.OWNERSHIP.001, domain: workload-ownership, invariant: "Every workload, dependency, environment, SLO, cost center, and on-call path has accountable ownership.", evidence_requirements: ["Inspect catalog, alerts, and escalation."], quality_attributes: [reliability, maintainability]}
+  - {id: CLOUD.IDENTITY.001, domain: workload-identity, invariant: "Workloads use short-lived least-privilege identity and secrets are not distributed as durable configuration.", evidence_requirements: ["Trace identity issuance, rotation, and protected calls."], quality_attributes: [security]}
+  - {id: CLOUD.RESILIENCE.001, domain: failure-domains, invariant: "Zone, region, control-plane, quota, and dependency failures match declared recovery and availability targets.", evidence_requirements: ["Inspect topology, tests, capacity, backup, and restore evidence."], quality_attributes: [reliability, recoverability]}
+  - {id: CLOUD.DEPLOY.001, domain: progressive-delivery, invariant: "Immutable artifacts move through policy-controlled environments with drift detection, health evaluation, rollback, and migration ordering.", evidence_requirements: ["Trace one release and failed rollout."], quality_attributes: [reliability, traceability]}
+  - {id: CLOUD.COST.001, domain: capacity-cost, invariant: "Capacity, autoscaling, quotas, data transfer, storage growth, and unit cost are measured and bounded.", evidence_requirements: ["Inspect representative load, saturation, and cost allocation."], quality_attributes: [performance-efficiency, cost]}

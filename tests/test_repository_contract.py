@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -18,6 +19,20 @@ class RepositoryContractTests(unittest.TestCase):
     def test_repository_contract(self) -> None:
         errors = validate_repository.validate_repository(ROOT)
         self.assertEqual(errors, [], "\n".join(errors))
+
+    def test_floating_github_action_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            workflow_root = root / ".github" / "workflows"
+            workflow_root.mkdir(parents=True)
+            (workflow_root / "ci.yml").write_text(
+                "steps:\n  - uses: actions/checkout@v6\n",
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+            validate_repository.validate_github_action_pins(root, errors)
+            self.assertEqual(len(errors), 1)
+            self.assertIn("40-character commit SHA", errors[0])
 
 
 if __name__ == "__main__":

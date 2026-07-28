@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: multi-tenant-saas
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: TENANT.CONTEXT.001, domain: tenant-context, invariant: "Tenant identity is derived from a trusted principal and propagated as mandatory context to every protected operation.", evidence_requirements: ["Trace cross-tenant manipulation attempts to storage and caches."], quality_attributes: [security]}
+  - {id: TENANT.ISOLATION.001, domain: tenant-isolation, invariant: "Compute, storage, search, analytics, backups, and support access meet the declared isolation tier.", evidence_requirements: ["Inspect enforcement and negative tests across every data copy."], quality_attributes: [security, reliability]}
+  - {id: TENANT.CAPACITY.001, domain: noisy-neighbor, invariant: "Per-tenant quotas, fairness, rate limits, and capacity signals contain noisy neighbors.", evidence_requirements: ["Inspect overload evidence with one abusive tenant."], quality_attributes: [performance-efficiency, reliability]}
+  - {id: TENANT.LIFECYCLE.001, domain: tenant-lifecycle, invariant: "Provisioning, migration, export, suspension, deletion, and recovery are complete and auditable across dependencies.", evidence_requirements: ["Trace one tenant through the full lifecycle."], quality_attributes: [reliability, security]}
+  - {id: TENANT.ADMIN.001, domain: support-authority, invariant: "Administrative and support access is scoped, time-bounded, approved where required, and audited.", evidence_requirements: ["Inspect impersonation and break-glass paths."], quality_attributes: [security]}

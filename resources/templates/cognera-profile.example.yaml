@@ -1,28 +1,102 @@
-schema_version: "1.0"
+schema_version: "1.1"
 project:
   id: cognera
   name: Cognera
-  type:
-    - ai-agent-platform
-    - personal-data-system
+  type: [ai-agent-platform, personal-data-system]
   lifecycle: active
   criticality: high
-  owners:
-    - unassigned
+  owners: [unassigned]
   critical_qualities:
     - data-governance
     - traceability
     - privacy
     - recoverability
     - extensibility
+  quality_attributes:
+    - id: security.privacy
+      priority: critical
+      rationale: Personal intelligence must not cross user, task, tool, or retention boundaries.
+      target: {unauthorized_disclosure: zero}
+      evidence: [Isolation tests and data-lifecycle records]
+      scenario:
+        source: Untrusted content or an unauthorized tool requests personal context.
+        trigger: Context, Memory, or evidence is retrieved for an agent task.
+        environment: Normal operation with mixed-trust sources.
+        target: Personal data and tool authorization boundaries.
+        response: The request is scoped, minimized, authorized, and auditable or denied.
+        measure: Isolation tests show zero cross-scope disclosure.
+    - id: reliability.recoverability
+      priority: critical
+      rationale: Long-running tasks and durable Memory must survive expected interruption.
+      target: {duplicate_external_effects: zero}
+      evidence: [Checkpoint, resume, and idempotency tests]
+      scenario:
+        source: A provider, process, or tool fails after a durable step.
+        trigger: The task resumes or retries.
+        environment: Declared provider and process failure.
+        target: Task state, Memory writes, and external side effects.
+        response: The task resumes, compensates, or terminates without duplicate effects.
+        measure: Recovery tests show one terminal outcome and zero duplicate writes.
+    - id: security.traceability
+      priority: critical
+      rationale: Durable claims must remain traceable to source and transformation history.
+      target: {durable_claim_provenance: required}
+      evidence: [Claim-to-source provenance tests]
+      scenario:
+        source: A user or agent reads a durable claim.
+        trigger: The claim influences a decision or external action.
+        environment: Normal retrieval after one or more transformations.
+        target: Claim, evidence, confidence, and contradiction history.
+        response: The system reconstructs source, time, transformation, and authority.
+        measure: Every tested durable claim resolves to retained evidence.
+  business_context:
+    product_stage: early
+    team_count: 1
+    ownership_model: Single accountable product team.
+    operational_maturity: medium
+    distributed_system_experience: limited
+    on_call: false
+    change_frequency: frequent
+    regulatory_constraints: [Personal data lifecycle and user deletion obligations]
+    user_scale: Personal deployment initially; record actual growth before redesign.
+    throughput: Interactive and background personal-intelligence tasks.
+    latency_targets: Interactive flows need explicit budgets; background flows may be asynchronous.
+    availability_target: Preserve recoverability before claiming high availability.
+    data_volume: Long-lived personal evidence and Memory with bounded retention.
+    consistency: Source and authority semantics are stronger than eventual retrieval freshness.
+    offline_requirement: limited
+    deployment_model: Local-first components plus explicitly authorized model and tool providers.
+    budget: constrained
+    deadlines: Prefer reversible slices over platform-scale rewrites.
+    required_stack: []
+    prohibited_services: []
+    migration_limits:
+      - Preserve provenance and deletion semantics throughout migration.
   required_reviews:
     - project-architecture
     - ai-agent-architecture
     - threat-model
     - data-architecture
+  review_requirements:
+    - id: project-architecture
+      kind: project
+      rule_packs: [project-core, backend-api, plugin-platform]
+    - id: ai-agent-architecture
+      kind: ai-agent
+      rule_packs: [ai-agent-core]
+    - id: threat-model
+      kind: project
+      rule_packs: [project-core, identity-authorization]
+    - id: data-architecture
+      kind: project
+      rule_packs: [project-core, data-platform]
   rule_packs:
     - project-core
-    - ai-agent
+    - ai-agent-core
+    - backend-api
+    - plugin-platform
+    - identity-authorization
+    - data-platform
   data_classification: restricted
   constraints_file: .architecture/constraints.md
   critical_flows_file: .architecture/critical-flows.md

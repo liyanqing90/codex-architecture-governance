@@ -1,0 +1,152 @@
+schema_version: "1.1"
+kind: quality-model
+catalog_version: "1.0.0"
+entries:
+  - id: functional-suitability
+    name: Functional suitability
+    category: iso-25010
+    intent: [Ensure functions meet stated and implied needs with correct and complete outcomes.]
+    fit_when: [Always assess against product goals and critical flows.]
+    avoid_when: [Do not substitute feature count for demonstrated user outcomes.]
+    benefits: [Connects architecture decisions to product value.]
+    liabilities: [Requires explicit product scenarios and acceptance evidence.]
+    quality_attributes: [functional-suitability]
+    sources: &iso_sources
+      - {title: "ISO/IEC 25010:2023", url: "https://www.iso.org/standard/78176.html", authority: standard}
+    freshness: &stable_freshness {reviewed_on: "2026-07-28", review_after_days: 730}
+  - id: performance-efficiency
+    name: Performance efficiency
+    category: iso-25010
+    intent: [Protect response time, throughput, capacity, and resource use under declared conditions.]
+    fit_when: [Targets or observed capacity limits affect a critical flow.]
+    avoid_when: [Do not infer scale targets from technology names or hypothetical growth.]
+    benefits: [Makes performance and cost tradeoffs measurable.]
+    liabilities: [Requires representative workloads and runtime evidence.]
+    quality_attributes: [performance-efficiency]
+    sources: *iso_sources
+    freshness: *stable_freshness
+  - id: compatibility
+    name: Compatibility
+    category: iso-25010
+    intent: [Protect coexistence and interoperability across components and versions.]
+    fit_when: [Public APIs, events, schemas, platforms, or mixed versions interact.]
+    avoid_when: [Do not preserve unused contracts without identified consumers.]
+    benefits: [Reduces silent consumer breakage.]
+    liabilities: [Compatibility windows create migration and test cost.]
+    quality_attributes: [compatibility]
+    sources: *iso_sources
+    freshness: *stable_freshness
+  - id: interaction-capability
+    name: Interaction capability
+    category: iso-25010
+    intent: [Enable intended users to interact effectively, safely, and inclusively.]
+    fit_when: [Human workflows, accessibility, learnability, or approval boundaries matter.]
+    avoid_when: [Do not reduce interaction quality to visual consistency alone.]
+    benefits: [Connects interface design with operational and safety outcomes.]
+    liabilities: [Requires user and workflow evidence.]
+    quality_attributes: [interaction-capability]
+    sources: *iso_sources
+    freshness: *stable_freshness
+  - id: reliability
+    name: Reliability
+    category: iso-25010
+    intent: [Maintain correct service, availability, fault tolerance, and recoverability.]
+    fit_when: [Failures, interruptions, retries, or recovery affect critical flows.]
+    avoid_when: [Do not demand high availability without a declared impact or target.]
+    benefits: [Makes failure behavior and recovery explicit.]
+    liabilities: [Redundancy and recovery controls add operational complexity.]
+    quality_attributes: [reliability, recoverability]
+    sources: *iso_sources
+    freshness: *stable_freshness
+  - id: security
+    name: Security
+    category: iso-25010
+    intent: [Protect confidentiality, integrity, authenticity, accountability, and resistance.]
+    fit_when: [Data, identity, authority, trust boundaries, or supply-chain inputs exist.]
+    avoid_when: [Do not treat documentation or framework defaults as effective controls.]
+    benefits: [Protects users, data, and operations.]
+    liabilities: [Controls add identity, audit, and operational responsibilities.]
+    quality_attributes: [security, privacy, safety]
+    sources: *iso_sources
+    freshness: *stable_freshness
+  - id: maintainability
+    name: Maintainability
+    category: iso-25010
+    intent: [Enable analysis, modification, testing, reuse, and modular evolution.]
+    fit_when: [Change cost or ownership affects sustained delivery.]
+    avoid_when: [Do not equate aesthetic preferences or metrics with maintainability failures.]
+    benefits: [Reduces bounded change cost.]
+    liabilities: [Abstraction introduced without variability can reduce maintainability.]
+    quality_attributes: [maintainability]
+    sources: *iso_sources
+    freshness: *stable_freshness
+  - id: flexibility
+    name: Flexibility
+    category: iso-25010
+    intent: [Adapt, scale, install, and replace components under declared evolution needs.]
+    fit_when: [Known variability, portability, or replacement requirements exist.]
+    avoid_when: [Do not optimize for hypothetical futures.]
+    benefits: [Preserves deliberate evolution paths.]
+    liabilities: [Flexibility mechanisms create current complexity.]
+    quality_attributes: [flexibility]
+    sources: *iso_sources
+    freshness: *stable_freshness
+  - id: safety
+    name: Safety
+    category: iso-25010
+    intent: [Prevent unacceptable harm to people, assets, finances, or the environment.]
+    fit_when: [Actions can create material or irreversible harm.]
+    avoid_when: [Do not use generic safety language without a hazard and control path.]
+    benefits: [Places deterministic controls at real harm boundaries.]
+    liabilities: [May require reduced autonomy and additional approvals.]
+    quality_attributes: [safety]
+    sources: *iso_sources
+    freshness: *stable_freshness
+  - id: quality-attribute-scenario
+    name: Quality Attribute Scenario
+    category: evaluation-method
+    intent: [Turn a quality concern into a source, stimulus, environment, target, response, and measurable response measure.]
+    fit_when: [An architecture quality must be compared, verified, or gated.]
+    avoid_when: [A vague adjective has no operational consequence or decision owner.]
+    benefits: [Creates testable decision criteria and exposes conflicting assumptions.]
+    liabilities: [Poorly chosen stimuli or measures create false confidence.]
+    quality_attributes: [all]
+    sources:
+      - {title: "SEI Quality Attribute Workshop", url: "https://www.sei.cmu.edu/our-work/software-architecture/quality-attribute-workshop/", authority: research}
+    freshness: *stable_freshness
+  - id: aws-well-architected
+    name: AWS Well-Architected Framework
+    category: cloud-quality-model
+    intent: [Review cloud workloads across operational excellence, security, reliability, performance efficiency, cost optimization, and sustainability.]
+    fit_when: [AWS workloads or cloud-operating tradeoffs are in scope.]
+    avoid_when: [Do not substitute cloud guidance for product, domain, or team-specific scenarios.]
+    benefits: [Operational questions, risks, and improvement guidance grounded in AWS services.]
+    liabilities: [AWS context and service assumptions can bias otherwise portable decisions.]
+    quality_attributes: [reliability, security, performance-efficiency, maintainability, cost]
+    sources:
+      - {title: "AWS Well-Architected Framework", url: "https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html", authority: official}
+    freshness: {reviewed_on: "2026-07-28", review_after_days: 180}
+  - id: azure-well-architected
+    name: Azure Well-Architected Framework
+    category: cloud-quality-model
+    intent: [Review Azure workloads across reliability, security, cost optimization, operational excellence, and performance efficiency.]
+    fit_when: [Azure workloads or cloud-operating tradeoffs are in scope.]
+    avoid_when: [Do not infer that Azure services are required to satisfy the underlying quality need.]
+    benefits: [Structured workload review with Azure operating guidance.]
+    liabilities: [Azure-specific terminology and services can increase platform bias.]
+    quality_attributes: [reliability, security, performance-efficiency, maintainability, cost]
+    sources:
+      - {title: "Azure Well-Architected Framework", url: "https://learn.microsoft.com/en-us/azure/well-architected/", authority: official}
+    freshness: {reviewed_on: "2026-07-28", review_after_days: 180}
+  - id: google-cloud-well-architected
+    name: Google Cloud Well-Architected Framework
+    category: cloud-quality-model
+    intent: [Review cloud systems across operational excellence, security, reliability, cost optimization, performance, and sustainability.]
+    fit_when: [Google Cloud workloads or broadly applicable cloud design tradeoffs are in scope.]
+    avoid_when: [Do not treat a framework checklist as evidence that product scenarios are satisfied.]
+    benefits: [Cross-cutting cloud design principles and operational recommendations.]
+    liabilities: [Google Cloud context can bias implementation selection.]
+    quality_attributes: [reliability, security, performance-efficiency, maintainability, cost]
+    sources:
+      - {title: "Google Cloud Well-Architected Framework", url: "https://cloud.google.com/architecture/framework", authority: official}
+    freshness: {reviewed_on: "2026-07-28", review_after_days: 180}

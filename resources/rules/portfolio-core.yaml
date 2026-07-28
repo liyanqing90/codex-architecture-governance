@@ -1,0 +1,15 @@
+schema_version: "1.1"
+id: portfolio-core
+version: "1.0.0"
+review_kind: portfolio
+rules:
+  - {id: PORTFOLIO.CAPABILITY.001, domain: duplicate-capabilities, invariant: "Repeated capabilities have an explicit share-or-separate decision based on semantics, ownership, lifecycle, and coupling.", evidence_requirements: ["Compare implementations, consumers, owners, and change cadence."], quality_attributes: [maintainability, flexibility]}
+  - {id: PORTFOLIO.STACK.001, domain: stack-sprawl, invariant: "Technology diversity has a demonstrated capability or isolation benefit that exceeds governance cost.", evidence_requirements: ["Map technologies to requirements, owners, and operational burden."], quality_attributes: [maintainability, cost]}
+  - {id: PORTFOLIO.DATA.001, domain: data-flow, invariant: "Cross-project data has one owner, declared contracts, classification, retention, and recovery.", evidence_requirements: ["Trace data producers, consumers, stores, and transfers."], quality_attributes: [security, reliability]}
+  - {id: PORTFOLIO.DEPENDENCY.001, domain: hidden-coupling, invariant: "Cross-project dependencies are explicit, versioned, observable, and owned.", evidence_requirements: ["Inspect APIs, events, shared stores, libraries, and deployment assumptions."], quality_attributes: [compatibility, reliability]}
+  - {id: PORTFOLIO.IDENTITY.001, domain: identity, invariant: "Identity and authorization semantics are consistent where shared and isolated where trust boundaries differ.", evidence_requirements: ["Compare principals, policies, tokens, and trust boundaries."], quality_attributes: [security]}
+  - {id: PORTFOLIO.PLATFORM.001, domain: shared-platform, invariant: "Shared infrastructure has stable semantics, ownership, service levels, cost allocation, and failure containment.", evidence_requirements: ["Inspect consumers, ownership, and blast radius."], quality_attributes: [reliability, cost]}
+  - {id: PORTFOLIO.OBSERVABILITY.001, domain: observability, invariant: "Cross-project flows preserve correlation, ownership, retention, and incident-routing signals.", evidence_requirements: ["Trace a portfolio critical flow across systems."], quality_attributes: [traceability, reliability]}
+  - {id: PORTFOLIO.DEPLOY.001, domain: deployment, invariant: "Domains, environments, deployment dependencies, configuration, and rollback responsibilities remain governable.", evidence_requirements: ["Map deployment ordering, domains, and rollback."], quality_attributes: [reliability, maintainability]}
+  - {id: PORTFOLIO.BOUNDARY.001, domain: product-boundary, invariant: "Each project owns a coherent product capability and is not an accidental module or duplicate product.", evidence_requirements: ["Compare product goals, users, owners, and lifecycle."], quality_attributes: [maintainability, flexibility]}
+  - {id: PORTFOLIO.CHANGE.001, domain: change-coupling, invariant: "A change in one project cannot silently require coordinated changes in unrelated projects.", evidence_requirements: ["Inspect consumers, versioning, and recent coordinated changes."], quality_attributes: [compatibility, maintainability]}

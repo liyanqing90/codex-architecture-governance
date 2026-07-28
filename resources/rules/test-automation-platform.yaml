@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: test-automation-platform
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: TESTPLATFORM.RUN.001, domain: run-state, invariant: "A test run has durable identity, immutable inputs, explicit states, cancellation, timeout, retry, and terminal outcome.", evidence_requirements: ["Trace worker loss after a side effect."], quality_attributes: [reliability, traceability]}
+  - {id: TESTPLATFORM.ISOLATION.001, domain: execution-isolation, invariant: "Untrusted tests cannot escape declared compute, network, credential, filesystem, or tenant boundaries.", evidence_requirements: ["Inspect sandbox and adversarial isolation tests."], quality_attributes: [security]}
+  - {id: TESTPLATFORM.EVIDENCE.001, domain: test-evidence, invariant: "Results bind code, environment, dependencies, configuration, artifacts, logs, and runner version.", evidence_requirements: ["Reconstruct a failure from stored evidence."], quality_attributes: [traceability, reliability]}
+  - {id: TESTPLATFORM.SCHEDULE.001, domain: scheduling, invariant: "Scheduling enforces fairness, capacity, priorities, leases, deduplication, and abandoned-work recovery.", evidence_requirements: ["Inspect overload and worker partition behavior."], quality_attributes: [performance-efficiency, reliability]}
+  - {id: TESTPLATFORM.FLAKE.001, domain: test-quality, invariant: "Retries do not hide flaky or nondeterministic behavior and quarantine has ownership and expiry.", evidence_requirements: ["Inspect result semantics and historical stability."], quality_attributes: [functional-suitability, maintainability]}

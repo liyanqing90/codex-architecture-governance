@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -95,7 +97,7 @@ class ArchitectureToolTests(unittest.TestCase):
             "counter_evidence": [],
             "first_seen": "2026-07-28",
             "last_seen": "2026-07-28",
-            "found_by": ["test-auditor"],
+            "found_by": ["architecture-auditor"],
             "tags": ["data-ownership"],
         }
 
@@ -148,59 +150,450 @@ class ArchitectureToolTests(unittest.TestCase):
         )
 
     def init_project(self) -> Path:
-        return architecture_tool.init_project(self.project_args())
+        target = architecture_tool.init_project(self.project_args())
+        policy_path = target / "gate-policy.yaml"
+        policy = architecture_tool.load_yaml(policy_path)
+        policy["block"].update(
+            {
+                "freshness_strategy": "time-window",
+                "require_clean_tree": False,
+                "require_evidence_resolution": False,
+            }
+        )
+        self.write_yaml(policy_path, policy)
+        subprocess.run(
+            ["git", "init", "-q", str(self.root)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "config", "user.name", "Test User"],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.root),
+                "config",
+                "user.email",
+                "test@example.invalid",
+            ],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", ".architecture"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Initialize test project"],
+            check=True,
+        )
+        return target
 
-    def write_review(self, review: dict | None = None) -> Path:
-        reviews = self.root / ".architecture" / "reviews"
-        path = reviews / "2026-07-28-project-verified.yaml"
-        self.write_yaml(path, review or self.review())
+    def write_review(
+        self,
+        review: dict | None = None,
+        *,
+        portfolio: bool = False,
+    ) -> Path:
+        supplied = copy.deepcopy(review or self.review())
+        verification = supplied["findings"][0]["verification"]["status"]
+        if portfolio:
+            config_root = self.root / ".architecture-portfolio"
+            profile_path = config_root / "portfolio.yaml"
+            pack_id = "portfolio-core"
+            subject_id = "test-portfolio"
+            verifier_identity = "portfolio-verifier"
+            auditor_identity = "portfolio-auditor"
+            kind = "portfolio"
+            workflow = "portfolio-architecture"
+            finding_rule = "PORTFOLIO.DATA.001"
+            commits = {"project-a": "deadbeef", "project-b": "cafebabe"}
+        else:
+            config_root = self.root / ".architecture"
+            profile_path = config_root / "profile.yaml"
+            pack_id = "project-core"
+            subject_id = "test-project"
+            verifier_identity = "architecture-verifier"
+            auditor_identity = "architecture-auditor"
+            kind = "project"
+            workflow = "project-architecture"
+            finding_rule = "PROJECT.DATA.001"
+            commits = None
+
+        reviews = config_root / "reviews"
+        supplied["findings"][0]["rule_id"] = finding_rule
+        if verification == "rejected":
+            supplied["findings"][0]["status"] = "rejected"
+
+        candidate = copy.deepcopy(supplied)
+        candidate["schema_version"] = "1.0"
+        candidate["review"].update(
+            {
+                "id": f"2026-07-28-{subject_id}-candidate",
+                "kind": kind,
+                "subject": {
+                    "id": subject_id,
+                    "name": "Test Portfolio" if portfolio else "Test Project",
+                },
+                "verification_state": "candidates",
+                "profile": str(profile_path.relative_to(self.root)),
+            }
+        )
+        if portfolio:
+            candidate["review"].pop("commit", None)
+            candidate["review"]["commits"] = commits
+        else:
+            candidate["review"]["commit"] = architecture_tool.current_git_commit(
+                self.root
+            )
+        candidate_finding = candidate["findings"][0]
+        candidate_finding["found_by"] = [auditor_identity]
+        candidate_finding["verification"] = {
+            "status": "candidate",
+            "rationale": "Awaiting independent verification.",
+        }
+        candidate_finding["status"] = "open"
+        candidate["summary"].update(
+            {
+                "raw_findings": 1,
+                "confirmed": 0,
+                "rejected": 0,
+                "needs_evidence": 0,
+            }
+        )
+        candidate["coverage"] = [
+            {
+                "rule_id": finding_rule,
+                "status": "assessed",
+                "finding_ids": ["TEST-DATA-001"],
+            }
+        ]
+        candidate_path = reviews / f"2026-07-28-{kind}-candidates.yaml"
+        self.write_yaml(candidate_path, candidate)
+        candidate_hash = architecture_tool.file_sha256(candidate_path)
+
+        pack_path = ROOT / "resources" / "rules" / f"{pack_id}.yaml"
+        pack = architecture_tool.load_yaml(pack_path)
+        verified = copy.deepcopy(supplied)
+        verified["schema_version"] = "1.1"
+        verified["review"].update(
+            {
+                "id": f"2026-07-28-{subject_id}-verified",
+                "kind": kind,
+                "workflow": workflow,
+                "subject": candidate["review"]["subject"],
+                "repository_identity": subject_id,
+                "profile": str(profile_path.relative_to(self.root)),
+                "profile_sha256": architecture_tool.file_sha256(profile_path),
+                "dirty_tree": False,
+                "rule_packs": [
+                    {
+                        "id": pack_id,
+                        "version": pack["version"],
+                        "sha256": architecture_tool.file_sha256(pack_path),
+                    }
+                ],
+                "scope_manifest": ["."],
+                "verification_state": "verified",
+                "reviewers": [verifier_identity],
+                "verification_run": {
+                    "id": "test-verification-run",
+                    "surface": "pytest",
+                    "started_at": "2026-07-28T09:59:00+00:00",
+                    "completed_at": "2026-07-28T10:00:00+00:00",
+                },
+                "source_candidate": {
+                    "path": str(candidate_path.relative_to(self.root)),
+                    "review_id": candidate["review"]["id"],
+                    "sha256": candidate_hash,
+                },
+            }
+        )
+        if portfolio:
+            verified["review"].pop("commit", None)
+            verified["review"]["commits"] = commits
+        else:
+            verified["review"]["commit"] = architecture_tool.current_git_commit(
+                self.root
+            )
+
+        verified_finding = verified["findings"][0]
+        verified_finding["found_by"] = [auditor_identity]
+        verified_finding["verification"] = {
+            "status": verification,
+            "rationale": supplied["findings"][0]["verification"]["rationale"],
+            "verified_by": verifier_identity,
+            "verified_at": "2026-07-28T10:00:00+00:00",
+            "level": "V1",
+            "verifier": {
+                "type": "agent",
+                "identity": verifier_identity,
+                "run_id": "test-verification-run",
+            },
+            "source_candidate": {
+                "review_id": candidate["review"]["id"],
+                "sha256": candidate_hash,
+            },
+        }
+        verified_finding["fingerprint"] = architecture_tool.finding_fingerprint(
+            subject_id,
+            verified_finding,
+        )
+        verified["summary"].update(
+            {
+                "raw_findings": 1,
+                "confirmed": int(verification == "confirmed"),
+                "rejected": int(verification == "rejected"),
+                "needs_evidence": int(verification == "needs-evidence"),
+            }
+        )
+        verified["coverage"] = [
+            {
+                "rule_id": rule["id"],
+                "status": "assessed",
+                "finding_ids": (
+                    ["TEST-DATA-001"] if rule["id"] == finding_rule else []
+                ),
+            }
+            for rule in pack["rules"]
+        ]
+        verified["coverage_complete"] = True
+        path = reviews / f"2026-07-28-{kind}-verified.yaml"
+        self.write_yaml(path, verified)
         return path
 
     def test_init_and_validate_project(self) -> None:
         target = self.init_project()
         self.assertEqual(target, self.root / ".architecture")
         validated = architecture_tool.validate_project(self.root)
-        self.assertEqual(len(validated), 5)
+        self.assertEqual(len(validated), 7)
         with self.assertRaises(architecture_tool.ArchitectureError):
             architecture_tool.init_project(self.project_args())
 
+    def test_project_can_load_a_repository_local_rule_pack(self) -> None:
+        config_root = architecture_tool.init_project(self.project_args())
+        local_pack_path = config_root / "rules" / "organization-boundary.yaml"
+        local_pack = {
+            "schema_version": "1.1",
+            "id": "organization-boundary",
+            "version": "1.0.0",
+            "review_kind": "project",
+            "rules": [
+                {
+                    "id": "ORG.BOUNDARY.001",
+                    "domain": "organization-boundary",
+                    "invariant": (
+                        "Organization-owned capabilities expose an explicit "
+                        "versioned contract."
+                    ),
+                    "evidence_requirements": [
+                        "Owning team and versioned interface evidence"
+                    ],
+                }
+            ],
+        }
+        self.write_yaml(local_pack_path, local_pack)
+        profile_path = config_root / "profile.yaml"
+        profile = architecture_tool.load_yaml(profile_path)
+        profile["project"]["rule_packs"].append("organization-boundary")
+        profile["project"]["review_requirements"][0]["rule_packs"].append(
+            "organization-boundary"
+        )
+        self.write_yaml(profile_path, profile)
+
+        validated = architecture_tool.validate_project(self.root)
+
+        self.assertIn(profile_path, validated)
+
+    def test_review_diff_reports_finding_and_coverage_changes(self) -> None:
+        before = self.review()
+        after = copy.deepcopy(before)
+        after["review"]["id"] = "2026-07-29-test-project"
+        after["review"]["performed_at"] = "2026-07-29T10:00:00+00:00"
+        after["findings"][0]["status"] = "planned"
+        after["findings"][0]["title"] = "Conflicting writers are scheduled for repair"
+        after["coverage"][0]["reason"] = "Reassessed after remediation planning."
+        before_path = self.root / "before.yaml"
+        after_path = self.root / "after.yaml"
+        self.write_yaml(before_path, before)
+        self.write_yaml(after_path, after)
+
+        result = architecture_tool.review_diff(before_path, after_path)
+
+        self.assertEqual(result["summary"]["changed"], 1)
+        self.assertEqual(result["summary"]["coverage_changed"], 1)
+        self.assertEqual(
+            result["changed"][0]["changed_fields"],
+            ["title", "status"],
+        )
+
     def test_repository_dogfood_configuration_is_valid(self) -> None:
         validated = architecture_tool.validate_project(ROOT)
-        self.assertEqual(len(validated), 5)
+        self.assertEqual(len(validated), 7)
+
+    def test_evidence_provider_run_binds_and_revalidates_output(self) -> None:
+        self.init_project()
+        config_path = self.root / ".architecture" / "evidence-providers.yaml"
+        config = architecture_tool.load_yaml(config_path)
+        provider = next(
+            item for item in config["providers"] if item["id"] == "test-results"
+        )
+        provider.update(
+            {
+                "enabled": True,
+                "command": [
+                    sys.executable,
+                    "-c",
+                    'print(\'<testsuite name="provider" tests="1"/>\')',
+                ],
+                "allow_without_detection": True,
+                "output_source": "stdout",
+            }
+        )
+        provider.pop("result_path", None)
+        self.write_yaml(config_path, config)
+
+        artifact_path, artifact = architecture_tool.run_evidence_provider(
+            self.root,
+            "test-results",
+        )
+        self.assertEqual(artifact["result"]["status"], "passed")
+        validated = architecture_tool.validate_evidence_run(
+            artifact_path,
+            self.root,
+            require_passed=True,
+        )
+        self.assertEqual(validated["run"]["provider_id"], "test-results")
+
+        tampered_artifact = architecture_tool.load_yaml(artifact_path)
+        tampered_artifact["result"]["exit_code"] = 1
+        self.write_yaml(artifact_path, tampered_artifact)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "status does not match",
+        ):
+            architecture_tool.validate_evidence_run(
+                artifact_path,
+                self.root,
+            )
+        tampered_artifact["result"]["exit_code"] = 0
+        self.write_yaml(artifact_path, tampered_artifact)
+
+        stdout_path = self.root / validated["result"]["stdout"]["path"]
+        stdout_path.write_bytes(stdout_path.read_bytes() + b"tamper")
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "byte count does not match",
+        ):
+            architecture_tool.validate_evidence_run(
+                artifact_path,
+                self.root,
+            )
+
+    def test_provider_exit_zero_with_invalid_structured_output_fails(self) -> None:
+        self.init_project()
+        config_path = self.root / ".architecture" / "evidence-providers.yaml"
+        config = architecture_tool.load_yaml(config_path)
+        provider = next(
+            item for item in config["providers"] if item["id"] == "dependency-cruiser"
+        )
+        provider.update(
+            {
+                "enabled": True,
+                "command": [sys.executable, "-c", "print('not json')"],
+                "allow_without_detection": True,
+                "output_source": "stdout",
+            }
+        )
+        self.write_yaml(config_path, config)
+
+        artifact_path, artifact = architecture_tool.run_evidence_provider(
+            self.root,
+            "dependency-cruiser",
+        )
+        self.assertEqual(artifact["result"]["status"], "failed")
+        self.assertEqual(artifact["result"]["content_validation"], "invalid")
+        architecture_tool.validate_evidence_run(artifact_path, self.root)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "provider result is failed",
+        ):
+            architecture_tool.validate_evidence_run(
+                artifact_path,
+                self.root,
+                require_passed=True,
+            )
+
+    @unittest.skipUnless(shutil.which("ssh-keygen"), "ssh-keygen is unavailable")
+    def test_review_ssh_signature_verifies_against_allowed_signer(self) -> None:
+        self.init_project()
+        review_path = self.write_review()
+        review = architecture_tool.load_yaml(review_path)
+        signature_path = review_path.with_suffix(".yaml.sig")
+        review["review"]["signature"] = {
+            "format": "ssh",
+            "identity": "architecture-verifier",
+            "namespace": "architecture-governance",
+            "path": str(signature_path.relative_to(self.root)),
+        }
+        self.write_yaml(review_path, review)
+
+        key_path = self.root / "test-signing-key"
+        subprocess.run(
+            [
+                "ssh-keygen",
+                "-q",
+                "-t",
+                "ed25519",
+                "-N",
+                "",
+                "-f",
+                str(key_path),
+            ],
+            check=True,
+        )
+        public_key = key_path.with_suffix(".pub").read_text(encoding="utf-8")
+        allowed_signers = self.root / ".architecture" / "allowed_signers"
+        allowed_signers.write_text(
+            f"architecture-verifier {public_key}",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            [
+                "ssh-keygen",
+                "-Y",
+                "sign",
+                "-f",
+                str(key_path),
+                "-n",
+                "architecture-governance",
+                str(review_path),
+            ],
+            check=True,
+            capture_output=True,
+        )
+        architecture_tool.verify_review_signature(
+            review_path,
+            review,
+            self.root,
+            {
+                "allowed_signers_file": ".architecture/allowed_signers",
+                "namespace": "architecture-governance",
+            },
+        )
 
     def test_init_and_validate_empty_portfolio(self) -> None:
         target = architecture_tool.init_portfolio(self.portfolio_args())
         self.assertEqual(target, self.root / ".architecture-portfolio")
         validated = architecture_tool.validate_portfolio(self.root)
-        self.assertEqual(len(validated), 6)
+        self.assertEqual(len(validated), 7)
 
     def test_portfolio_gate_blocks_confirmed_high_finding(self) -> None:
         architecture_tool.init_portfolio(self.portfolio_args())
-        review = self.review()
-        review["review"].update(
-            {
-                "id": "2026-07-28-test-portfolio",
-                "kind": "portfolio",
-                "subject": {
-                    "id": "test-portfolio",
-                    "name": "Test Portfolio",
-                },
-                "commits": {
-                    "project-a": "deadbeef",
-                    "project-b": "cafebabe",
-                },
-            }
-        )
-        review["review"].pop("commit")
-        review["findings"][0]["rule_id"] = "PORTFOLIO.DATA.001"
-        review["coverage"][0]["rule_id"] = "PORTFOLIO.DATA.001"
-        review_path = (
-            self.root
-            / ".architecture-portfolio"
-            / "reviews"
-            / "2026-07-28-portfolio-verified.yaml"
-        )
-        self.write_yaml(review_path, review)
+        review_path = self.write_review(portfolio=True)
         result = architecture_tool.gate_portfolio(
             self.root,
             review_path,
@@ -211,11 +604,12 @@ class ArchitectureToolTests(unittest.TestCase):
 
     def test_review_rejects_candidate_in_verified_bundle(self) -> None:
         self.init_project()
-        review = self.review()
+        path = self.write_review()
+        review = architecture_tool.load_yaml(path)
         review["findings"][0]["verification"]["status"] = "candidate"
         review["findings"][0]["verification"]["rationale"] = "Awaiting verification."
         review["summary"]["confirmed"] = 0
-        path = self.write_review(review)
+        self.write_yaml(path, review)
         with self.assertRaisesRegex(
             architecture_tool.ArchitectureError,
             "still has candidate IDs",
@@ -273,6 +667,213 @@ class ArchitectureToolTests(unittest.TestCase):
         validated = architecture_tool.validate_plan(plan_path)
         self.assertEqual(validated["items"][0]["id"], "PLAN-DATA-001")
 
+    def test_trusted_plan_requires_accepted_bound_decision(self) -> None:
+        self.init_project()
+        review_path = self.write_review()
+        review = architecture_tool.load_yaml(review_path)
+        decision_path = (
+            self.root
+            / ".architecture"
+            / "reviews"
+            / "2026-07-28-architecture-decision.yaml"
+        )
+        decision = architecture_tool.load_yaml(
+            ROOT / "resources" / "templates" / "architecture-decision.yaml"
+        )
+        decision["decision"].update(
+            {
+                "id": "ADR-TEST-001",
+                "source_review": review["review"]["id"],
+                "source_review_sha256": architecture_tool.file_sha256(review_path),
+                "decision_makers": ["architecture-owner"],
+                "status": "accepted",
+            }
+        )
+        decision["problem"]["finding_ids"] = ["TEST-DATA-001"]
+        decision["knowledge_snapshot"] = architecture_tool.decision_knowledge_snapshot()
+        self.write_yaml(decision_path, decision)
+
+        plan_path = (
+            self.root / ".architecture" / "reviews" / "2026-07-28-remediation-plan.yaml"
+        )
+        plan = architecture_tool.load_yaml(
+            ROOT / "resources" / "templates" / "remediation-plan.yaml"
+        )
+        plan["plan"].update(
+            {
+                "id": "2026-07-28-test-remediation",
+                "source_review": review["review"]["id"],
+                "source_review_sha256": architecture_tool.file_sha256(review_path),
+                "source_decision": decision["decision"]["id"],
+                "source_decision_sha256": architecture_tool.file_sha256(decision_path),
+            }
+        )
+        plan["items"][0]["finding_ids"] = ["TEST-DATA-001"]
+        self.write_yaml(plan_path, plan)
+
+        validated = architecture_tool.validate_plan(
+            plan_path,
+            review_path=review_path,
+            decision_path=decision_path,
+        )
+        self.assertEqual(validated["plan"]["source_decision"], "ADR-TEST-001")
+
+        completion_path = self.root / ".architecture" / "evidence" / "completion.txt"
+        completion_path.parent.mkdir(parents=True, exist_ok=True)
+        completion_path.write_text("tests and operations accepted\n", encoding="utf-8")
+        completion_hash = architecture_tool.file_sha256(completion_path)
+        plan["plan"]["status"] = "complete"
+        plan["items"][0]["completion_evidence"] = [
+            {
+                "type": evidence_type,
+                "location": str(completion_path.relative_to(self.root)),
+                "sha256": completion_hash,
+                "result": "Required acceptance outcome passed.",
+                "observed_at": "2026-07-28T11:30:00+00:00",
+            }
+            for evidence_type in ("test", "operational")
+        ]
+        self.write_yaml(plan_path, plan)
+        architecture_tool.validate_plan(
+            plan_path,
+            review_path=review_path,
+            decision_path=decision_path,
+            repository_root=self.root,
+        )
+        completion_path.write_text("tampered\n", encoding="utf-8")
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "completion evidence hash does not match",
+        ):
+            architecture_tool.validate_plan(
+                plan_path,
+                review_path=review_path,
+                decision_path=decision_path,
+                repository_root=self.root,
+            )
+
+        plan["plan"]["status"] = "draft"
+        plan["items"][0]["completion_evidence"] = []
+        plan["plan"]["source_decision_sha256"] = "0" * 64
+        self.write_yaml(plan_path, plan)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "source_decision_sha256",
+        ):
+            architecture_tool.validate_plan(
+                plan_path,
+                review_path=review_path,
+                decision_path=decision_path,
+            )
+
+    def test_change_gate_classifies_public_contract_from_base_commit(self) -> None:
+        self.init_project()
+        review_path = self.write_review(self.review("needs-evidence"))
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", ".architecture/reviews"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Add trusted review"],
+            check=True,
+        )
+        base_commit = architecture_tool.current_git_commit(self.root)
+        (self.root / "openapi.yaml").write_text(
+            "openapi: 3.1.0\ninfo: {title: Test, version: 1.0.0}\npaths: {}\n",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", "openapi.yaml"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Change API contract"],
+            check=True,
+        )
+
+        result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="change",
+            base_commit=base_commit,
+        )
+        self.assertEqual(result["change_impacts"]["public_contract"], ["openapi.yaml"])
+        self.assertTrue(
+            any(
+                "Public contract changes require" in failure
+                for failure in result["policy_failures"]
+            )
+        )
+
+    def test_contract_gate_requires_every_profile_review_workflow(self) -> None:
+        self.init_project()
+        profile_path = self.root / ".architecture" / "profile.yaml"
+        profile = architecture_tool.load_yaml(profile_path)
+        profile["project"]["required_reviews"].append("ai-agent-architecture")
+        profile["project"]["review_requirements"].append(
+            {
+                "id": "ai-agent-architecture",
+                "kind": "ai-agent",
+                "rule_packs": ["ai-agent-core"],
+            }
+        )
+        profile["project"]["rule_packs"].append("ai-agent-core")
+        self.write_yaml(profile_path, profile)
+        review_path = self.write_review(self.review("needs-evidence"))
+
+        result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="contract",
+        )
+        self.assertEqual(result["status"], "fail")
+        self.assertTrue(
+            any(
+                "Required review ai-agent-architecture" in failure
+                for failure in result["policy_failures"]
+            )
+        )
+
+    def test_policy_enforces_configured_role_separation(self) -> None:
+        self.init_project()
+        review_path = self.write_review(self.review("needs-evidence"))
+        policy_path = self.root / ".architecture" / "gate-policy.yaml"
+        policy = architecture_tool.load_yaml(policy_path)
+        policy["roles"]["verifiers"] = ["architecture-auditor"]
+        self.write_yaml(policy_path, policy)
+
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "requires separate auditors and verifiers",
+        ):
+            architecture_tool.gate_project(
+                self.root,
+                review_path,
+                today=date(2026, 7, 28),
+            )
+
+    def test_v4_requires_deterministic_tool_evidence_cited_by_finding(self) -> None:
+        self.init_project()
+        review_path = self.write_review()
+        review = architecture_tool.load_yaml(review_path)
+        verification = review["findings"][0]["verification"]
+        verification["level"] = "V4"
+        verification["verifier"]["type"] = "human"
+        self.write_yaml(review_path, review)
+
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "cited by the Finding",
+        ):
+            architecture_tool.validate_review(
+                review_path,
+                rule_pack_ids=["project-core"],
+                strict_trust=True,
+                repository_root=self.root,
+            )
+
     def test_confirmed_high_finding_blocks(self) -> None:
         self.init_project()
         review_path = self.write_review()
@@ -291,13 +892,15 @@ class ArchitectureToolTests(unittest.TestCase):
         self.init_project()
         review_path = self.write_review()
         baseline_path = self.root / ".architecture" / "baseline.yaml"
+        review = architecture_tool.load_yaml(review_path)
         self.write_yaml(
             baseline_path,
             {
-                "schema_version": "1.0",
+                "schema_version": "1.1",
                 "findings": [
                     {
                         "id": "TEST-DATA-001",
+                        "finding_fingerprint": review["findings"][0]["fingerprint"],
                         "reason": "Accepted migration baseline.",
                         "owner": "test-owner",
                         "recorded_on": "2026-07-28",
@@ -331,12 +934,15 @@ class ArchitectureToolTests(unittest.TestCase):
         review_path = self.write_review()
         policy_path = self.root / ".architecture" / "gate-policy.yaml"
         policy = architecture_tool.load_yaml(policy_path)
+        review = architecture_tool.load_yaml(review_path)
         policy["waivers"] = [
             {
                 "finding_id": "TEST-DATA-001",
+                "finding_fingerprint": review["findings"][0]["fingerprint"],
                 "reason": "Temporary migration exception.",
                 "owner": "test-owner",
                 "expires_on": "2026-07-27",
+                "approved_by": "policy-owner",
             }
         ]
         self.write_yaml(policy_path, policy)
@@ -347,6 +953,251 @@ class ArchitectureToolTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "fail")
         self.assertEqual(result["expired_waivers"], ["TEST-DATA-001"])
+
+    def test_trusted_review_requires_complete_rule_coverage(self) -> None:
+        self.init_project()
+        review_path = self.write_review()
+        review = architecture_tool.load_yaml(review_path)
+        review["coverage"].pop()
+        self.write_yaml(review_path, review)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "coverage is missing loaded rules",
+        ):
+            architecture_tool.validate_review(
+                review_path,
+                rule_pack_ids=["project-core"],
+                strict_trust=True,
+                repository_root=self.root,
+            )
+
+    def test_verified_finding_semantics_must_match_candidate(self) -> None:
+        self.init_project()
+        review_path = self.write_review()
+        review = architecture_tool.load_yaml(review_path)
+        finding = review["findings"][0]
+        finding["invariant"] = (
+            "A different invariant was introduced only after candidate review."
+        )
+        finding["fingerprint"] = architecture_tool.finding_fingerprint(
+            "test-project",
+            finding,
+        )
+        self.write_yaml(review_path, review)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "semantics differ from source candidate",
+        ):
+            architecture_tool.validate_review(
+                review_path,
+                rule_pack_ids=["project-core"],
+                strict_trust=True,
+                repository_root=self.root,
+            )
+
+    def test_review_bindings_reject_path_escape(self) -> None:
+        self.init_project()
+        outside = self.root.parent / "outside-candidate.yaml"
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "escapes configured root",
+        ):
+            architecture_tool.review_bindings(self.root, outside)
+
+    def test_accepted_risk_requires_authorized_two_party_registry(self) -> None:
+        self.init_project()
+        review_path = self.write_review()
+        review = architecture_tool.load_yaml(review_path)
+        review["findings"][0]["status"] = "accepted-risk"
+        self.write_yaml(review_path, review)
+        acceptance_path = self.root / ".architecture" / "risk-acceptances.yaml"
+        self.write_yaml(
+            acceptance_path,
+            {
+                "schema_version": "1.1",
+                "acceptances": [
+                    {
+                        "finding_id": "TEST-DATA-001",
+                        "finding_fingerprint": review["findings"][0]["fingerprint"],
+                        "accepted_by": "risk-owner",
+                        "approved_by": "policy-owner",
+                        "reason": "Migration is scheduled with bounded exposure.",
+                        "compensating_controls": [
+                            "Monitor conflicting writes and stop on detection."
+                        ],
+                        "accepted_at": "2026-07-28T10:00:00+00:00",
+                        "expires_on": "2026-08-28",
+                    }
+                ],
+            },
+        )
+        result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+        )
+        self.assertEqual(result["status"], "pass")
+        self.assertEqual(result["accepted_risks"], ["TEST-DATA-001"])
+
+        registry = architecture_tool.load_yaml(acceptance_path)
+        registry["acceptances"][0]["approved_by"] = "risk-owner"
+        self.write_yaml(acceptance_path, registry)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "separate accepter and approver",
+        ):
+            architecture_tool.validate_risk_acceptances(acceptance_path)
+
+    def test_future_risk_acceptance_does_not_suppress(self) -> None:
+        self.init_project()
+        review_path = self.write_review()
+        review = architecture_tool.load_yaml(review_path)
+        review["findings"][0]["status"] = "accepted-risk"
+        self.write_yaml(review_path, review)
+        self.write_yaml(
+            self.root / ".architecture" / "risk-acceptances.yaml",
+            {
+                "schema_version": "1.1",
+                "acceptances": [
+                    {
+                        "finding_id": "TEST-DATA-001",
+                        "finding_fingerprint": review["findings"][0]["fingerprint"],
+                        "accepted_by": "risk-owner",
+                        "approved_by": "policy-owner",
+                        "reason": "Approval is deliberately scheduled for tomorrow.",
+                        "compensating_controls": ["Block writes until approval."],
+                        "accepted_at": "2026-07-29T00:00:00+00:00",
+                        "expires_on": "2026-08-29",
+                    }
+                ],
+            },
+        )
+        result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+        )
+        self.assertEqual(result["status"], "fail")
+        self.assertEqual(result["pending_acceptances"], ["TEST-DATA-001"])
+
+    def test_git_evidence_resolves_excerpt_inside_bound_lines(self) -> None:
+        self.init_project()
+        source = self.root / "store.py"
+        source.write_text(
+            "def save(record):\n    return writer.update(record)\n",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", "store.py"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Add evidence source"],
+            check=True,
+        )
+        commit = architecture_tool.current_git_commit(self.root)
+        review = self.review()
+        evidence = review["findings"][0]["evidence"][0]
+        evidence.update(
+            {
+                "location": "store.py:2",
+                "path": "store.py",
+                "commit": commit,
+                "line_start": 2,
+                "line_end": 2,
+                "excerpt": "writer.update(record)",
+                "excerpt_sha256": architecture_tool.sha256_bytes(
+                    b"writer.update(record)"
+                ),
+            }
+        )
+        result = architecture_tool.verify_review_evidence(review, self.root)
+        self.assertEqual(result[0]["status"], "resolved")
+
+        evidence["excerpt"] = "writer.delete(record)"
+        evidence["excerpt_sha256"] = architecture_tool.sha256_bytes(
+            b"writer.delete(record)"
+        )
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "absent from the bound source range",
+        ):
+            architecture_tool.verify_review_evidence(review, self.root)
+
+    def test_mismatched_fingerprint_does_not_suppress(self) -> None:
+        self.init_project()
+        review_path = self.write_review()
+        baseline_path = self.root / ".architecture" / "baseline.yaml"
+        self.write_yaml(
+            baseline_path,
+            {
+                "schema_version": "1.1",
+                "findings": [
+                    {
+                        "id": "TEST-DATA-001",
+                        "finding_fingerprint": "0" * 64,
+                        "reason": "Stale baseline for a different risk.",
+                        "owner": "test-owner",
+                        "recorded_on": "2026-07-28",
+                        "expires_on": "2026-08-28",
+                    }
+                ],
+            },
+        )
+        result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+        )
+        self.assertEqual(result["status"], "fail")
+        self.assertEqual(result["baselined"], [])
+
+    def test_gate_result_converts_to_sarif(self) -> None:
+        self.init_project()
+        result = architecture_tool.gate_project(
+            self.root,
+            self.write_review(),
+            today=date(2026, 7, 28),
+        )
+        sarif = architecture_tool.gate_result_to_sarif(result)
+        self.assertEqual(sarif["version"], "2.1.0")
+        self.assertEqual(
+            sarif["runs"][0]["results"][0]["ruleId"],
+            "TEST-DATA-001",
+        )
+
+    def test_empty_benchmark_run_scores_zero_positive_precision(self) -> None:
+        result = architecture_tool.score_benchmark(
+            ROOT / "benchmarks" / "ground-truth.yaml",
+            ROOT / "benchmarks" / "run-template.yaml",
+        )
+        self.assertEqual(result["precision"], 0.0)
+        self.assertEqual(result["recall"], 0.0)
+        self.assertEqual(result["false_negative"], 10)
+
+    def test_benchmark_scores_repeated_trial_stability(self) -> None:
+        run = architecture_tool.load_yaml(ROOT / "benchmarks" / "run-template.yaml")
+        run["benchmark"]["repetitions"] = 2
+        for case in run["cases"]:
+            case["trials"] = [
+                {
+                    "index": index,
+                    "duration_seconds": 0.1,
+                    "observed_findings": [],
+                    "observed_recommendations": [],
+                }
+                for index in (1, 2)
+            ]
+        run_path = self.root / "benchmark-run.yaml"
+        self.write_yaml(run_path, run)
+        result = architecture_tool.score_benchmark(
+            ROOT / "benchmarks" / "ground-truth.yaml",
+            run_path,
+        )
+        self.assertEqual(result["trials"], 20)
+        self.assertEqual(result["false_negative"], 20)
+        self.assertEqual(result["finding_stability"], 1.0)
+        self.assertAlmostEqual(result["mean_duration_seconds"], 0.1)
 
     def test_cli_json_preserves_policy_exit_code(self) -> None:
         self.init_project()
@@ -378,7 +1229,7 @@ class ArchitectureToolTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(process.returncode, 0, process.stderr)
-        self.assertEqual(process.stdout.strip(), "architecture_tool.py 0.1.0")
+        self.assertEqual(process.stdout.strip(), "architecture_tool.py 0.2.0")
 
 
 if __name__ == "__main__":

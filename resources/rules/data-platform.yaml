@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: data-platform
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: DATA.OWNERSHIP.001, domain: data-products, invariant: "Each source and derived dataset has an owner, consumers, contract, classification, retention, and service expectation.", evidence_requirements: ["Inspect catalog, writers, consumers, and operational ownership."], quality_attributes: [reliability, maintainability]}
+  - {id: DATA.LINEAGE.001, domain: lineage, invariant: "Material transformations are reproducible and traceable from source version through code, run, and output.", evidence_requirements: ["Trace one decision-critical field end to end."], quality_attributes: [traceability, reliability]}
+  - {id: DATA.QUALITY.001, domain: data-quality, invariant: "Freshness, completeness, validity, uniqueness, and reconciliation expectations are measured at accountable boundaries.", evidence_requirements: ["Inspect tests, thresholds, alerts, and failure ownership."], quality_attributes: [functional-suitability, reliability]}
+  - {id: DATA.REPLAY.001, domain: replay-backfill, invariant: "Pipelines define checkpoints, idempotent replay, backfill isolation, late data, and correction semantics.", evidence_requirements: ["Trace a partial run and historical backfill."], quality_attributes: [recoverability, reliability]}
+  - {id: DATA.PRIVACY.001, domain: data-governance, invariant: "Sensitive data remains classified, minimized, access-controlled, retained, exported, and deleted across copies and derivatives.", evidence_requirements: ["Trace a classified field across raw, transformed, indexed, and backup stores."], quality_attributes: [security, privacy]}

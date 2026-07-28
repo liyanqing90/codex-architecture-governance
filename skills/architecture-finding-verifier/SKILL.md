@@ -9,18 +9,40 @@ Act as a skeptical second pass. The objective is not to defend the audit; it is 
 
 ## Load the contract
 
-Read `../../resources/references/review-contract.md` completely. Load the candidate review and the repository profile and constraints when present.
+Read these files completely:
+
+- `../../resources/references/review-contract.md`;
+- `../../resources/references/evidence-provider-contract.md`.
+
+Load the candidate review and the repository Profile, constraints, policy, and
+configured Evidence Providers when present.
 
 ## Verification procedure
 
 1. Record the candidate review ID, reviewed commit, current commit, scope, and evidence freshness.
+   Generate repository, Profile, Rule Pack, candidate, and Finding bindings:
+
+   ```bash
+   python3 ../../resources/scripts/architecture_tool.py review-bindings \
+     --project <repo> --candidate <candidate-review.yaml>
+   ```
 2. If the code has moved, relocate evidence by symbol and history. Mark the finding `needs-evidence` when it cannot be tied to current code.
 3. For every candidate, read the cited source and the smallest sufficient set of callers, callees, schemas, tests, configuration, history, or runtime evidence.
 4. State the claimed invariant and attempt the strongest counter-hypothesis.
 5. Confirm that the evidence proves an architecture relationship or failure mode rather than a stylistic preference.
 6. Check the owning boundary, affected components, severity, confidence, and rule ID.
 7. Merge genuine duplicates while retaining all original IDs and contributing reviewers.
-8. Set exactly one status:
+8. Assign the honest verification level:
+   - `V0`: same-run self-check;
+   - `V1`: fresh context with the same model;
+   - `V2`: different model or independent agent;
+   - `V3`: human review;
+   - `V4`: human review plus deterministic evidence;
+   - `V5`: controlled, signed approval and audit chain.
+   V3–V5 require a human verifier. V4–V5 require a passed deterministic
+   Evidence Provider run. V5 additionally requires a detached SSH signature
+   whose identity is authorized by project policy.
+9. Set exactly one status:
    - `confirmed`: direct evidence supports the claim and impact;
    - `rejected`: evidence contradicts the claim or shows an intentional, safe pattern;
    - `needs-evidence`: the claim remains plausible but cannot be proved.
@@ -49,7 +71,12 @@ Never overwrite the candidate artifact. Write:
 - `.architecture-portfolio/reviews/<timestamp>-portfolio-verified.yaml` and
   `.architecture-portfolio/reviews/<timestamp>-portfolio-report.md`.
 
-Retain rejected and needs-evidence items in YAML, but include only confirmed risks and strengths in the human report. Record the verification rationale and verifier identity for every item.
+Retain rejected and needs-evidence items in YAML, but include only confirmed
+risks and strengths in the human report. Record the verification rationale,
+level, structured verifier identity, run ID, time, candidate hash, and
+calculated Finding fingerprint for every verified item. Set
+`coverage_complete: true` only after every loaded Rule Pack rule appears
+exactly once.
 
 Preserve the source review structure defined by
 `../../resources/templates/review.yaml` or
@@ -58,7 +85,15 @@ Preserve the source review structure defined by
 Validate the result:
 
 ```bash
-python3 ../../resources/scripts/architecture_tool.py validate-review <verified-review.yaml>
+python3 ../../resources/scripts/architecture_tool.py validate-review \
+  <verified-review.yaml> --project <repo>
+python3 ../../resources/scripts/architecture_tool.py verify-evidence \
+  --repo <repo> --review <verified-review.yaml>
+python3 ../../resources/scripts/architecture_tool.py verify-review-signature \
+  --project <repo> --review <verified-review.yaml>
 ```
 
-Do not propose remediation or modify product code.
+Run the signature command when policy or verification level requires it.
+Respect policy role separation: an unauthorized or overlapping verifier cannot
+be repaired by changing the artifact identity. Do not propose remediation or
+modify product code.

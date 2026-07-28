@@ -1,4 +1,4 @@
-schema_version: "1.0"
+schema_version: "1.1"
 review_kinds:
   - project
   - ai-agent
@@ -11,8 +11,53 @@ block:
     - open
     - planned
     - in-progress
+    - accepted-risk
   minimum_confidence: 0.75
   max_review_age_days: 90
   require_current_commit: false
   unverified_behavior: warn
+  minimum_verification_level: V1
+  freshness_strategy: diff-aware
+  require_clean_tree: true
+  require_evidence_resolution: true
 waivers: []
+risk_acceptances_file: .architecture/risk-acceptances.yaml
+roles:
+  auditors: [architecture-auditor]
+  verifiers: [architecture-verifier]
+  decision_makers: [architecture-owner]
+  risk_acceptors: [risk-owner]
+  policy_owners: [policy-owner]
+  maintainers: [project-maintainer]
+role_separation:
+  separate:
+    - {left: auditors, right: verifiers}
+    - {left: risk_acceptors, right: policy_owners}
+stages:
+  contract: true
+  finding: true
+  change: true
+  release: false
+release_requirements:
+  required_review_kinds: [project]
+  required_evidence_types: [source, test]
+  required_provider_ids: []
+  require_accepted_decisions: true
+  require_completed_plans: true
+  require_no_dirty_tree: true
+change_requirements:
+  critical_paths:
+    - .architecture/critical-flows.md
+  public_contract_paths:
+    - openapi.yaml
+    - openapi.json
+    - "**/schemas/**"
+  migration_paths:
+    - "**/migrations/**"
+    - "**/alembic/**"
+  security_paths:
+    - "**/auth/**"
+    - "**/permissions/**"
+  require_fresh_review_on_critical_change: true
+  require_decision_on_public_contract_change: true
+  require_plan_on_migration_change: true

@@ -1,4 +1,4 @@
-schema_version: "1.0"
+schema_version: "1.1"
 review_kinds:
   - portfolio
 block:
@@ -9,8 +9,45 @@ block:
     - open
     - planned
     - in-progress
+    - accepted-risk
   minimum_confidence: 0.75
   max_review_age_days: 90
   require_current_commit: false
   unverified_behavior: warn
+  minimum_verification_level: V1
+  freshness_strategy: time-window
+  require_clean_tree: false
+  require_evidence_resolution: false
 waivers: []
+risk_acceptances_file: .architecture-portfolio/risk-acceptances.yaml
+roles:
+  auditors: [portfolio-auditor]
+  verifiers: [portfolio-verifier]
+  decision_makers: [portfolio-owner]
+  risk_acceptors: [portfolio-risk-owner]
+  policy_owners: [portfolio-policy-owner]
+  maintainers: [portfolio-maintainer]
+role_separation:
+  separate:
+    - {left: auditors, right: verifiers}
+    - {left: risk_acceptors, right: policy_owners}
+stages:
+  contract: true
+  finding: true
+  change: false
+  release: false
+release_requirements:
+  required_review_kinds: [portfolio]
+  required_evidence_types: [document]
+  required_provider_ids: []
+  require_accepted_decisions: false
+  require_completed_plans: false
+  require_no_dirty_tree: false
+change_requirements:
+  critical_paths: []
+  public_contract_paths: []
+  migration_paths: []
+  security_paths: []
+  require_fresh_review_on_critical_change: false
+  require_decision_on_public_contract_change: false
+  require_plan_on_migration_change: false

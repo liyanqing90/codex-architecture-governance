@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: web-frontend
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: WEB.STATE.001, domain: state-ownership, invariant: "URL, local UI state, server state, and authoritative business state have distinct owners and synchronization rules.", evidence_requirements: ["Trace one stateful workflow across navigation, refresh, retry, and concurrent updates."], quality_attributes: [reliability, maintainability]}
+  - {id: WEB.BOUNDARY.001, domain: client-server-boundary, invariant: "Authorization and cross-client business invariants are enforced on a trusted server boundary.", evidence_requirements: ["Trace manipulated client input to authoritative enforcement."], quality_attributes: [security]}
+  - {id: WEB.PERF.001, domain: delivery-performance, invariant: "Critical routes have measured loading, rendering, asset, and interaction budgets with regression protection.", evidence_requirements: ["Inspect representative production or lab performance evidence."], quality_attributes: [performance-efficiency, interaction-capability]}
+  - {id: WEB.ACCESS.001, domain: accessibility, invariant: "Keyboard, semantics, focus, contrast, zoom, and error recovery are protected on critical flows.", evidence_requirements: ["Inspect automated results and rendered keyboard/screen-reader behavior."], quality_attributes: [interaction-capability]}
+  - {id: WEB.SECURITY.001, domain: browser-security, invariant: "Untrusted content, credentials, cross-origin access, and browser storage follow explicit trust and lifetime boundaries.", evidence_requirements: ["Inspect rendering sinks, CSP/CORS/CSRF controls, cookies, and storage."], quality_attributes: [security]}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Knowledge Curator"
+  short_description: "维护架构风格、模式、技术资料的来源、新鲜度与一致性"
+  default_prompt: "Use $architecture-knowledge-curator to review and update the architecture knowledge catalogs from official sources."

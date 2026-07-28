@@ -34,10 +34,15 @@ Use project-local state:
 ├── critical-flows.md
 ├── gate-policy.yaml
 ├── baseline.yaml
+├── risk-acceptances.yaml
+├── evidence-providers.yaml
+├── evidence/
+├── rules/
 └── reviews/
     ├── <timestamp>-<kind>-candidates.yaml
     ├── <timestamp>-<kind>-verified.yaml
     ├── <timestamp>-<kind>-report.md
+    ├── <timestamp>-architecture-decision.yaml
     └── <timestamp>-remediation.yaml
 ```
 
@@ -72,7 +77,11 @@ confirmed → accepted-risk
 - Audit Skills own candidate artifacts. `architecture-finding-verifier` alone
   owns verified artifacts and the final human report.
 - Keep rejected and needs-evidence items in verified YAML for auditability.
-- Only confirmed risks may enter remediation or the default quality gate.
+- Only confirmed risks may enter solution decisions or the default quality
+  gate. Only accepted decisions may enter remediation.
+- `accepted-risk` requires a separate, authorized, expiring acceptance bound to
+  the exact Finding fingerprint. Editing Finding status alone never accepts
+  risk.
 - Never rewrite a candidate artifact; create a new verified artifact.
 
 ## 4. Finding semantics
@@ -82,6 +91,7 @@ Every finding represents one invariant at one owning boundary. Use the schema in
 Required concepts:
 
 - stable `id` and `rule_id`;
+- semantic fingerprint bound to subject, invariant, severity, and evidence;
 - `kind`: `risk` or `strength`;
 - title and invariant;
 - severity and calibrated confidence;
@@ -109,7 +119,14 @@ Each evidence item must state:
 - path, URL, trace, query, or other stable location;
 - symbol or line when applicable;
 - concrete observation;
-- source commit or freshness when available.
+- repository, source commit, path, blob SHA, line or symbol, and excerpt hash
+  when Git source evidence is used;
+- provider and freshness for runtime or external evidence.
+
+Tool evidence must reference a validated Evidence Provider run by provider ID,
+repository-relative run path, and run SHA-256. The run contract binds the
+actual executable, provider definition, project configuration, Git state, and
+captured output. See `evidence-provider-contract.md`.
 
 Short excerpts are optional and must be redacted. Do not paste credentials, personal data, full logs, or large copyrighted text.
 
@@ -151,8 +168,25 @@ For every candidate:
 5. Confirm category, severity, confidence, and affected scope.
 6. Deduplicate by invariant, not wording.
 7. Record a rationale for `confirmed`, `rejected`, or `needs-evidence`.
+8. Record verifier type, identity, run ID, time, verification level, candidate
+   Review ID, and candidate SHA-256.
 
 The verifier must be independent in stance even when the same agent performs the pass. Agreement among reviewers raises inspection priority but is not proof.
+
+Verification levels:
+
+- `V0`: same-run self-check;
+- `V1`: same model in fresh context;
+- `V2`: different model or agent;
+- `V3`: human review;
+- `V4`: human plus deterministic evidence;
+- `V5`: controlled signed approval and audit chain.
+
+Trusted-policy enforcement requires a human verifier for V3–V5, passed
+deterministic tool evidence for V4–V5, and a detached SSH signature for V5.
+The gate verifies that signature against the policy's allowed-signers file.
+Policy `role_separation` rejects configured auditor/verifier and other
+authority overlaps; role membership is evaluated before findings can gate.
 
 ## 8. Coverage and reporting
 
@@ -175,3 +209,10 @@ Human reports must contain:
 - raw, confirmed, rejected, and needs-evidence counts.
 
 Validate artifacts using `../scripts/architecture_tool.py`.
+
+Use `review-diff --before <old> --after <new> --project <repo>` to compare
+finding and coverage evolution between trusted snapshots.
+
+Schema `1.0` remains readable for migration. Deterministic enforcement requires
+trusted `1.1` metadata, complete machine Rule Pack coverage, source bindings,
+and evidence resolution according to policy.

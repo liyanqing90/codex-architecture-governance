@@ -4,12 +4,16 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
+import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ElementTree
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
@@ -28,6 +32,9 @@ except ModuleNotFoundError as exc:  # pragma: no cover - environment failure
 SHARED_ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_ROOT = SHARED_ROOT / "schemas"
 TEMPLATE_ROOT = SHARED_ROOT / "templates"
+RULE_ROOT = SHARED_ROOT / "rules"
+KNOWLEDGE_ROOT = SHARED_ROOT / "knowledge"
+EVIDENCE_PROVIDER_ROOT = SHARED_ROOT / "evidence-providers"
 SEVERITY_ORDER = {
     "info": 0,
     "low": 1,
@@ -35,7 +42,27 @@ SEVERITY_ORDER = {
     "high": 3,
     "critical": 4,
 }
-TOOL_VERSION = "0.1.0"
+VERIFICATION_LEVEL_ORDER = {
+    "V0": 0,
+    "V1": 1,
+    "V2": 2,
+    "V3": 3,
+    "V4": 4,
+    "V5": 5,
+}
+TOOL_VERSION = "0.2.0"
+REVIEW_KIND_CORE_PACK = {
+    "project": "project-core",
+    "ai-agent": "ai-agent-core",
+    "mobile": "mobile-core",
+    "portfolio": "portfolio-core",
+}
+REVIEW_WORKFLOW_KIND = {
+    "project-architecture": "project",
+    "ai-agent-architecture": "ai-agent",
+    "mobile-architecture": "mobile",
+    "portfolio-architecture": "portfolio",
+}
 
 
 class ArchitectureError(RuntimeError):
@@ -77,6 +104,51 @@ def write_yaml(path: Path, value: dict[str, Any]) -> None:
     path.write_text(
         yaml.safe_dump(value, sort_keys=False, allow_unicode=True),
         encoding="utf-8",
+    )
+
+
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def file_sha256(path: Path) -> str:
+    try:
+        return sha256_bytes(path.read_bytes())
+    except FileNotFoundError as exc:
+        raise ArchitectureError(f"Missing file: {path}") from exc
+
+
+def canonical_sha256(value: Any) -> str:
+    normalized = normalize_yaml_scalars(value)
+    encoded = json.dumps(
+        normalized,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return sha256_bytes(encoded)
+
+
+def finding_fingerprint(subject_id: str, finding: dict[str, Any]) -> str:
+    evidence_identity = [
+        {
+            "type": item["type"],
+            "repository": item.get("repository", ""),
+            "commit": item.get("commit", item.get("source_commit", "")),
+            "path": item.get("path", item.get("location", "")),
+            "symbol": item.get("symbol", ""),
+            "blob_sha": item.get("blob_sha", ""),
+        }
+        for item in finding["evidence"]
+    ]
+    return canonical_sha256(
+        {
+            "subject_id": subject_id,
+            "rule_id": finding["rule_id"],
+            "invariant": finding["invariant"],
+            "severity": finding["severity"],
+            "evidence": evidence_identity,
+        }
     )
 
 
@@ -126,7 +198,644 @@ def validate_file(path: Path, schema_name: str) -> dict[str, Any]:
     return data
 
 
-def validate_review(path: Path) -> dict[str, Any]:
+def git_process(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(root), *args],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def git_output(root: Path, *args: str) -> str:
+    process = git_process(root, *args)
+    if process.returncode != 0:
+        detail = (
+            process.stderr.strip() or process.stdout.strip() or "git command failed"
+        )
+        raise ArchitectureError(f"git {' '.join(args)} failed for {root}: {detail}")
+    return process.stdout.strip()
+
+
+def git_raw_output(root: Path, *args: str) -> str:
+    process = git_process(root, *args)
+    if process.returncode != 0:
+        detail = (
+            process.stderr.strip() or process.stdout.strip() or "git command failed"
+        )
+        raise ArchitectureError(f"git {' '.join(args)} failed for {root}: {detail}")
+    return process.stdout
+
+
+def require_within_root(root: Path, candidate: Path, field: str) -> Path:
+    root = root.resolve()
+    resolved = candidate.resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError as exc:
+        raise ArchitectureError(
+            f"{field} escapes configured root {root}: {resolved}"
+        ) from exc
+    return resolved
+
+
+def local_rule_pack_roots(repository_root: Path) -> list[Path]:
+    root = repository_root.resolve()
+    return [
+        root / ".architecture" / "rules",
+        root / ".architecture-portfolio" / "rules",
+    ]
+
+
+def load_rule_packs(
+    rule_pack_ids: list[str],
+    additional_roots: list[Path] | None = None,
+) -> dict[str, dict[str, Any]]:
+    available: dict[str, dict[str, Any]] = {}
+    roots = [RULE_ROOT, *(additional_roots or [])]
+    for rule_root in roots:
+        if not rule_root.exists():
+            continue
+        if not rule_root.is_dir():
+            raise ArchitectureError(f"Rule Pack root is not a directory: {rule_root}")
+        for path in sorted(rule_root.glob("*.yaml")):
+            payload = validate_file(path, "rule-pack.schema.json")
+            pack_id = payload["id"]
+            if pack_id in available:
+                raise ArchitectureError(
+                    f"Duplicate Rule Pack ID {pack_id} in "
+                    f"{available[pack_id]['path']} and {path}"
+                )
+            available[pack_id] = {"path": path, "payload": payload}
+    missing = sorted(set(rule_pack_ids) - set(available))
+    if missing:
+        raise ArchitectureError("Unknown rule packs: " + ", ".join(missing))
+    return {pack_id: available[pack_id] for pack_id in rule_pack_ids}
+
+
+def validate_review_rule_pack_kinds(
+    requirements: list[dict[str, Any]],
+    rule_packs: dict[str, dict[str, Any]],
+    source: Path,
+) -> None:
+    for requirement in requirements:
+        review_kind = requirement["kind"]
+        for pack_id in requirement["rule_packs"]:
+            pack_kind = rule_packs[pack_id]["payload"]["review_kind"]
+            if pack_kind != review_kind:
+                raise ArchitectureError(
+                    f"{source} review {requirement['id']} has kind {review_kind}, "
+                    f"but Rule Pack {pack_id} has kind {pack_kind}"
+                )
+
+
+def expected_rules(rule_packs: dict[str, dict[str, Any]]) -> dict[str, str]:
+    rules: dict[str, str] = {}
+    for pack_id, record in rule_packs.items():
+        for rule in record["payload"]["rules"]:
+            rule_id = rule["id"]
+            if rule_id in rules:
+                raise ArchitectureError(
+                    f"Rule {rule_id} appears in both {rules[rule_id]} and {pack_id}"
+                )
+            rules[rule_id] = pack_id
+    return rules
+
+
+def load_evidence_provider_catalog() -> tuple[Path, dict[str, dict[str, Any]]]:
+    path = EVIDENCE_PROVIDER_ROOT / "catalog.yaml"
+    payload = validate_file(path, "evidence-provider.schema.json")
+    providers: dict[str, dict[str, Any]] = {}
+    for provider in payload["providers"]:
+        provider_id = provider["id"]
+        if provider_id in providers:
+            raise ArchitectureError(f"{path} has duplicate provider ID {provider_id}")
+        providers[provider_id] = provider
+    return path, providers
+
+
+def validate_evidence_provider_config(
+    path: Path,
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    data = validate_file(path, "evidence-provider-config.schema.json")
+    configured: dict[str, dict[str, Any]] = {}
+    for provider in data["providers"]:
+        provider_id = provider["id"]
+        if provider_id in configured:
+            raise ArchitectureError(f"{path} has duplicate provider ID {provider_id}")
+        configured[provider_id] = provider
+    _, bundled = load_evidence_provider_catalog()
+    unknown = sorted(set(configured) - set(bundled))
+    missing = sorted(set(bundled) - set(configured))
+    if unknown:
+        raise ArchitectureError(
+            f"{path} configures unknown providers: " + ", ".join(unknown)
+        )
+    if missing:
+        raise ArchitectureError(
+            f"{path} omits bundled providers: " + ", ".join(missing)
+        )
+    return data, configured
+
+
+def provider_detect_matches(root: Path, provider: dict[str, Any]) -> list[str]:
+    matches: set[str] = set()
+    for marker in provider["detect"]:
+        if any(character in marker for character in "*?["):
+            for path in root.glob(marker):
+                matches.add(path.relative_to(root).as_posix())
+        else:
+            path = root / marker
+            if path.exists():
+                matches.add(path.relative_to(root).as_posix())
+    return sorted(matches)
+
+
+def evidence_provider_status(project_root: Path) -> list[dict[str, Any]]:
+    root = project_root.resolve()
+    _, providers = load_evidence_provider_catalog()
+    _, configured = validate_evidence_provider_config(
+        root / ".architecture" / "evidence-providers.yaml"
+    )
+    result: list[dict[str, Any]] = []
+    for provider_id, provider in providers.items():
+        config = configured[provider_id]
+        try:
+            executable = str(resolve_provider_executable(root, config["command"][0]))
+        except ArchitectureError:
+            executable = None
+        result.append(
+            {
+                "id": provider_id,
+                "enabled": config["enabled"],
+                "detected": provider_detect_matches(root, provider),
+                "executable": executable,
+                "ready": bool(
+                    config["enabled"]
+                    and executable
+                    and (
+                        provider_detect_matches(root, provider)
+                        or config["allow_without_detection"]
+                    )
+                ),
+            }
+        )
+    return result
+
+
+def output_record(root: Path, path: Path, content: bytes) -> dict[str, Any]:
+    path.write_bytes(content)
+    return {
+        "path": path.relative_to(root).as_posix(),
+        "sha256": sha256_bytes(content),
+        "bytes": len(content),
+    }
+
+
+def existing_output_record(root: Path, path: Path) -> dict[str, Any]:
+    content = path.read_bytes()
+    return {
+        "path": path.relative_to(root).as_posix(),
+        "sha256": sha256_bytes(content),
+        "bytes": len(content),
+    }
+
+
+def validate_provider_content(
+    output_format: str,
+    content: bytes,
+) -> tuple[str, str | None]:
+    if output_format in {"exit-code", "text"}:
+        return "not-applicable", None
+    if not content.strip():
+        return "invalid", f"{output_format} output is empty"
+    try:
+        if output_format in {"json", "sarif"}:
+            parsed = json.loads(content)
+            if output_format == "sarif" and (
+                not isinstance(parsed, dict)
+                or parsed.get("version") != "2.1.0"
+                or not isinstance(parsed.get("runs"), list)
+            ):
+                return "invalid", "SARIF requires version 2.1.0 and a runs array"
+        elif output_format == "junit":
+            upper_content = content.upper()
+            if b"<!DOCTYPE" in upper_content or b"<!ENTITY" in upper_content:
+                return (
+                    "invalid",
+                    "JUnit XML must not contain DTD or entity declarations",
+                )
+            parsed_xml = ElementTree.fromstring(content)
+            if parsed_xml.tag.rsplit("}", 1)[-1] not in {
+                "testsuite",
+                "testsuites",
+            }:
+                return "invalid", "JUnit XML root must be testsuite or testsuites"
+    except (json.JSONDecodeError, ElementTree.ParseError, UnicodeDecodeError) as exc:
+        return "invalid", f"{output_format} parsing failed: {exc}"
+    return "valid", None
+
+
+def resolve_provider_executable(root: Path, command: str) -> Path:
+    configured = Path(command)
+    if configured.is_absolute():
+        executable = configured
+    elif configured.parent != Path():
+        executable = require_within_root(
+            root,
+            root / configured,
+            "evidence provider executable",
+        )
+    else:
+        located = shutil.which(command)
+        if located is None:
+            raise ArchitectureError(
+                f"Evidence provider executable is unavailable: {command}"
+            )
+        executable = Path(located)
+    resolved = executable.resolve()
+    if not resolved.is_file() or not os.access(resolved, os.X_OK):
+        raise ArchitectureError(
+            f"Evidence provider executable is unavailable: {command}"
+        )
+    return resolved
+
+
+def run_evidence_provider(
+    project_root: Path,
+    provider_id: str,
+    *,
+    output_path: Path | None = None,
+) -> tuple[Path, dict[str, Any]]:
+    root = project_root.resolve()
+    profile = validate_file(
+        root / ".architecture" / "profile.yaml",
+        "project-profile.schema.json",
+    )
+    catalog_path, providers = load_evidence_provider_catalog()
+    if provider_id not in providers:
+        raise ArchitectureError(f"Unknown evidence provider {provider_id}")
+    _, configured = validate_evidence_provider_config(
+        root / ".architecture" / "evidence-providers.yaml"
+    )
+    config = configured[provider_id]
+    if not config["enabled"]:
+        raise ArchitectureError(
+            f"Evidence provider {provider_id} is disabled in project configuration"
+        )
+    provider = providers[provider_id]
+    matches = provider_detect_matches(root, provider)
+    if not matches and not config["allow_without_detection"]:
+        raise ArchitectureError(
+            f"Evidence provider {provider_id} has no matching project markers"
+        )
+    executable_path = resolve_provider_executable(root, config["command"][0])
+    commit = current_git_commit(root)
+    dirty_tree_at_start = not git_is_clean(root)
+    timestamp = datetime.now(UTC)
+    run_id = f"{provider_id}-{timestamp.strftime('%Y%m%dt%H%M%S%fz')}-{commit[:12]}"
+    if output_path is None:
+        evidence_root = root / ".architecture" / "evidence"
+        evidence_root.mkdir(parents=True, exist_ok=True)
+        artifact_path = evidence_root / f"{run_id}.yaml"
+    else:
+        candidate = output_path if output_path.is_absolute() else root / output_path
+        artifact_path = require_within_root(root, candidate, "evidence output")
+        artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    if artifact_path.exists():
+        raise ArchitectureError(
+            f"Refusing to overwrite evidence artifact: {artifact_path}"
+        )
+    stdout_path = artifact_path.with_suffix(".stdout")
+    stderr_path = artifact_path.with_suffix(".stderr")
+    structured_path = artifact_path.with_suffix(".result")
+    if stdout_path.exists() or stderr_path.exists() or structured_path.exists():
+        raise ArchitectureError(
+            f"Refusing to overwrite evidence output beside {artifact_path}"
+        )
+    actual_command = [
+        argument.replace("{evidence_output}", str(structured_path))
+        for argument in config["command"]
+    ]
+    actual_command[0] = str(executable_path)
+    if config["output_source"] == "file":
+        if not any("{evidence_output}" in argument for argument in config["command"]):
+            raise ArchitectureError(
+                f"Evidence provider {provider_id} file output command must use "
+                "{evidence_output}"
+            )
+    elif any("{evidence_output}" in argument for argument in config["command"]):
+        raise ArchitectureError(
+            f"Evidence provider {provider_id} uses {{evidence_output}} without "
+            "file output"
+        )
+
+    safe_environment_names = {
+        "PATH",
+        "LANG",
+        "LC_ALL",
+        "SYSTEMROOT",
+        "WINDIR",
+        "PATHEXT",
+        "TEMP",
+        "TMP",
+        "TMPDIR",
+        *config["environment_allowlist"],
+    }
+    allowed_environment = {
+        name: os.environ[name] for name in safe_environment_names if name in os.environ
+    }
+    started_at = datetime.now(UTC)
+    exit_code: int | None
+    try:
+        process = subprocess.run(
+            actual_command,
+            cwd=root,
+            env=allowed_environment,
+            capture_output=True,
+            check=False,
+            timeout=config["timeout_seconds"],
+        )
+        stdout = process.stdout
+        stderr = process.stderr
+        exit_code = process.returncode
+        status = "passed" if exit_code in config["success_exit_codes"] else "failed"
+    except subprocess.TimeoutExpired as exc:
+        stdout = (
+            exc.stdout
+            if isinstance(exc.stdout, bytes)
+            else (exc.stdout or "").encode("utf-8")
+        )
+        stderr = (
+            exc.stderr
+            if isinstance(exc.stderr, bytes)
+            else (exc.stderr or "").encode("utf-8")
+        )
+        exit_code = None
+        status = "timed-out"
+    completed_at = datetime.now(UTC)
+    stdout_record = output_record(root, stdout_path, stdout)
+    stderr_record = output_record(root, stderr_path, stderr)
+    structured_record: dict[str, Any] | None = None
+    if config["output_source"] == "stdout":
+        structured_content = stdout
+        structured_record = stdout_record
+    elif config["output_source"] == "stderr":
+        structured_content = stderr
+        structured_record = stderr_record
+    elif structured_path.is_file():
+        structured_content = structured_path.read_bytes()
+        structured_record = existing_output_record(root, structured_path)
+    else:
+        structured_content = b""
+        status = "failed"
+    content_validation, content_error = validate_provider_content(
+        provider["output"],
+        structured_content,
+    )
+    if content_validation == "invalid" and status != "timed-out":
+        status = "failed"
+    artifact = {
+        "schema_version": "1.0",
+        "run": {
+            "id": run_id,
+            "provider_id": provider_id,
+            "provider_catalog_sha256": file_sha256(catalog_path),
+            "provider_definition_sha256": canonical_sha256(provider),
+            "provider_config_sha256": canonical_sha256(config),
+            "evidence_type": provider["evidence_type"],
+            "trust": provider["trust"],
+            "project_id": profile["project"]["id"],
+            "repository_identity": profile["project"]["id"],
+            "commit": commit,
+            "dirty_tree": dirty_tree_at_start,
+            "started_at": started_at.isoformat(),
+            "completed_at": completed_at.isoformat(),
+            "command": actual_command,
+            "executable": str(executable_path),
+            "executable_sha256": file_sha256(executable_path),
+            "detect_matches": matches,
+            "output_source": config["output_source"],
+            "timeout_seconds": config["timeout_seconds"],
+            "success_exit_codes": config["success_exit_codes"],
+            "environment_names": sorted(allowed_environment),
+        },
+        "result": {
+            "status": status,
+            "exit_code": exit_code,
+            "output_format": provider["output"],
+            "content_validation": content_validation,
+            "stdout": stdout_record,
+            "stderr": stderr_record,
+        },
+    }
+    if structured_record is not None:
+        artifact["result"]["structured_output"] = structured_record
+    if content_error is not None:
+        artifact["result"]["content_error"] = content_error
+    validate_data(artifact, "evidence-run.schema.json", artifact_path)
+    write_yaml(artifact_path, artifact)
+    return artifact_path, artifact
+
+
+def validate_evidence_run(
+    path: Path,
+    project_root: Path,
+    *,
+    require_passed: bool = False,
+) -> dict[str, Any]:
+    root = project_root.resolve()
+    candidate = path if path.is_absolute() else root / path
+    artifact_path = require_within_root(root, candidate, "evidence run")
+    data = validate_file(artifact_path, "evidence-run.schema.json")
+    profile = validate_file(
+        root / ".architecture" / "profile.yaml",
+        "project-profile.schema.json",
+    )
+    if data["run"]["project_id"] != profile["project"]["id"]:
+        raise ArchitectureError(
+            f"{artifact_path} project_id does not match project profile"
+        )
+    if data["run"]["repository_identity"] != profile["project"]["id"]:
+        raise ArchitectureError(
+            f"{artifact_path} repository_identity does not match project profile"
+        )
+    catalog_path, providers = load_evidence_provider_catalog()
+    provider = providers.get(data["run"]["provider_id"])
+    if provider is None:
+        raise ArchitectureError(
+            f"{artifact_path} references an unknown evidence provider"
+        )
+    if data["run"]["provider_catalog_sha256"] != file_sha256(catalog_path):
+        raise ArchitectureError(f"{artifact_path} provider catalog hash is stale")
+    if data["run"]["provider_definition_sha256"] != canonical_sha256(provider):
+        raise ArchitectureError(f"{artifact_path} provider definition hash is stale")
+    _, configured = validate_evidence_provider_config(
+        root / ".architecture" / "evidence-providers.yaml"
+    )
+    config = configured[data["run"]["provider_id"]]
+    if data["run"]["provider_config_sha256"] != canonical_sha256(config):
+        raise ArchitectureError(f"{artifact_path} provider configuration hash is stale")
+    if data["run"]["evidence_type"] != provider["evidence_type"]:
+        raise ArchitectureError(
+            f"{artifact_path} evidence type does not match provider"
+        )
+    if data["run"]["trust"] != provider["trust"]:
+        raise ArchitectureError(f"{artifact_path} trust does not match provider")
+    if data["run"]["output_source"] != config["output_source"]:
+        raise ArchitectureError(f"{artifact_path} output source does not match config")
+    if data["run"]["timeout_seconds"] != config["timeout_seconds"]:
+        raise ArchitectureError(f"{artifact_path} timeout does not match config")
+    if data["run"]["success_exit_codes"] != config["success_exit_codes"]:
+        raise ArchitectureError(
+            f"{artifact_path} success exit codes do not match config"
+        )
+    executable_path = Path(data["run"]["executable"]).resolve()
+    configured_executable = resolve_provider_executable(root, config["command"][0])
+    if executable_path != configured_executable:
+        raise ArchitectureError(
+            f"{artifact_path} executable does not match current command resolution"
+        )
+    if file_sha256(executable_path) != data["run"]["executable_sha256"]:
+        raise ArchitectureError(f"{artifact_path} executable hash is stale")
+    safe_environment_names = {
+        "PATH",
+        "LANG",
+        "LC_ALL",
+        "SYSTEMROOT",
+        "WINDIR",
+        "PATHEXT",
+        "TEMP",
+        "TMP",
+        "TMPDIR",
+        *config["environment_allowlist"],
+    }
+    unexpected_environment = sorted(
+        set(data["run"]["environment_names"]) - safe_environment_names
+    )
+    if unexpected_environment:
+        raise ArchitectureError(
+            f"{artifact_path} records non-allowlisted environment names: "
+            + ", ".join(unexpected_environment)
+        )
+    expected_command = [
+        argument.replace(
+            "{evidence_output}",
+            str(artifact_path.with_suffix(".result")),
+        )
+        for argument in config["command"]
+    ]
+    expected_command[0] = str(executable_path)
+    if data["run"]["command"] != expected_command:
+        raise ArchitectureError(f"{artifact_path} command does not match config")
+    started_at = datetime.fromisoformat(
+        data["run"]["started_at"].replace("Z", "+00:00")
+    )
+    completed_at = datetime.fromisoformat(
+        data["run"]["completed_at"].replace("Z", "+00:00")
+    )
+    if completed_at < started_at:
+        raise ArchitectureError(f"{artifact_path} completes before it starts")
+    git_output(root, "cat-file", "-e", f"{data['run']['commit']}^{{commit}}")
+    output_contents: dict[str, bytes] = {}
+    for stream in ("stdout", "stderr"):
+        record = data["result"][stream]
+        output_path = require_within_root(
+            root,
+            root / record["path"],
+            f"{artifact_path}:{stream}",
+        )
+        if not output_path.is_file():
+            raise ArchitectureError(
+                f"{artifact_path} {stream} output is missing: {output_path}"
+            )
+        content = output_path.read_bytes()
+        output_contents[stream] = content
+        if len(content) != record["bytes"]:
+            raise ArchitectureError(
+                f"{artifact_path} {stream} byte count does not match"
+            )
+        if sha256_bytes(content) != record["sha256"]:
+            raise ArchitectureError(
+                f"{artifact_path} {stream} output hash does not match"
+            )
+    output_source = data["run"]["output_source"]
+    if output_source in {"stdout", "stderr"}:
+        structured_content = output_contents[output_source]
+    else:
+        structured_record = data["result"].get("structured_output")
+        if structured_record is None:
+            raise ArchitectureError(
+                f"{artifact_path} file output has no structured_output record"
+            )
+        structured_path = require_within_root(
+            root,
+            root / structured_record["path"],
+            f"{artifact_path}:structured_output",
+        )
+        if structured_path != artifact_path.with_suffix(".result"):
+            raise ArchitectureError(
+                f"{artifact_path} structured output path is not run-scoped"
+            )
+        if not structured_path.is_file():
+            raise ArchitectureError(
+                f"{artifact_path} structured output is missing: {structured_path}"
+            )
+        structured_content = structured_path.read_bytes()
+        if len(structured_content) != structured_record["bytes"]:
+            raise ArchitectureError(
+                f"{artifact_path} structured output byte count does not match"
+            )
+        if sha256_bytes(structured_content) != structured_record["sha256"]:
+            raise ArchitectureError(
+                f"{artifact_path} structured output hash does not match"
+            )
+    content_validation, content_error = validate_provider_content(
+        provider["output"],
+        structured_content,
+    )
+    if data["result"]["content_validation"] != content_validation:
+        raise ArchitectureError(
+            f"{artifact_path} content validation result does not match output"
+        )
+    if data["result"].get("content_error") != content_error:
+        raise ArchitectureError(
+            f"{artifact_path} content validation error does not match output"
+        )
+    if data["result"]["output_format"] != provider["output"]:
+        raise ArchitectureError(
+            f"{artifact_path} output format does not match provider"
+        )
+    exit_code = data["result"]["exit_code"]
+    expected_status = (
+        "timed-out"
+        if exit_code is None
+        else ("passed" if exit_code in data["run"]["success_exit_codes"] else "failed")
+    )
+    if content_validation == "invalid" and expected_status != "timed-out":
+        expected_status = "failed"
+    if data["result"]["status"] != expected_status:
+        raise ArchitectureError(
+            f"{artifact_path} status does not match exit and content results"
+        )
+    if data["result"]["status"] == "passed" and content_validation == "invalid":
+        raise ArchitectureError(
+            f"{artifact_path} passed despite invalid structured output"
+        )
+    if require_passed and data["result"]["status"] != "passed":
+        raise ArchitectureError(
+            f"{artifact_path} provider result is {data['result']['status']}"
+        )
+    return data
+
+
+def validate_review(
+    path: Path,
+    *,
+    rule_pack_ids: list[str] | None = None,
+    strict_trust: bool = False,
+    repository_root: Path | None = None,
+) -> dict[str, Any]:
     data = validate_file(path, "review.schema.json")
     finding_ids: set[str] = set()
     findings = data["findings"]
@@ -155,6 +864,15 @@ def validate_review(path: Path) -> dict[str, Any]:
             raise ArchitectureError(
                 f"{path} rejected finding {finding_id} must have status 'rejected'"
             )
+        if finding.get("fingerprint"):
+            expected_fingerprint = finding_fingerprint(
+                data["review"]["subject"]["id"],
+                finding,
+            )
+            if finding["fingerprint"] != expected_fingerprint:
+                raise ArchitectureError(
+                    f"{path} finding {finding_id} fingerprint does not match content"
+                )
 
     review_state = data["review"]["verification_state"]
     verification_states = [finding["verification"]["status"] for finding in findings]
@@ -180,6 +898,116 @@ def validate_review(path: Path) -> dict[str, Any]:
             + ", ".join(candidate_ids)
         )
 
+    if strict_trust:
+        if data["schema_version"] != "1.1":
+            raise ArchitectureError(
+                f"{path} uses legacy schema {data['schema_version']}; "
+                "migrate to 1.1 before deterministic enforcement"
+            )
+        required_review_fields = (
+            "repository_identity",
+            "profile_sha256",
+            "dirty_tree",
+            "rule_packs",
+            "scope_manifest",
+        )
+        missing_review_fields = [
+            field for field in required_review_fields if field not in data["review"]
+        ]
+        if missing_review_fields:
+            raise ArchitectureError(
+                f"{path} trusted review is missing: " + ", ".join(missing_review_fields)
+            )
+        for scoped_path in data["review"]["scope_manifest"]:
+            scoped = Path(scoped_path)
+            if scoped.is_absolute() or ".." in scoped.parts:
+                raise ArchitectureError(
+                    f"{path} scope_manifest path escapes repository: {scoped_path}"
+                )
+        if review_state == "verified":
+            if not data.get("coverage_complete"):
+                raise ArchitectureError(f"{path} verified coverage is not complete")
+            if "verification_run" not in data["review"]:
+                raise ArchitectureError(f"{path} has no verification_run")
+            if "source_candidate" not in data["review"]:
+                raise ArchitectureError(f"{path} has no source_candidate binding")
+            verification_run = data["review"]["verification_run"]
+            run_started = datetime.fromisoformat(
+                verification_run["started_at"].replace("Z", "+00:00")
+            )
+            run_completed = datetime.fromisoformat(
+                verification_run["completed_at"].replace("Z", "+00:00")
+            )
+            if run_completed < run_started:
+                raise ArchitectureError(
+                    f"{path} verification run completes before it starts"
+                )
+            for finding in findings:
+                verification = finding["verification"]
+                if verification["status"] == "candidate":
+                    continue
+                required_verification = (
+                    "level",
+                    "verifier",
+                    "verified_at",
+                    "source_candidate",
+                )
+                missing = [
+                    field
+                    for field in required_verification
+                    if field not in verification
+                ]
+                if missing:
+                    raise ArchitectureError(
+                        f"{path} finding {finding['id']} verification is missing: "
+                        + ", ".join(missing)
+                    )
+                if not finding.get("fingerprint"):
+                    raise ArchitectureError(
+                        f"{path} verified finding {finding['id']} has no fingerprint"
+                    )
+                if verification["verifier"]["run_id"] != verification_run["id"]:
+                    raise ArchitectureError(
+                        f"{path} finding {finding['id']} verifier run does not "
+                        "match review verification_run"
+                    )
+                verifier_identity = verification["verifier"]["identity"]
+                if verifier_identity not in data["review"]["reviewers"]:
+                    raise ArchitectureError(
+                        f"{path} finding {finding['id']} verifier is absent "
+                        "from review.reviewers"
+                    )
+                if (
+                    verification.get("verified_by", verifier_identity)
+                    != verifier_identity
+                ):
+                    raise ArchitectureError(
+                        f"{path} finding {finding['id']} verified_by conflicts "
+                        "with verifier identity"
+                    )
+                level = verification["level"]
+                if (
+                    level in {"V3", "V4", "V5"}
+                    and verification["verifier"]["type"] != "human"
+                ):
+                    raise ArchitectureError(
+                        f"{path} finding {finding['id']} {level} verification "
+                        "requires a human verifier"
+                    )
+                if level == "V5" and "signature" not in data["review"]:
+                    raise ArchitectureError(
+                        f"{path} finding {finding['id']} V5 verification "
+                        "requires a signed review"
+                    )
+                verified_at = datetime.fromisoformat(
+                    verification["verified_at"].replace("Z", "+00:00")
+                )
+                if not run_started <= verified_at <= run_completed:
+                    raise ArchitectureError(
+                        f"{path} finding {finding['id']} verified_at is outside "
+                        "the verification run"
+                    )
+
     expected_counts = {
         "raw_findings": len(findings),
         "confirmed": verification_states.count("confirmed"),
@@ -193,7 +1021,14 @@ def validate_review(path: Path) -> dict[str, Any]:
                 f"{path} summary.{key} is {actual}, expected {expected}"
             )
 
+    coverage_ids: set[str] = set()
+    finding_coverage: dict[str, list[str]] = {}
     for coverage in data["coverage"]:
+        if coverage["rule_id"] in coverage_ids:
+            raise ArchitectureError(
+                f"{path} has duplicate coverage rule {coverage['rule_id']}"
+            )
+        coverage_ids.add(coverage["rule_id"])
         missing = sorted(set(coverage["finding_ids"]) - finding_ids)
         if missing:
             raise ArchitectureError(
@@ -205,11 +1040,435 @@ def validate_review(path: Path) -> dict[str, Any]:
                 f"{path} coverage {coverage['rule_id']} requires a reason for "
                 f"{coverage['status']}"
             )
+        for finding_id in coverage["finding_ids"]:
+            finding_coverage.setdefault(finding_id, []).append(coverage["rule_id"])
+
+    by_id = {finding["id"]: finding for finding in findings}
+    for finding_id, coverage_rules in finding_coverage.items():
+        expected_rule = by_id[finding_id]["rule_id"]
+        if coverage_rules != [expected_rule]:
+            raise ArchitectureError(
+                f"{path} finding {finding_id} must appear only under "
+                f"coverage rule {expected_rule}"
+            )
+    missing_coverage_findings = sorted(finding_ids - set(finding_coverage))
+    if missing_coverage_findings:
+        raise ArchitectureError(
+            f"{path} findings missing from coverage: "
+            + ", ".join(missing_coverage_findings)
+        )
+
+    if rule_pack_ids is not None:
+        allowed_pack_ids = set(rule_pack_ids)
+        declared_pack_items = data["review"].get("rule_packs", [])
+        declared_pack_ids = [item["id"] for item in declared_pack_items]
+        if len(declared_pack_ids) != len(set(declared_pack_ids)):
+            raise ArchitectureError(f"{path} declares a rule pack more than once")
+        unknown_declared = sorted(set(declared_pack_ids) - allowed_pack_ids)
+        if unknown_declared:
+            raise ArchitectureError(
+                f"{path} declares rule packs absent from project profile: "
+                + ", ".join(unknown_declared)
+            )
+        effective_pack_ids = declared_pack_ids or list(rule_pack_ids)
+        if strict_trust and not declared_pack_ids:
+            raise ArchitectureError(f"{path} trusted review declares no rule packs")
+        required_core = REVIEW_KIND_CORE_PACK[data["review"]["kind"]]
+        if strict_trust and required_core not in effective_pack_ids:
+            raise ArchitectureError(
+                f"{path} {data['review']['kind']} review must load {required_core}"
+            )
+        packs = load_rule_packs(
+            effective_pack_ids,
+            (
+                local_rule_pack_roots(repository_root)
+                if repository_root is not None
+                else None
+            ),
+        )
+        wrong_kind = sorted(
+            pack_id
+            for pack_id, record in packs.items()
+            if record["payload"]["review_kind"] != data["review"]["kind"]
+        )
+        if wrong_kind:
+            raise ArchitectureError(
+                f"{path} loads Rule Packs for a different review kind: "
+                + ", ".join(wrong_kind)
+            )
+        rules = expected_rules(packs)
+        unknown_coverage = sorted(coverage_ids - set(rules))
+        missing_rules = sorted(set(rules) - coverage_ids)
+        if unknown_coverage:
+            raise ArchitectureError(
+                f"{path} coverage references unloaded rules: "
+                + ", ".join(unknown_coverage)
+            )
+        if strict_trust and missing_rules:
+            raise ArchitectureError(
+                f"{path} coverage is missing loaded rules: " + ", ".join(missing_rules)
+            )
+        declared_packs = {item["id"]: item for item in declared_pack_items}
+        if strict_trust and set(declared_packs) != set(packs):
+            raise ArchitectureError(
+                f"{path} declared rule packs do not match effective review packs"
+            )
+        for pack_id, record in packs.items():
+            declaration = declared_packs.get(pack_id)
+            if declaration is None:
+                continue
+            if declaration["version"] != record["payload"]["version"]:
+                raise ArchitectureError(
+                    f"{path} rule pack {pack_id} version does not match bundle"
+                )
+            if declaration["sha256"] != file_sha256(record["path"]):
+                raise ArchitectureError(
+                    f"{path} rule pack {pack_id} hash does not match bundle"
+                )
+
+    if strict_trust and repository_root is not None:
+        root = repository_root.resolve()
+        profile_path = require_within_root(
+            root,
+            root / data["review"].get("profile", ".architecture/profile.yaml"),
+            "review.profile",
+        )
+        if data["review"]["profile_sha256"] != file_sha256(profile_path):
+            raise ArchitectureError(
+                f"{path} profile hash does not match {profile_path}"
+            )
+        reviewed_commit = data["review"].get("commit")
+        provider_runs: dict[Path, dict[str, Any]] = {}
+        for reference in data.get("tool_evidence", []):
+            run_path = require_within_root(
+                root,
+                root / reference["run_path"],
+                "review.tool_evidence.run_path",
+            )
+            if reference["run_sha256"] != file_sha256(run_path):
+                raise ArchitectureError(
+                    f"{path} tool evidence hash does not match {run_path}"
+                )
+            evidence_run = validate_evidence_run(
+                run_path,
+                root,
+                require_passed=True,
+            )
+            if evidence_run["run"]["provider_id"] != reference["provider_id"]:
+                raise ArchitectureError(
+                    f"{path} tool evidence provider does not match {run_path}"
+                )
+            provider_runs[run_path] = evidence_run
+            if (
+                reviewed_commit is not None
+                and evidence_run["run"]["commit"] != reviewed_commit
+            ):
+                raise ArchitectureError(
+                    f"{path} tool evidence commit does not match review commit"
+                )
+        for finding in findings:
+            deterministic_finding_evidence = False
+            for item in finding["evidence"]:
+                if item["type"] != "tool":
+                    continue
+                run_path = require_within_root(
+                    root,
+                    root / item["provider_run"],
+                    f"{path} finding {finding['id']} tool evidence",
+                )
+                evidence_run = provider_runs.get(run_path)
+                if evidence_run is None:
+                    raise ArchitectureError(
+                        f"{path} finding {finding['id']} tool evidence is not "
+                        "declared in review.tool_evidence"
+                    )
+                if item["provider_run_sha256"] != file_sha256(run_path):
+                    raise ArchitectureError(
+                        f"{path} finding {finding['id']} tool evidence hash "
+                        "does not match its run"
+                    )
+                if evidence_run["run"]["provider_id"] != item["provider_id"]:
+                    raise ArchitectureError(
+                        f"{path} finding {finding['id']} tool evidence provider "
+                        "does not match its run"
+                    )
+                if evidence_run["run"]["trust"] == "deterministic":
+                    deterministic_finding_evidence = True
+            if finding["verification"].get("level") in {"V4", "V5"} and not (
+                deterministic_finding_evidence
+            ):
+                raise ArchitectureError(
+                    f"{path} finding {finding['id']} "
+                    f"{finding['verification']['level']} verification requires "
+                    "a passed deterministic tool evidence run cited by the Finding"
+                )
+        if review_state == "verified":
+            source = data["review"]["source_candidate"]
+            candidate_path = require_within_root(
+                root,
+                root / source["path"],
+                "review.source_candidate.path",
+            )
+            candidate = validate_review(candidate_path)
+            if candidate["review"]["verification_state"] != "candidates":
+                raise ArchitectureError(
+                    f"{path} source candidate is not a candidate review"
+                )
+            if candidate["review"]["id"] != source["review_id"]:
+                raise ArchitectureError(
+                    f"{path} source candidate review ID does not match"
+                )
+            if file_sha256(candidate_path) != source["sha256"]:
+                raise ArchitectureError(f"{path} source candidate hash does not match")
+            candidate_findings = {
+                finding["id"]: finding for finding in candidate["findings"]
+            }
+            verified_findings = {finding["id"]: finding for finding in data["findings"]}
+            if set(candidate_findings) != set(verified_findings):
+                raise ArchitectureError(
+                    f"{path} verified Finding IDs do not match source candidate"
+                )
+            for finding_id, finding in verified_findings.items():
+                candidate_fingerprint = finding_fingerprint(
+                    data["review"]["subject"]["id"],
+                    candidate_findings[finding_id],
+                )
+                if finding["fingerprint"] != candidate_fingerprint:
+                    raise ArchitectureError(
+                        f"{path} finding {finding_id} semantics differ from "
+                        "source candidate"
+                    )
+                finding_source = finding["verification"]["source_candidate"]
+                if (
+                    finding_source["review_id"] != source["review_id"]
+                    or finding_source["sha256"] != source["sha256"]
+                ):
+                    raise ArchitectureError(
+                        f"{path} finding {finding_id} candidate binding does "
+                        "not match review binding"
+                    )
 
     return data
 
 
-def validate_plan(path: Path) -> dict[str, Any]:
+def decision_knowledge_snapshot() -> list[dict[str, str]]:
+    required = {
+        "architecture-style",
+        "pattern",
+        "technology-profile",
+    }
+    result: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for catalog_path in sorted(KNOWLEDGE_ROOT.rglob("*.yaml")):
+        catalog = validate_file(
+            catalog_path,
+            "knowledge-catalog.schema.json",
+        )
+        kind = catalog["kind"]
+        if kind not in required:
+            continue
+        if kind in seen:
+            raise ArchitectureError(
+                f"Bundled knowledge has multiple catalogs for {kind}"
+            )
+        seen.add(kind)
+        result.append(
+            {
+                "kind": kind,
+                "catalog_version": catalog["catalog_version"],
+                "sha256": file_sha256(catalog_path),
+            }
+        )
+    if seen != required:
+        raise ArchitectureError(
+            "Bundled decision knowledge is missing: "
+            + ", ".join(sorted(required - seen))
+        )
+    return sorted(result, key=lambda item: item["kind"])
+
+
+def validate_decision(
+    path: Path,
+    *,
+    review_path: Path | None = None,
+    require_accepted: bool = False,
+    repository_root: Path | None = None,
+) -> dict[str, Any]:
+    data = validate_file(path, "architecture-decision.schema.json")
+    option_ids = [option["id"] for option in data["options"]]
+    if len(option_ids) != len(set(option_ids)):
+        raise ArchitectureError(f"{path} has duplicate decision option IDs")
+    if data["selected_option"] not in option_ids:
+        raise ArchitectureError(
+            f"{path} selected_option {data['selected_option']} does not exist"
+        )
+    if "keep-current" not in option_ids:
+        raise ArchitectureError(f"{path} must include a keep-current option")
+    quality_attributes = set(data["problem"]["quality_attributes"])
+    knowledge_ids: dict[str, set[str]] = {}
+    knowledge_records: dict[str, tuple[Path, dict[str, Any]]] = {}
+    for catalog_path in sorted(KNOWLEDGE_ROOT.rglob("*.yaml")):
+        catalog = validate_file(
+            catalog_path,
+            "knowledge-catalog.schema.json",
+        )
+        if catalog["kind"] in knowledge_records:
+            raise ArchitectureError(
+                f"Bundled knowledge has multiple catalogs for {catalog['kind']}"
+            )
+        knowledge_records[catalog["kind"]] = (catalog_path, catalog)
+        knowledge_ids.setdefault(catalog["kind"], set()).update(
+            entry["id"] for entry in catalog["entries"]
+        )
+    snapshots = {item["kind"]: item for item in data["knowledge_snapshot"]}
+    if len(snapshots) != len(data["knowledge_snapshot"]):
+        raise ArchitectureError(f"{path} repeats a knowledge snapshot kind")
+    required_snapshot_kinds = {
+        "architecture-style",
+        "pattern",
+        "technology-profile",
+    }
+    if set(snapshots) != required_snapshot_kinds:
+        raise ArchitectureError(
+            f"{path} knowledge snapshot must contain exactly: "
+            + ", ".join(sorted(required_snapshot_kinds))
+        )
+    for kind, snapshot in snapshots.items():
+        catalog_path, catalog = knowledge_records[kind]
+        if snapshot["catalog_version"] != catalog["catalog_version"]:
+            raise ArchitectureError(
+                f"{path} {kind} catalog version does not match bundled knowledge"
+            )
+        if snapshot["sha256"] != file_sha256(catalog_path):
+            raise ArchitectureError(f"{path} {kind} knowledge snapshot hash is stale")
+    reference_fields = {
+        "architecture_styles": "architecture-style",
+        "patterns": "pattern",
+        "technologies": "technology-profile",
+    }
+    for option in data["options"]:
+        if (
+            option["id"] == "keep-current"
+            and option["complexity_tier"] != "keep-current"
+        ):
+            raise ArchitectureError(
+                f"{path} keep-current option must use keep-current complexity tier"
+            )
+        if (
+            option["id"] != "keep-current"
+            and option["complexity_tier"] == "keep-current"
+        ):
+            raise ArchitectureError(
+                f"{path} only keep-current may use keep-current complexity tier"
+            )
+        effects = [
+            effect["attribute"] for effect in option["quality_attribute_effects"]
+        ]
+        if len(effects) != len(set(effects)):
+            raise ArchitectureError(
+                f"{path} option {option['id']} repeats a quality attribute effect"
+            )
+        if set(effects) != quality_attributes:
+            raise ArchitectureError(
+                f"{path} option {option['id']} must evaluate every problem "
+                "quality attribute exactly once"
+            )
+        for field, kind in reference_fields.items():
+            unknown = sorted(set(option[field]) - knowledge_ids.get(kind, set()))
+            if unknown:
+                raise ArchitectureError(
+                    f"{path} option {option['id']} references unknown {field}: "
+                    + ", ".join(unknown)
+                )
+        if option["id"] == data["selected_option"]:
+            if option["rejected_reasons"]:
+                raise ArchitectureError(
+                    f"{path} selected option cannot have rejected_reasons"
+                )
+        elif not option["rejected_reasons"]:
+            raise ArchitectureError(
+                f"{path} non-selected option {option['id']} requires rejected_reasons"
+            )
+    for elimination in data.get("hard_eliminations", []):
+        if elimination["option_id"] not in option_ids:
+            raise ArchitectureError(
+                f"{path} hard elimination references unknown option "
+                f"{elimination['option_id']}"
+            )
+        if elimination["option_id"] == data["selected_option"]:
+            raise ArchitectureError(
+                f"{path} selected option cannot also be hard-eliminated"
+            )
+    if require_accepted and data["decision"]["status"] != "accepted":
+        raise ArchitectureError(f"{path} must be accepted before remediation planning")
+    if data["decision"]["status"] == "accepted" and not data.get("acceptance_evidence"):
+        raise ArchitectureError(f"{path} accepted decision has no acceptance evidence")
+    profile: dict[str, Any] | None = None
+    root: Path | None = None
+    if repository_root is not None:
+        root = repository_root.resolve()
+        profile_path = root / ".architecture" / "profile.yaml"
+        if profile_path.is_file():
+            profile = validate_file(
+                profile_path,
+                "project-profile.schema.json",
+            )
+            declared_quality = {
+                item["id"] for item in profile["project"].get("quality_attributes", [])
+            } | set(profile["project"]["critical_qualities"])
+            unknown_quality = sorted(quality_attributes - declared_quality)
+            if unknown_quality:
+                raise ArchitectureError(
+                    f"{path} decision uses quality attributes absent from the "
+                    "project Profile: " + ", ".join(unknown_quality)
+                )
+    if review_path is not None:
+        review_path = review_path.resolve()
+        review = (
+            validate_review(
+                review_path,
+                rule_pack_ids=profile["project"]["rule_packs"],
+                strict_trust=True,
+                repository_root=root,
+            )
+            if profile is not None and root is not None
+            else validate_review(review_path)
+        )
+        if (
+            review["schema_version"] != "1.1"
+            or review["review"]["verification_state"] != "verified"
+        ):
+            raise ArchitectureError(f"{path} requires a trusted 1.1 source review")
+        if data["decision"]["source_review"] != review["review"]["id"]:
+            raise ArchitectureError(
+                f"{path} source_review does not match {review_path}"
+            )
+        if data["decision"]["source_review_sha256"] != file_sha256(review_path):
+            raise ArchitectureError(
+                f"{path} source_review_sha256 does not match {review_path}"
+            )
+        confirmed = {
+            finding["id"]
+            for finding in review["findings"]
+            if finding["verification"]["status"] == "confirmed"
+            and finding["status"] != "resolved"
+        }
+        unknown = sorted(set(data["problem"]["finding_ids"]) - confirmed)
+        if unknown:
+            raise ArchitectureError(
+                f"{path} decision references non-confirmed findings: "
+                + ", ".join(unknown)
+            )
+    return data
+
+
+def validate_plan(
+    path: Path,
+    *,
+    review_path: Path | None = None,
+    decision_path: Path | None = None,
+    repository_root: Path | None = None,
+) -> dict[str, Any]:
     data = validate_file(path, "remediation-plan.schema.json")
     item_ids: set[str] = set()
     planned_findings: set[str] = set()
@@ -224,12 +1483,283 @@ def validate_plan(path: Path) -> dict[str, Any]:
                 f"{path} plans finding IDs more than once: " + ", ".join(duplicates)
             )
         planned_findings.update(item["finding_ids"])
+        if data["schema_version"] == "1.1":
+            required_item_fields = (
+                "migration_type",
+                "data_compatibility",
+                "deployment_strategy",
+                "observability_changes",
+                "stop_conditions",
+                "acceptance_evidence_types",
+                "completion_evidence",
+            )
+            missing = [field for field in required_item_fields if field not in item]
+            if missing:
+                raise ArchitectureError(
+                    f"{path} item {item_id} is missing: " + ", ".join(missing)
+                )
+            if data["plan"]["status"] == "complete":
+                completion_evidence = item["completion_evidence"]
+                if not completion_evidence:
+                    raise ArchitectureError(
+                        f"{path} complete item {item_id} has no completion evidence"
+                    )
+                observed_types = {entry["type"] for entry in completion_evidence}
+                missing_types = sorted(
+                    set(item["acceptance_evidence_types"]) - observed_types
+                )
+                if missing_types:
+                    raise ArchitectureError(
+                        f"{path} complete item {item_id} is missing acceptance "
+                        "evidence types: " + ", ".join(missing_types)
+                    )
+                if repository_root is None:
+                    raise ArchitectureError(
+                        f"{path} complete plan requires a repository root to "
+                        "resolve completion evidence"
+                    )
+                root = repository_root.resolve()
+                for entry in completion_evidence:
+                    evidence_path = require_within_root(
+                        root,
+                        root / entry["location"],
+                        f"{path}:{item_id}.completion_evidence",
+                    )
+                    if not evidence_path.is_file():
+                        raise ArchitectureError(
+                            f"{path} completion evidence is missing: {evidence_path}"
+                        )
+                    if file_sha256(evidence_path) != entry["sha256"]:
+                        raise ArchitectureError(
+                            f"{path} completion evidence hash does not match "
+                            f"{evidence_path}"
+                        )
+
+    review: dict[str, Any] | None = None
+    if review_path is not None:
+        review_path = review_path.resolve()
+        review = validate_review(review_path)
+        if review["review"]["verification_state"] != "verified":
+            raise ArchitectureError(f"{path} requires a verified source review")
+        if data["schema_version"] == "1.1" and review["schema_version"] != "1.1":
+            raise ArchitectureError(f"{path} requires a trusted 1.1 source review")
+        if data["plan"]["source_review"] != review["review"]["id"]:
+            raise ArchitectureError(
+                f"{path} source_review does not match {review_path}"
+            )
+        if data["schema_version"] == "1.1" and data["plan"].get(
+            "source_review_sha256"
+        ) != file_sha256(review_path):
+            raise ArchitectureError(
+                f"{path} source_review_sha256 does not match {review_path}"
+            )
+        confirmed_open = {
+            finding["id"]
+            for finding in review["findings"]
+            if finding["verification"]["status"] == "confirmed"
+            and finding["status"] not in {"resolved", "rejected"}
+        }
+        unknown = sorted(planned_findings - confirmed_open)
+        if unknown:
+            raise ArchitectureError(
+                f"{path} plans non-confirmed or resolved findings: "
+                + ", ".join(unknown)
+            )
+
+    if data["schema_version"] == "1.1":
+        if review_path is None:
+            raise ArchitectureError(
+                f"{path} schema 1.1 requires --review for source validation"
+            )
+        if decision_path is None:
+            raise ArchitectureError(
+                f"{path} schema 1.1 requires --decision for source validation"
+            )
+        decision_path = decision_path.resolve()
+        decision = validate_decision(
+            decision_path,
+            review_path=review_path,
+            require_accepted=True,
+            repository_root=repository_root,
+        )
+        if data["plan"].get("source_decision") != decision["decision"]["id"]:
+            raise ArchitectureError(
+                f"{path} source_decision does not match {decision_path}"
+            )
+        if data["plan"].get("source_decision_sha256") != file_sha256(decision_path):
+            raise ArchitectureError(
+                f"{path} source_decision_sha256 does not match {decision_path}"
+            )
+        decision_findings = set(decision["problem"]["finding_ids"])
+        if not planned_findings.issubset(decision_findings):
+            raise ArchitectureError(
+                f"{path} plans findings absent from the accepted decision"
+            )
     return data
 
 
-def resolve_from_root(root: Path, configured_path: str) -> Path:
+def validate_risk_acceptances(path: Path) -> dict[str, Any]:
+    data = validate_file(path, "risk-acceptance.schema.json")
+    ensure_unique_entries(data["acceptances"], "finding_id", path)
+    for entry in data["acceptances"]:
+        if entry["accepted_by"] == entry["approved_by"]:
+            raise ArchitectureError(
+                f"{path} risk acceptance {entry['finding_id']} requires "
+                "separate accepter and approver identities"
+            )
+        accepted_at = datetime.fromisoformat(
+            entry["accepted_at"].replace("Z", "+00:00")
+        ).date()
+        expires_on = parse_date(
+            entry["expires_on"],
+            f"{path}:{entry['finding_id']}.expires_on",
+        )
+        if expires_on < accepted_at:
+            raise ArchitectureError(
+                f"{path} risk acceptance {entry['finding_id']} expires "
+                "before it is accepted"
+            )
+    return data
+
+
+def validate_baseline(path: Path) -> dict[str, Any]:
+    data = validate_file(path, "baseline.schema.json")
+    ensure_unique_entries(data["findings"], "id", path)
+    for entry in data["findings"]:
+        recorded_on = parse_date(
+            entry["recorded_on"],
+            f"{path}:{entry['id']}.recorded_on",
+        )
+        if entry.get("expires_on") is None:
+            continue
+        expires_on = parse_date(
+            entry["expires_on"],
+            f"{path}:{entry['id']}.expires_on",
+        )
+        if expires_on < recorded_on:
+            raise ArchitectureError(
+                f"{path} baseline {entry['id']} expires before it is recorded"
+            )
+    return data
+
+
+def validate_knowledge(today: date | None = None) -> dict[str, Any]:
+    evaluation_date = today or datetime.now(UTC).date()
+    catalogs: list[str] = []
+    entries: dict[str, Path] = {}
+    stale: list[str] = []
+    for path in sorted(KNOWLEDGE_ROOT.rglob("*.yaml")):
+        payload = validate_file(path, "knowledge-catalog.schema.json")
+        catalogs.append(str(path))
+        for entry in payload["entries"]:
+            entry_id = f"{payload['kind']}:{entry['id']}"
+            if entry_id in entries:
+                raise ArchitectureError(
+                    f"Knowledge entry {entry_id} appears in {entries[entry_id]} "
+                    f"and {path}"
+                )
+            entries[entry_id] = path
+            reviewed_on = parse_date(
+                entry["freshness"]["reviewed_on"],
+                f"{path}:{entry_id}.freshness.reviewed_on",
+            )
+            if reviewed_on > evaluation_date:
+                raise ArchitectureError(
+                    f"Knowledge entry {entry_id} has future review date "
+                    f"{reviewed_on.isoformat()}"
+                )
+            age = (evaluation_date - reviewed_on).days
+            if age > entry["freshness"]["review_after_days"]:
+                stale.append(entry_id)
+            source_urls: set[str] = set()
+            for source in entry["sources"]:
+                url = source["url"]
+                if not url.startswith("https://"):
+                    raise ArchitectureError(
+                        f"Knowledge entry {entry_id} must use HTTPS sources: {url}"
+                    )
+                if url in source_urls:
+                    raise ArchitectureError(
+                        f"Knowledge entry {entry_id} repeats source {url}"
+                    )
+                source_urls.add(url)
+    rule_pack_ids = [
+        validate_file(path, "rule-pack.schema.json")["id"]
+        for path in sorted(RULE_ROOT.glob("*.yaml"))
+    ]
+    rule_packs = load_rule_packs(rule_pack_ids)
+    expected_rules(rule_packs)
+    provider_path = EVIDENCE_PROVIDER_ROOT / "catalog.yaml"
+    providers = validate_file(provider_path, "evidence-provider.schema.json")
+    provider_ids = [provider["id"] for provider in providers["providers"]]
+    if len(provider_ids) != len(set(provider_ids)):
+        raise ArchitectureError(f"{provider_path} has duplicate provider IDs")
+    if stale:
+        raise ArchitectureError(
+            "Stale architecture knowledge entries: " + ", ".join(sorted(stale))
+        )
+    return {
+        "catalogs": len(catalogs),
+        "entries": len(entries),
+        "rule_packs": len(rule_packs),
+        "providers": len(provider_ids),
+        "stale": stale,
+    }
+
+
+def resolve_from_root(
+    root: Path,
+    configured_path: str,
+    *,
+    allow_outside: bool = False,
+) -> Path:
     path = Path(configured_path)
-    return path if path.is_absolute() else root / path
+    candidate = path if path.is_absolute() else root / path
+    if allow_outside:
+        return candidate.resolve()
+    return require_within_root(root, candidate, "configured path")
+
+
+def validate_profile_review_requirements(
+    profile: dict[str, Any],
+    source: Path,
+) -> list[dict[str, Any]]:
+    project = profile["project"]
+    requirements = project.get("review_requirements", [])
+    ids = [requirement["id"] for requirement in requirements]
+    if len(ids) != len(set(ids)):
+        raise ArchitectureError(f"{source} has duplicate review requirement IDs")
+    if set(ids) != set(project["required_reviews"]):
+        raise ArchitectureError(
+            f"{source} review_requirements must exactly map required_reviews"
+        )
+    allowed_packs = set(project["rule_packs"])
+    selected_packs: set[str] = set()
+    for requirement in requirements:
+        selected_packs.update(requirement["rule_packs"])
+        unknown = sorted(set(requirement["rule_packs"]) - allowed_packs)
+        if unknown:
+            raise ArchitectureError(
+                f"{source} review {requirement['id']} uses unloaded packs: "
+                + ", ".join(unknown)
+            )
+        core_pack = REVIEW_KIND_CORE_PACK[requirement["kind"]]
+        if core_pack not in requirement["rule_packs"]:
+            raise ArchitectureError(
+                f"{source} review {requirement['id']} requires {core_pack}"
+            )
+        known_kind = REVIEW_WORKFLOW_KIND.get(requirement["id"])
+        if known_kind is not None and known_kind != requirement["kind"]:
+            raise ArchitectureError(
+                f"{source} review {requirement['id']} must use kind {known_kind}"
+            )
+    if selected_packs != allowed_packs:
+        unused = sorted(allowed_packs - selected_packs)
+        raise ArchitectureError(
+            f"{source} rule_packs must exactly equal the review requirement "
+            "union; unassigned packs: " + ", ".join(unused)
+        )
+    return requirements
 
 
 def validate_project(root: Path) -> list[Path]:
@@ -238,12 +1768,47 @@ def validate_project(root: Path) -> list[Path]:
     profile_path = config_root / "profile.yaml"
     policy_path = config_root / "gate-policy.yaml"
     baseline_path = config_root / "baseline.yaml"
+    risk_acceptance_path = config_root / "risk-acceptances.yaml"
+    provider_config_path = config_root / "evidence-providers.yaml"
 
     profile = validate_file(profile_path, "project-profile.schema.json")
-    validate_file(policy_path, "gate-policy.schema.json")
-    validate_file(baseline_path, "baseline.schema.json")
+    review_requirements = validate_profile_review_requirements(profile, profile_path)
+    policy = validate_file(policy_path, "gate-policy.schema.json")
+    validate_baseline(baseline_path)
+    if risk_acceptance_path.is_file():
+        validate_risk_acceptances(risk_acceptance_path)
+    elif policy["schema_version"] == "1.1":
+        raise ArchitectureError(f"Missing file: {risk_acceptance_path}")
+    validate_evidence_provider_config(provider_config_path)
+    rule_packs = load_rule_packs(
+        profile["project"]["rule_packs"],
+        local_rule_pack_roots(root),
+    )
+    validate_review_rule_pack_kinds(
+        review_requirements,
+        rule_packs,
+        profile_path,
+    )
 
-    validated = [profile_path, policy_path, baseline_path]
+    if policy["schema_version"] == "1.1":
+        configured_acceptance_path = resolve_from_root(
+            root,
+            policy["risk_acceptances_file"],
+        )
+        if configured_acceptance_path != risk_acceptance_path.resolve():
+            raise ArchitectureError(
+                "Project risk_acceptances_file must resolve to "
+                f"{risk_acceptance_path.resolve()}"
+            )
+
+    validated = [
+        profile_path,
+        policy_path,
+        baseline_path,
+    ]
+    if risk_acceptance_path.is_file():
+        validated.append(risk_acceptance_path)
+    validated.append(provider_config_path)
     for field in ("constraints_file", "critical_flows_file"):
         expected = resolve_from_root(root, profile["project"][field])
         if not expected.is_file():
@@ -256,17 +1821,80 @@ def validate_project(root: Path) -> list[Path]:
     if not reviews_root.is_dir():
         raise ArchitectureError(f"Missing review output directory: {reviews_root}")
 
+    review_records: dict[str, Path] = {}
+    decision_records: dict[str, tuple[Path, dict[str, Any]]] = {}
+    plan_artifacts: list[tuple[Path, dict[str, Any]]] = []
     for artifact in sorted(reviews_root.glob("*.yaml")):
         payload = load_yaml(artifact)
         if "review" in payload:
-            validate_review(artifact)
+            review = validate_review(
+                artifact,
+                rule_pack_ids=profile["project"]["rule_packs"],
+                strict_trust=payload.get("schema_version") == "1.1"
+                and payload["review"].get("verification_state") == "verified",
+                repository_root=root,
+            )
+            if review["review"].get("repository_identity") not in {
+                None,
+                profile["project"]["id"],
+            }:
+                raise ArchitectureError(
+                    f"{artifact} repository_identity does not match project profile"
+                )
+            if review["review"]["id"] in review_records:
+                raise ArchitectureError(
+                    f"Duplicate review ID {review['review']['id']} in {reviews_root}"
+                )
+            review_records[review["review"]["id"]] = artifact
+        elif "decision" in payload:
+            decision = validate_decision(
+                artifact,
+                repository_root=root,
+            )
+            decision_id = decision["decision"]["id"]
+            if decision_id in decision_records:
+                raise ArchitectureError(
+                    f"Duplicate decision ID {decision_id} in {reviews_root}"
+                )
+            decision_records[decision_id] = (artifact, decision)
         elif "plan" in payload:
-            validate_plan(artifact)
+            plan_artifacts.append((artifact, payload))
         else:
             raise ArchitectureError(
                 f"Unknown YAML artifact in reviews directory: {artifact}"
             )
         validated.append(artifact)
+    for artifact, decision in decision_records.values():
+        source_review = review_records.get(decision["decision"]["source_review"])
+        if source_review is None:
+            raise ArchitectureError(
+                f"{artifact} references a missing source review "
+                f"{decision['decision']['source_review']}"
+            )
+        validate_decision(
+            artifact,
+            review_path=source_review,
+            repository_root=root,
+        )
+    for artifact, payload in plan_artifacts:
+        source_review = review_records.get(payload["plan"]["source_review"])
+        if source_review is None:
+            raise ArchitectureError(
+                f"{artifact} references a missing source review "
+                f"{payload['plan']['source_review']}"
+            )
+        source_decision_record = decision_records.get(
+            payload["plan"].get("source_decision", "")
+        )
+        source_decision = (
+            source_decision_record[0] if source_decision_record is not None else None
+        )
+        validate_plan(
+            artifact,
+            review_path=source_review,
+            decision_path=source_decision,
+            repository_root=root,
+        )
     return validated
 
 
@@ -277,14 +1905,35 @@ def validate_portfolio(root: Path) -> list[Path]:
     registry = validate_file(registry_path, "portfolio.schema.json")
     policy_path = config_root / "gate-policy.yaml"
     baseline_path = config_root / "baseline.yaml"
-    validate_file(policy_path, "gate-policy.schema.json")
-    validate_file(baseline_path, "baseline.schema.json")
+    risk_acceptance_path = config_root / "risk-acceptances.yaml"
+    policy = validate_file(policy_path, "gate-policy.schema.json")
+    validate_baseline(baseline_path)
+    if risk_acceptance_path.is_file():
+        validate_risk_acceptances(risk_acceptance_path)
+    elif policy["schema_version"] == "1.1":
+        raise ArchitectureError(f"Missing file: {risk_acceptance_path}")
     catalog_schemas = {
         "shared_capabilities": "shared-capabilities.schema.json",
         "technologies": "technology-catalog.schema.json",
         "dependencies": "dependency-map.schema.json",
     }
-    validated = [registry_path, policy_path, baseline_path]
+    if policy["schema_version"] == "1.1":
+        configured_acceptance_path = resolve_from_root(
+            root,
+            policy["risk_acceptances_file"],
+        )
+        if configured_acceptance_path != risk_acceptance_path.resolve():
+            raise ArchitectureError(
+                "Portfolio risk_acceptances_file must resolve to "
+                f"{risk_acceptance_path.resolve()}"
+            )
+    validated = [
+        registry_path,
+        policy_path,
+        baseline_path,
+    ]
+    if risk_acceptance_path.is_file():
+        validated.append(risk_acceptance_path)
     for key, schema_name in catalog_schemas.items():
         catalog_path = resolve_from_root(root, registry["catalogs"][key])
         validate_file(catalog_path, schema_name)
@@ -310,17 +1959,74 @@ def validate_portfolio(root: Path) -> list[Path]:
     reviews_root = resolve_from_root(root, registry["portfolio"]["review_output"])
     if not reviews_root.is_dir():
         raise ArchitectureError(f"Missing portfolio review directory: {reviews_root}")
+    review_records: dict[str, Path] = {}
+    decision_records: dict[str, tuple[Path, dict[str, Any]]] = {}
+    plan_artifacts: list[tuple[Path, dict[str, Any]]] = []
     for artifact in sorted(reviews_root.glob("*.yaml")):
         payload = load_yaml(artifact)
         if "review" in payload:
-            validate_review(artifact)
+            review = validate_review(
+                artifact,
+                rule_pack_ids=["portfolio-core"],
+                strict_trust=payload.get("schema_version") == "1.1"
+                and payload["review"].get("verification_state") == "verified",
+                repository_root=root,
+            )
+            if review["review"].get("repository_identity") not in {
+                None,
+                registry["portfolio"]["id"],
+            }:
+                raise ArchitectureError(
+                    f"{artifact} repository_identity does not match portfolio registry"
+                )
+            if review["review"]["id"] in review_records:
+                raise ArchitectureError(
+                    f"Duplicate review ID {review['review']['id']} in {reviews_root}"
+                )
+            review_records[review["review"]["id"]] = artifact
+        elif "decision" in payload:
+            decision = validate_decision(artifact)
+            decision_id = decision["decision"]["id"]
+            if decision_id in decision_records:
+                raise ArchitectureError(
+                    f"Duplicate decision ID {decision_id} in {reviews_root}"
+                )
+            decision_records[decision_id] = (artifact, decision)
         elif "plan" in payload:
-            validate_plan(artifact)
+            plan_artifacts.append((artifact, payload))
         else:
             raise ArchitectureError(
                 f"Unknown YAML artifact in portfolio reviews: {artifact}"
             )
         validated.append(artifact)
+    for artifact, decision in decision_records.values():
+        source_review = review_records.get(decision["decision"]["source_review"])
+        if source_review is None:
+            raise ArchitectureError(
+                f"{artifact} references a missing source review "
+                f"{decision['decision']['source_review']}"
+            )
+        validate_decision(artifact, review_path=source_review)
+    for artifact, payload in plan_artifacts:
+        source_review = review_records.get(payload["plan"]["source_review"])
+        if source_review is None:
+            raise ArchitectureError(
+                f"{artifact} references a missing source review "
+                f"{payload['plan']['source_review']}"
+            )
+        source_decision_record = decision_records.get(
+            payload["plan"].get("source_decision", "")
+        )
+        validate_plan(
+            artifact,
+            review_path=source_review,
+            decision_path=(
+                source_decision_record[0]
+                if source_decision_record is not None
+                else None
+            ),
+            repository_root=root,
+        )
     return validated
 
 
@@ -341,11 +2047,46 @@ def init_project(args: argparse.Namespace) -> Path:
 
     project_name = args.name or root.name
     project_id = args.project_id or slugify(project_name)
+    selected_reviews = args.reviews or ["project-architecture"]
+    selected_packs = args.rule_packs or ["project-core"]
+    bundled_packs = load_rule_packs(selected_packs)
+    review_requirements: list[dict[str, Any]] = []
+    for workflow in selected_reviews:
+        review_kind = REVIEW_WORKFLOW_KIND.get(workflow, "project")
+        core_pack = REVIEW_KIND_CORE_PACK[review_kind]
+        if core_pack not in selected_packs:
+            raise ArchitectureError(f"Review {workflow} requires rule pack {core_pack}")
+        workflow_packs = [
+            pack_id
+            for pack_id in selected_packs
+            if bundled_packs[pack_id]["payload"]["review_kind"] == review_kind
+        ]
+        review_requirements.append(
+            {
+                "id": workflow,
+                "kind": review_kind,
+                "rule_packs": workflow_packs,
+            }
+        )
+    used_packs = {
+        pack_id
+        for requirement in review_requirements
+        for pack_id in requirement["rule_packs"]
+    }
+    unused_packs = sorted(set(selected_packs) - used_packs)
+    if unused_packs:
+        raise ArchitectureError(
+            "Rule Packs have no selected review of their kind: "
+            + ", ".join(unused_packs)
+        )
     with tempfile.TemporaryDirectory(prefix=".architecture-init-", dir=root) as temp:
         staged = Path(temp) / ".architecture"
         staged.mkdir()
         (staged / "reviews").mkdir()
         (staged / "reviews" / ".gitkeep").touch()
+        (staged / "evidence").mkdir()
+        (staged / "rules").mkdir()
+        (staged / "rules" / ".gitkeep").touch()
 
         profile = load_yaml(TEMPLATE_ROOT / "profile.yaml")
         profile["project"].update(
@@ -358,8 +2099,9 @@ def init_project(args: argparse.Namespace) -> Path:
                 "owners": args.owners or ["unassigned"],
                 "critical_qualities": args.qualities
                 or ["maintainability", "recoverability"],
-                "required_reviews": args.reviews or ["project-architecture"],
-                "rule_packs": args.rule_packs or ["project-core"],
+                "required_reviews": selected_reviews,
+                "review_requirements": review_requirements,
+                "rule_packs": selected_packs,
                 "data_classification": args.data_classification,
             }
         )
@@ -373,6 +2115,11 @@ def init_project(args: argparse.Namespace) -> Path:
         copy_template("critical-flows.md", staged / "critical-flows.md")
         copy_template("gate-policy.yaml", staged / "gate-policy.yaml")
         copy_template("baseline.yaml", staged / "baseline.yaml")
+        copy_template("risk-acceptances.yaml", staged / "risk-acceptances.yaml")
+        copy_template(
+            "evidence-providers.yaml",
+            staged / "evidence-providers.yaml",
+        )
         staged.rename(target)
     return target
 
@@ -425,6 +2172,7 @@ def init_portfolio(args: argparse.Namespace) -> Path:
             staged / "gate-policy.yaml",
         )
         copy_template("baseline.yaml", staged / "baseline.yaml")
+        copy_template("risk-acceptances.yaml", staged / "risk-acceptances.yaml")
         staged.rename(target)
     return target
 
@@ -441,25 +2189,252 @@ def active_until(expires_on: str | None, today: date) -> bool:
 
 
 def current_git_commit(root: Path) -> str:
+    return git_output(root, "rev-parse", "HEAD")
+
+
+def git_is_clean(root: Path) -> bool:
+    return not git_output(root, "status", "--porcelain")
+
+
+def git_is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
+    process = git_process(root, "merge-base", "--is-ancestor", ancestor, descendant)
+    if process.returncode not in {0, 1}:
+        raise ArchitectureError(
+            f"Cannot compare commits {ancestor} and {descendant}: "
+            f"{process.stderr.strip()}"
+        )
+    return process.returncode == 0
+
+
+def git_changed_paths(root: Path, old_commit: str, new_commit: str) -> set[str]:
+    output = git_output(
+        root,
+        "diff",
+        "--name-only",
+        "--diff-filter=ACDMRTUXB",
+        f"{old_commit}..{new_commit}",
+    )
+    return {line for line in output.splitlines() if line}
+
+
+def evidence_path(item: dict[str, Any]) -> str | None:
+    if item.get("path"):
+        return item["path"]
+    location = item.get("location", "")
+    if "://" in location or not location:
+        return None
+    candidate = location.rsplit(":", 1)[0]
+    return candidate if candidate else None
+
+
+def verify_review_evidence(
+    review: dict[str, Any],
+    repository_root: Path,
+) -> list[dict[str, str]]:
+    root = repository_root.resolve()
+    results: list[dict[str, str]] = []
+    repository_identity = review["review"].get(
+        "repository_identity",
+        review["review"]["subject"]["id"],
+    )
+    for finding in review["findings"]:
+        if finding["verification"]["status"] != "confirmed":
+            continue
+        for index, item in enumerate(finding["evidence"]):
+            if item["type"] == "tool":
+                run_path = require_within_root(
+                    root,
+                    root / item["provider_run"],
+                    f"Finding {finding['id']} tool evidence",
+                )
+                if item["provider_run_sha256"] != file_sha256(run_path):
+                    raise ArchitectureError(
+                        f"Finding {finding['id']} evidence {index} provider "
+                        "run hash does not match"
+                    )
+                evidence_run = validate_evidence_run(
+                    run_path,
+                    root,
+                    require_passed=True,
+                )
+                if evidence_run["run"]["provider_id"] != item["provider_id"]:
+                    raise ArchitectureError(
+                        f"Finding {finding['id']} evidence {index} provider "
+                        "does not match run"
+                    )
+                results.append(
+                    {
+                        "finding_id": finding["id"],
+                        "evidence": str(index),
+                        "status": "resolved",
+                        "provider_id": item["provider_id"],
+                    }
+                )
+                continue
+            if item["type"] in {"runtime", "history", "document"}:
+                results.append(
+                    {
+                        "finding_id": finding["id"],
+                        "evidence": str(index),
+                        "status": "not-resolved",
+                        "reason": (
+                            f"{item['type']} evidence requires its owning provider"
+                        ),
+                    }
+                )
+                continue
+            path_text = evidence_path(item)
+            commit = item.get("commit", item.get("source_commit"))
+            if (
+                not path_text
+                or not commit
+                or not re.fullmatch(
+                    r"[a-fA-F0-9]{7,64}",
+                    commit,
+                )
+            ):
+                raise ArchitectureError(
+                    f"Finding {finding['id']} evidence {index} requires a "
+                    "repository path and Git commit"
+                )
+            if item.get("repository", repository_identity) != repository_identity:
+                raise ArchitectureError(
+                    f"Finding {finding['id']} evidence {index} repository "
+                    "does not match review subject"
+                )
+            relative = Path(path_text)
+            if relative.is_absolute() or ".." in relative.parts:
+                raise ArchitectureError(
+                    f"Finding {finding['id']} evidence {index} path escapes repository"
+                )
+            object_name = f"{commit}:{relative.as_posix()}"
+            process = git_process(root, "cat-file", "-e", object_name)
+            if process.returncode != 0:
+                raise ArchitectureError(
+                    f"Finding {finding['id']} evidence {index} cannot resolve "
+                    f"{object_name}"
+                )
+            blob_sha = git_output(root, "rev-parse", object_name)
+            if item.get("blob_sha") and item["blob_sha"] != blob_sha:
+                raise ArchitectureError(
+                    f"Finding {finding['id']} evidence {index} blob SHA changed"
+                )
+            content = git_raw_output(root, "show", object_name)
+            lines = content.splitlines()
+            line_start = item.get("line_start")
+            line_end = item.get("line_end", line_start)
+            if line_start is not None and (
+                line_end is None or line_end < line_start or line_end > len(lines)
+            ):
+                raise ArchitectureError(
+                    f"Finding {finding['id']} evidence {index} line range is invalid"
+                )
+            symbol = item.get("symbol")
+            if symbol and symbol not in content:
+                raise ArchitectureError(
+                    f"Finding {finding['id']} evidence {index} symbol "
+                    f"{symbol!r} is absent at {object_name}"
+                )
+            excerpt = item.get("excerpt")
+            selected_content = content
+            if line_start is not None and line_end is not None:
+                selected_content = "\n".join(lines[line_start - 1 : line_end])
+            if excerpt and excerpt not in selected_content:
+                raise ArchitectureError(
+                    f"Finding {finding['id']} evidence {index} excerpt is "
+                    "absent from the bound source range"
+                )
+            if (
+                excerpt
+                and item.get("excerpt_sha256")
+                and sha256_bytes(excerpt.encode("utf-8")) != item["excerpt_sha256"]
+            ):
+                raise ArchitectureError(
+                    f"Finding {finding['id']} evidence {index} excerpt hash "
+                    "does not match"
+                )
+            results.append(
+                {
+                    "finding_id": finding["id"],
+                    "evidence": str(index),
+                    "status": "resolved",
+                    "blob_sha": blob_sha,
+                }
+            )
+    return results
+
+
+def find_latest_review(reviews_root: Path) -> Path:
+    candidates: list[tuple[datetime, str, Path]] = []
+    for path in reviews_root.glob("*-verified.yaml"):
+        payload = validate_review(path)
+        if payload["review"]["verification_state"] != "verified":
+            continue
+        performed_at = datetime.fromisoformat(
+            payload["review"]["performed_at"].replace("Z", "+00:00")
+        )
+        candidates.append((performed_at, payload["review"]["id"], path))
+    if not candidates:
+        raise ArchitectureError(f"No verified review found in {reviews_root}")
+    candidates.sort(key=lambda item: (item[0], item[1], item[2].name))
+    return candidates[-1][2]
+
+
+def verify_review_signature(
+    review_path: Path,
+    review: dict[str, Any],
+    root: Path,
+    signature_policy: dict[str, Any],
+) -> None:
+    signature = review["review"].get("signature")
+    if signature is None:
+        raise ArchitectureError(f"{review_path} has no detached review signature")
+    if signature["namespace"] != signature_policy["namespace"]:
+        raise ArchitectureError(
+            f"{review_path} signature namespace does not match policy"
+        )
+    signature_path = require_within_root(
+        root,
+        root / signature["path"],
+        "review.signature.path",
+    )
+    allowed_signers = require_within_root(
+        root,
+        root / signature_policy["allowed_signers_file"],
+        "artifact_signatures.allowed_signers_file",
+    )
+    if not signature_path.is_file():
+        raise ArchitectureError(f"Missing review signature: {signature_path}")
+    if not allowed_signers.is_file():
+        raise ArchitectureError(f"Missing allowed signers file: {allowed_signers}")
+    ssh_keygen = shutil.which("ssh-keygen")
+    if ssh_keygen is None:
+        raise ArchitectureError("ssh-keygen is required for V5 signature verification")
     process = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", "HEAD"],
-        text=True,
+        [
+            ssh_keygen,
+            "-Y",
+            "verify",
+            "-f",
+            str(allowed_signers),
+            "-I",
+            signature["identity"],
+            "-n",
+            signature["namespace"],
+            "-s",
+            str(signature_path),
+        ],
+        input=review_path.read_bytes(),
         capture_output=True,
         check=False,
     )
     if process.returncode != 0:
-        raise ArchitectureError(
-            f"Cannot resolve current git commit for {root}: "
-            f"{process.stderr.strip() or 'not a git repository'}"
+        detail = (
+            process.stderr.decode("utf-8", errors="replace").strip()
+            or process.stdout.decode("utf-8", errors="replace").strip()
+            or "signature verification failed"
         )
-    return process.stdout.strip()
-
-
-def find_latest_review(reviews_root: Path) -> Path:
-    candidates = sorted(reviews_root.glob("*-verified.yaml"))
-    if not candidates:
-        raise ArchitectureError(f"No verified review found in {reviews_root}")
-    return candidates[-1]
+        raise ArchitectureError(f"{review_path} SSH signature is invalid: {detail}")
 
 
 def ensure_unique_entries(
@@ -475,23 +2450,197 @@ def ensure_unique_entries(
         )
 
 
+def matching_paths(paths: set[str], patterns: list[str]) -> list[str]:
+    return sorted(
+        path
+        for path in paths
+        if any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
+    )
+
+
+def related_governance_artifacts(
+    config_root: Path,
+    review_path: Path,
+    review: dict[str, Any],
+) -> tuple[
+    list[tuple[Path, dict[str, Any]]],
+    list[tuple[Path, dict[str, Any]]],
+]:
+    decisions: list[tuple[Path, dict[str, Any]]] = []
+    decision_paths: dict[str, Path] = {}
+    plan_candidates: list[Path] = []
+    for artifact in sorted((config_root / "reviews").glob("*.yaml")):
+        payload = load_yaml(artifact)
+        if "decision" in payload:
+            decision = validate_decision(artifact)
+            decision_id = decision["decision"]["id"]
+            if decision_id in decision_paths:
+                raise ArchitectureError(
+                    f"Duplicate architecture decision ID {decision_id} in "
+                    f"{decision_paths[decision_id]} and {artifact}"
+                )
+            decision_paths[decision_id] = artifact
+            if decision["decision"]["source_review"] == review["review"]["id"]:
+                decisions.append(
+                    (
+                        artifact,
+                        validate_decision(
+                            artifact,
+                            review_path=review_path,
+                            repository_root=(
+                                config_root.parent
+                                if config_root.name == ".architecture"
+                                else None
+                            ),
+                        ),
+                    )
+                )
+        elif (
+            "plan" in payload
+            and payload["plan"]["source_review"] == review["review"]["id"]
+        ):
+            plan_candidates.append(artifact)
+    plans: list[tuple[Path, dict[str, Any]]] = []
+    for artifact in plan_candidates:
+        payload = load_yaml(artifact)
+        decision_path = decision_paths.get(payload["plan"].get("source_decision", ""))
+        plans.append(
+            (
+                artifact,
+                validate_plan(
+                    artifact,
+                    review_path=review_path,
+                    decision_path=decision_path,
+                    repository_root=config_root.parent,
+                ),
+            )
+        )
+    return decisions, plans
+
+
+def completed_required_reviews(
+    root: Path,
+    config_root: Path,
+    profile: dict[str, Any],
+    *,
+    head: str,
+    freshness_strategy: str,
+    evaluation_date: date,
+    max_review_age_days: int,
+) -> dict[str, str]:
+    requirements = validate_profile_review_requirements(
+        profile,
+        root / ".architecture" / "profile.yaml",
+    )
+    completed: dict[str, str] = {}
+    for requirement in requirements:
+        candidates: list[tuple[datetime, str, Path]] = []
+        for path in sorted((config_root / "reviews").glob("*.yaml")):
+            payload = load_yaml(path)
+            if "review" not in payload:
+                continue
+            if payload["review"].get("verification_state") != "verified":
+                continue
+            if payload["review"].get("workflow") != requirement["id"]:
+                continue
+            review = validate_review(
+                path,
+                rule_pack_ids=profile["project"]["rule_packs"],
+                strict_trust=True,
+                repository_root=root,
+            )
+            if review["review"]["kind"] != requirement["kind"]:
+                continue
+            declared_packs = {item["id"] for item in review["review"]["rule_packs"]}
+            if declared_packs != set(requirement["rule_packs"]):
+                continue
+            commit = review["review"].get("commit")
+            if freshness_strategy == "exact-commit" and commit != head:
+                continue
+            if freshness_strategy in {"ancestor", "diff-aware"} and (
+                not commit or not git_is_ancestor(root, commit, head)
+            ):
+                continue
+            performed_at = datetime.fromisoformat(
+                review["review"]["performed_at"].replace("Z", "+00:00")
+            )
+            age = (evaluation_date - performed_at.date()).days
+            if age < 0 or age > max_review_age_days:
+                continue
+            if freshness_strategy == "diff-aware" and commit and commit != head:
+                changed_paths = git_changed_paths(root, commit, head)
+                evidence_paths = {
+                    evidence_path(item)
+                    for finding in review["findings"]
+                    for item in finding["evidence"]
+                    if evidence_path(item) is not None
+                }
+                if changed_paths & evidence_paths:
+                    continue
+            candidates.append((performed_at, review["review"]["id"], path))
+        if not candidates:
+            raise ArchitectureError(
+                f"Required review {requirement['id']} has no trusted "
+                "artifact satisfying its kind, rule packs, and freshness"
+            )
+        candidates.sort(key=lambda item: (item[0], item[1], item[2].name))
+        completed[requirement["id"]] = str(candidates[-1][2])
+    return completed
+
+
 def gate_from_config(
     root: Path,
     config_root: Path,
     review_path: Path | None,
     today: date | None = None,
     commit_root: Path | None = None,
+    mode: str = "all",
+    base_commit: str | None = None,
 ) -> dict[str, Any]:
     root = root.resolve()
     policy_path = config_root / "gate-policy.yaml"
     baseline_path = config_root / "baseline.yaml"
     policy = validate_file(policy_path, "gate-policy.schema.json")
-    baseline = validate_file(baseline_path, "baseline.schema.json")
-    ensure_unique_entries(
-        baseline["findings"],
-        "id",
-        baseline_path,
+    baseline = validate_baseline(baseline_path)
+    if policy["schema_version"] != "1.1":
+        raise ArchitectureError(
+            f"{policy_path} uses legacy schema; migrate policy to 1.1 before gating"
+        )
+    required_policy_fields = (
+        "risk_acceptances_file",
+        "roles",
+        "role_separation",
+        "stages",
+        "release_requirements",
+        "change_requirements",
     )
+    missing_policy = [field for field in required_policy_fields if field not in policy]
+    if missing_policy:
+        raise ArchitectureError(
+            f"{policy_path} trusted policy is missing: " + ", ".join(missing_policy)
+        )
+    if "accepted-risk" not in policy["block"]["statuses"]:
+        raise ArchitectureError(
+            f"{policy_path} must include accepted-risk in block.statuses"
+        )
+    for separation in policy["role_separation"]["separate"]:
+        left = separation["left"]
+        right = separation["right"]
+        if left == right:
+            raise ArchitectureError(
+                f"{policy_path} role separation cannot compare {left} with itself"
+            )
+        overlap = sorted(set(policy["roles"][left]) & set(policy["roles"][right]))
+        if overlap:
+            raise ArchitectureError(
+                f"{policy_path} requires separate {left} and {right} identities, "
+                "but overlaps: " + ", ".join(overlap)
+            )
+    risk_acceptance_path = resolve_from_root(
+        root,
+        policy["risk_acceptances_file"],
+    )
+    risk_registry = validate_risk_acceptances(risk_acceptance_path)
     ensure_unique_entries(
         policy["waivers"],
         "finding_id",
@@ -501,8 +2650,55 @@ def gate_from_config(
         review_path = find_latest_review(config_root / "reviews")
     elif not review_path.is_absolute():
         review_path = root / review_path
-    review_path = review_path.resolve()
-    review = validate_review(review_path)
+    review_path = require_within_root(root, review_path, "gate review")
+    rule_pack_ids: list[str] | None = None
+    profile: dict[str, Any] | None = None
+    if commit_root is not None:
+        profile = validate_file(
+            root / ".architecture" / "profile.yaml",
+            "project-profile.schema.json",
+        )
+        rule_pack_ids = profile["project"]["rule_packs"]
+        validate_profile_review_requirements(
+            profile,
+            root / ".architecture" / "profile.yaml",
+        )
+        expected_identity = profile["project"]["id"]
+    else:
+        rule_pack_ids = ["portfolio-core"]
+        registry = validate_file(
+            root / ".architecture-portfolio" / "portfolio.yaml",
+            "portfolio.schema.json",
+        )
+        expected_identity = registry["portfolio"]["id"]
+    review = validate_review(
+        review_path,
+        rule_pack_ids=rule_pack_ids,
+        strict_trust=True,
+        repository_root=root,
+    )
+    if review["review"]["repository_identity"] != expected_identity:
+        raise ArchitectureError(
+            f"{review_path} repository_identity does not match configured subject"
+        )
+    if profile is not None:
+        requirement_by_id = {
+            requirement["id"]: requirement
+            for requirement in profile["project"]["review_requirements"]
+        }
+        workflow = review["review"]["workflow"]
+        requirement = requirement_by_id.get(workflow)
+        if requirement is None:
+            raise ArchitectureError(
+                f"{review_path} workflow {workflow} is not required by the project"
+            )
+        declared_pack_ids = {item["id"] for item in review["review"]["rule_packs"]}
+        if review["review"]["kind"] != requirement["kind"] or declared_pack_ids != set(
+            requirement["rule_packs"]
+        ):
+            raise ArchitectureError(
+                f"{review_path} kind and Rule Packs do not match workflow {workflow}"
+            )
 
     if review["review"]["verification_state"] != "verified":
         raise ArchitectureError(f"Gate requires a verified review: {review_path}")
@@ -511,48 +2707,300 @@ def gate_from_config(
     block = policy["block"]
     policy_failures: list[str] = []
     warnings: list[str] = []
+    completed_reviews: dict[str, str] = {}
+    stages = policy["stages"]
+    stage_order = ("contract", "finding", "change", "release")
+    if mode == "all":
+        selected_stages = {stage for stage in stage_order if stages.get(stage, False)}
+    else:
+        if not stages.get(mode, False):
+            raise ArchitectureError(
+                f"{policy_path} has disabled requested gate stage {mode}"
+            )
+        selected_stages = set(stage_order[: stage_order.index(mode) + 1])
+        disabled_dependencies = sorted(
+            stage for stage in selected_stages if not stages.get(stage, False)
+        )
+        if disabled_dependencies:
+            raise ArchitectureError(
+                f"{policy_path} disables prerequisite stages: "
+                + ", ".join(disabled_dependencies)
+            )
 
     if review["review"]["kind"] not in policy["review_kinds"]:
         policy_failures.append(
             f"Review kind {review['review']['kind']} is not allowed by policy"
         )
-
-    performed_at = datetime.fromisoformat(
-        review["review"]["performed_at"].replace("Z", "+00:00")
+    unauthorized_auditors = sorted(
+        {identity for finding in review["findings"] for identity in finding["found_by"]}
+        - set(policy["roles"]["auditors"])
     )
-    review_age = (evaluation_date - performed_at.date()).days
-    if review_age < 0:
+    if unauthorized_auditors:
         policy_failures.append(
-            f"Review date {performed_at.date().isoformat()} is in the future"
-        )
-    elif review_age > block["max_review_age_days"]:
-        policy_failures.append(
-            f"Review is {review_age} days old; maximum is "
-            f"{block['max_review_age_days']}"
+            "Review findings include unauthorized auditors: "
+            + ", ".join(unauthorized_auditors)
         )
 
-    if block["require_current_commit"]:
-        reviewed_commit = review["review"].get("commit")
-        if commit_root is None:
-            policy_failures.append(
-                "Current-commit matching is unsupported for portfolio reviews; "
-                "use explicit per-project commits and freshness policy"
+    if commit_root is not None and profile is not None:
+        try:
+            completed_reviews = completed_required_reviews(
+                root,
+                config_root,
+                profile,
+                head=current_git_commit(commit_root),
+                freshness_strategy=block.get(
+                    "freshness_strategy",
+                    "exact-commit",
+                ),
+                evaluation_date=evaluation_date,
+                max_review_age_days=block["max_review_age_days"],
             )
-        elif not reviewed_commit:
+        except ArchitectureError as exc:
+            policy_failures.append(str(exc))
+
+    signature_required = block.get("minimum_verification_level", "V0") == "V5" or any(
+        finding["verification"].get("level") == "V5"
+        for finding in review["findings"]
+        if finding["verification"]["status"] == "confirmed"
+    )
+    signature_declared = "signature" in review["review"]
+    if signature_required or signature_declared:
+        signature_policy = policy.get("artifact_signatures")
+        if signature_policy is None:
             policy_failures.append(
-                "Policy requires current commit but the review has no single commit"
+                "Review signature is required or declared but policy has no "
+                "artifact_signatures configuration"
             )
         else:
+            signature_identity = review["review"].get("signature", {}).get("identity")
+            if signature_identity not in policy["roles"]["verifiers"]:
+                policy_failures.append(
+                    f"Review signature identity {signature_identity!r} is not "
+                    "an authorized verifier"
+                )
+            else:
+                try:
+                    verify_review_signature(
+                        review_path,
+                        review,
+                        root,
+                        signature_policy,
+                    )
+                except ArchitectureError as exc:
+                    policy_failures.append(str(exc))
+
+    evidence_resolution: list[dict[str, str]] = []
+    changed_paths: set[str] = set()
+    base_changed_paths: set[str] = set()
+    change_impacts: dict[str, list[str]] = {
+        "critical": [],
+        "public_contract": [],
+        "migration": [],
+        "security": [],
+    }
+    reviewed_commit = review["review"].get("commit")
+    strategy = block.get(
+        "freshness_strategy",
+        "exact-commit" if block["require_current_commit"] else "time-window",
+    )
+    if "change" in selected_stages:
+        performed_at = datetime.fromisoformat(
+            review["review"]["performed_at"].replace("Z", "+00:00")
+        )
+        review_age = (evaluation_date - performed_at.date()).days
+        if review_age < 0:
+            policy_failures.append(
+                f"Review date {performed_at.date().isoformat()} is in the future"
+            )
+        elif review_age > block["max_review_age_days"]:
+            policy_failures.append(
+                f"Review is {review_age} days old; maximum is "
+                f"{block['max_review_age_days']}"
+            )
+
+        head: str | None = None
+        if commit_root is None:
+            if strategy != "time-window":
+                policy_failures.append(
+                    f"Freshness strategy {strategy} requires a single "
+                    "project repository"
+                )
+        elif strategy == "time-window":
             head = current_git_commit(commit_root)
-            if head != reviewed_commit:
+        elif reviewed_commit:
+            head = current_git_commit(commit_root)
+            if strategy == "exact-commit" and head != reviewed_commit:
                 policy_failures.append(
                     f"Review commit {reviewed_commit} does not match HEAD {head}"
                 )
+            elif strategy in {"ancestor", "diff-aware"}:
+                if not git_is_ancestor(commit_root, reviewed_commit, head):
+                    policy_failures.append(
+                        f"Review commit {reviewed_commit} is not an ancestor "
+                        f"of HEAD {head}"
+                    )
+                elif strategy == "diff-aware" and head != reviewed_commit:
+                    changed_paths = git_changed_paths(
+                        commit_root,
+                        reviewed_commit,
+                        head,
+                    )
+                    bound_paths = {
+                        path
+                        for finding in review["findings"]
+                        for item in finding["evidence"]
+                        if (path := evidence_path(item))
+                    }
+                    stale_paths = sorted(changed_paths & bound_paths)
+                    if stale_paths:
+                        policy_failures.append(
+                            "Evidence changed since review: " + ", ".join(stale_paths)
+                        )
+                    elif changed_paths:
+                        warnings.append(
+                            f"{len(changed_paths)} non-evidence path(s) changed "
+                            "since review"
+                        )
+        elif strategy != "time-window":
+            policy_failures.append(
+                f"Freshness strategy {strategy} requires review.commit"
+            )
+        if commit_root is not None:
+            if block.get("require_clean_tree") and not git_is_clean(commit_root):
+                policy_failures.append("Current repository working tree is not clean")
+            if review["review"].get("dirty_tree"):
+                policy_failures.append("Review was produced from a dirty working tree")
+            if block.get("require_evidence_resolution"):
+                try:
+                    evidence_resolution = verify_review_evidence(review, commit_root)
+                except ArchitectureError as exc:
+                    policy_failures.append(str(exc))
+
+        if base_commit is not None:
+            if commit_root is None:
+                policy_failures.append(
+                    "--base-commit requires a single project repository"
+                )
+            else:
+                head = head or current_git_commit(commit_root)
+                try:
+                    git_output(
+                        commit_root,
+                        "cat-file",
+                        "-e",
+                        f"{base_commit}^{{commit}}",
+                    )
+                    if not git_is_ancestor(commit_root, base_commit, head):
+                        policy_failures.append(
+                            f"Base commit {base_commit} is not an ancestor of "
+                            f"HEAD {head}"
+                        )
+                    else:
+                        base_changed_paths = git_changed_paths(
+                            commit_root,
+                            base_commit,
+                            head,
+                        )
+                except ArchitectureError as exc:
+                    policy_failures.append(str(exc))
+
+        change_policy = policy["change_requirements"]
+        classification_source = (
+            base_changed_paths if base_commit is not None else changed_paths
+        )
+        change_impacts = {
+            "critical": matching_paths(
+                classification_source,
+                change_policy["critical_paths"],
+            ),
+            "public_contract": matching_paths(
+                classification_source,
+                change_policy["public_contract_paths"],
+            ),
+            "migration": matching_paths(
+                classification_source,
+                change_policy["migration_paths"],
+            ),
+            "security": matching_paths(
+                classification_source,
+                change_policy["security_paths"],
+            ),
+        }
+        freshness_sensitive = sorted(
+            set(change_impacts["critical"]) | set(change_impacts["security"])
+        )
+        if (
+            freshness_sensitive
+            and change_policy["require_fresh_review_on_critical_change"]
+            and commit_root is not None
+            and reviewed_commit != (head or current_git_commit(commit_root))
+        ):
+            policy_failures.append(
+                "Critical or security-sensitive paths require a review at HEAD: "
+                + ", ".join(freshness_sensitive)
+            )
+
+    decisions: list[tuple[Path, dict[str, Any]]] = []
+    plans: list[tuple[Path, dict[str, Any]]] = []
+    if "change" in selected_stages or "release" in selected_stages:
+        try:
+            decisions, plans = related_governance_artifacts(
+                config_root,
+                review_path,
+                review,
+            )
+        except ArchitectureError as exc:
+            policy_failures.append(str(exc))
+    accepted_decisions = [
+        (path, decision)
+        for path, decision in decisions
+        if decision["decision"]["status"] == "accepted"
+        and set(decision["decision"]["decision_makers"]).issubset(
+            set(policy["roles"]["decision_makers"])
+        )
+    ]
+    active_plans = [
+        (path, plan)
+        for path, plan in plans
+        if plan["plan"]["status"] in {"accepted", "in-progress", "complete"}
+    ]
+    if "change" in selected_stages:
+        change_policy = policy["change_requirements"]
+        if (
+            change_impacts["public_contract"]
+            and change_policy["require_decision_on_public_contract_change"]
+            and not accepted_decisions
+        ):
+            policy_failures.append(
+                "Public contract changes require an accepted, authorized "
+                "decision for the selected review: "
+                + ", ".join(change_impacts["public_contract"])
+            )
+        if (
+            change_impacts["migration"]
+            and change_policy["require_plan_on_migration_change"]
+            and not active_plans
+        ):
+            policy_failures.append(
+                "Migration changes require an accepted or active remediation "
+                "plan for the selected review: "
+                + ", ".join(change_impacts["migration"])
+            )
 
     active_baseline: dict[str, dict[str, Any]] = {}
     expired_baseline: list[str] = []
+    pending_baseline: list[str] = []
     for entry in baseline["findings"]:
-        if active_until(entry.get("expires_on"), evaluation_date):
+        recorded_on = parse_date(
+            entry["recorded_on"],
+            f"{baseline_path}:{entry['id']}.recorded_on",
+        )
+        if recorded_on > evaluation_date:
+            pending_baseline.append(entry["id"])
+        elif active_until(
+            entry.get("expires_on"),
+            evaluation_date,
+        ):
             active_baseline[entry["id"]] = entry
         else:
             expired_baseline.append(entry["id"])
@@ -565,12 +3013,27 @@ def gate_from_config(
         else:
             expired_waivers.append(entry["finding_id"])
 
+    active_acceptances: dict[str, dict[str, Any]] = {}
+    expired_acceptances: list[str] = []
+    pending_acceptances: list[str] = []
+    for entry in risk_registry["acceptances"]:
+        accepted_on = datetime.fromisoformat(
+            entry["accepted_at"].replace("Z", "+00:00")
+        ).date()
+        if accepted_on > evaluation_date:
+            pending_acceptances.append(entry["finding_id"])
+        elif active_until(entry["expires_on"], evaluation_date):
+            active_acceptances[entry["finding_id"]] = entry
+        else:
+            expired_acceptances.append(entry["finding_id"])
+
     blocking: list[dict[str, Any]] = []
     baselined: list[str] = []
     waived: list[str] = []
     unverified: list[str] = []
+    accepted_risks: list[str] = []
 
-    for finding in review["findings"]:
+    for finding in review["findings"] if "finding" in selected_stages else []:
         if finding["kind"] != "risk":
             continue
         if finding["severity"] not in block["severities"]:
@@ -598,9 +3061,68 @@ def gate_from_config(
                 )
             continue
 
-        if finding_id in active_baseline:
+        verification_level = finding["verification"].get("level", "V0")
+        required_level = block.get("minimum_verification_level", "V0")
+        if (
+            VERIFICATION_LEVEL_ORDER[verification_level]
+            < VERIFICATION_LEVEL_ORDER[required_level]
+        ):
+            blocking.append(
+                {
+                    "id": finding_id,
+                    "severity": finding["severity"],
+                    "title": finding["title"],
+                    "reason": (
+                        f"verification level {verification_level} is below "
+                        f"required {required_level}"
+                    ),
+                }
+            )
+            continue
+        verifier_identity = finding["verification"]["verifier"]["identity"]
+        if verifier_identity not in policy["roles"]["verifiers"]:
+            blocking.append(
+                {
+                    "id": finding_id,
+                    "severity": finding["severity"],
+                    "title": finding["title"],
+                    "reason": f"verifier {verifier_identity!r} is not authorized",
+                }
+            )
+            continue
+
+        fingerprint = finding["fingerprint"]
+        if finding["status"] == "accepted-risk":
+            acceptance = active_acceptances.get(finding_id)
+            if (
+                acceptance
+                and acceptance["finding_fingerprint"] == fingerprint
+                and acceptance["accepted_by"] in policy["roles"]["risk_acceptors"]
+                and acceptance["approved_by"] in policy["roles"]["policy_owners"]
+            ):
+                accepted_risks.append(finding_id)
+                continue
+            blocking.append(
+                {
+                    "id": finding_id,
+                    "severity": finding["severity"],
+                    "title": finding["title"],
+                    "reason": "accepted-risk has no matching authorized acceptance",
+                }
+            )
+            continue
+
+        if (
+            finding_id in active_baseline
+            and active_baseline[finding_id].get("finding_fingerprint") == fingerprint
+        ):
             baselined.append(finding_id)
-        elif finding_id in active_waivers:
+        elif (
+            finding_id in active_waivers
+            and active_waivers[finding_id].get("finding_fingerprint") == fingerprint
+            and active_waivers[finding_id].get("approved_by")
+            in policy["roles"]["policy_owners"]
+        ):
             waived.append(finding_id)
         else:
             blocking.append(
@@ -611,6 +3133,113 @@ def gate_from_config(
                     "reason": "confirmed finding matches blocking thresholds",
                 }
             )
+
+    if "release" in selected_stages:
+        requirements = policy["release_requirements"]
+        required_kinds = set(requirements.get("required_review_kinds", []))
+        if profile is not None:
+            completed_kinds = {
+                requirement["kind"]
+                for requirement in profile["project"]["review_requirements"]
+                if requirement["id"] in completed_reviews
+            }
+        else:
+            completed_kinds = {review["review"]["kind"]}
+        missing_kinds = sorted(required_kinds - completed_kinds)
+        if missing_kinds:
+            policy_failures.append(
+                "Release gate is missing trusted review kinds: "
+                + ", ".join(missing_kinds)
+            )
+        if (
+            requirements.get("require_no_dirty_tree")
+            and commit_root is not None
+            and not git_is_clean(commit_root)
+        ):
+            policy_failures.append("Release gate requires a clean working tree")
+        required_types = set(requirements.get("required_evidence_types", []))
+        observed_types = {
+            item["type"]
+            for finding in review["findings"]
+            if finding["verification"]["status"] == "confirmed"
+            for item in finding["evidence"]
+        }
+        if review["evidence_sources"]:
+            observed_types.add("source")
+        if review.get("tool_evidence"):
+            observed_types.add("tool")
+            for reference in review["tool_evidence"]:
+                run_path = require_within_root(
+                    root,
+                    root / reference["run_path"],
+                    "release tool evidence",
+                )
+                evidence_run = validate_evidence_run(
+                    run_path,
+                    root,
+                    require_passed=True,
+                )
+                observed_types.add(evidence_run["run"]["evidence_type"])
+        missing_types = sorted(required_types - observed_types)
+        if missing_types:
+            policy_failures.append(
+                "Release gate is missing evidence types: " + ", ".join(missing_types)
+            )
+        observed_providers = {
+            item["provider_id"] for item in review.get("tool_evidence", [])
+        }
+        missing_providers = sorted(
+            set(requirements.get("required_provider_ids", [])) - observed_providers
+        )
+        if missing_providers:
+            policy_failures.append(
+                "Release gate is missing passed provider runs: "
+                + ", ".join(missing_providers)
+            )
+        if requirements.get("require_accepted_decisions"):
+            if not accepted_decisions:
+                policy_failures.append(
+                    "Release gate requires an accepted decision for this review"
+                )
+            if any(
+                not set(decision["decision"]["decision_makers"]).issubset(
+                    set(policy["roles"]["decision_makers"])
+                )
+                for _, decision in decisions
+                if decision["decision"]["status"] == "accepted"
+            ):
+                policy_failures.append(
+                    "Accepted decision includes an unauthorized decision maker"
+                )
+        if requirements.get("require_completed_plans"):
+            for _, decision in accepted_decisions:
+                if decision["selected_option"] == "keep-current":
+                    continue
+                matching = [
+                    plan
+                    for _, plan in plans
+                    if plan["plan"].get("source_decision") == decision["decision"]["id"]
+                    and plan["plan"]["status"] == "complete"
+                ]
+                covered = {
+                    finding_id
+                    for plan in matching
+                    for item in plan["items"]
+                    for finding_id in item["finding_ids"]
+                }
+                missing_findings = sorted(
+                    set(decision["problem"]["finding_ids"]) - covered
+                )
+                if not matching or missing_findings:
+                    detail = (
+                        " (missing findings: " + ", ".join(missing_findings) + ")"
+                        if missing_findings
+                        else ""
+                    )
+                    policy_failures.append(
+                        f"Accepted decision {decision['decision']['id']} "
+                        f"requires a complete remediation plan{detail}"
+                    )
 
     blocking.sort(key=lambda item: (-SEVERITY_ORDER[item["severity"]], item["id"]))
     passed = not blocking and not policy_failures
@@ -623,9 +3252,19 @@ def gate_from_config(
         "policy_failures": policy_failures,
         "baselined": sorted(baselined),
         "waived": sorted(waived),
+        "accepted_risks": sorted(accepted_risks),
         "unverified": sorted(unverified),
         "expired_baseline": sorted(expired_baseline),
+        "pending_baseline": sorted(pending_baseline),
         "expired_waivers": sorted(expired_waivers),
+        "expired_acceptances": sorted(expired_acceptances),
+        "pending_acceptances": sorted(pending_acceptances),
+        "evidence_resolution": evidence_resolution,
+        "changed_paths": sorted(changed_paths),
+        "base_changed_paths": sorted(base_changed_paths),
+        "change_impacts": change_impacts,
+        "required_reviews": completed_reviews,
+        "stages": sorted(selected_stages),
         "warnings": warnings,
     }
 
@@ -634,6 +3273,8 @@ def gate_project(
     project_root: Path,
     review_path: Path | None,
     today: date | None = None,
+    mode: str = "all",
+    base_commit: str | None = None,
 ) -> dict[str, Any]:
     project_root = project_root.resolve()
     return gate_from_config(
@@ -642,6 +3283,8 @@ def gate_project(
         review_path,
         today,
         commit_root=project_root,
+        mode=mode,
+        base_commit=base_commit,
     )
 
 
@@ -649,6 +3292,8 @@ def gate_portfolio(
     portfolio_root: Path,
     review_path: Path | None,
     today: date | None = None,
+    mode: str = "all",
+    base_commit: str | None = None,
 ) -> dict[str, Any]:
     portfolio_root = portfolio_root.resolve()
     return gate_from_config(
@@ -656,6 +3301,8 @@ def gate_portfolio(
         portfolio_root / ".architecture-portfolio",
         review_path,
         today,
+        mode=mode,
+        base_commit=base_commit,
     )
 
 
@@ -673,12 +3320,492 @@ def print_gate_result(result: dict[str, Any]) -> None:
         print("BASELINED: " + ", ".join(result["baselined"]))
     if result["waived"]:
         print("WAIVED: " + ", ".join(result["waived"]))
+    if result["accepted_risks"]:
+        print("ACCEPTED RISK: " + ", ".join(result["accepted_risks"]))
     if result["expired_baseline"]:
         print("EXPIRED BASELINE: " + ", ".join(result["expired_baseline"]))
+    if result["pending_baseline"]:
+        print("PENDING BASELINE: " + ", ".join(result["pending_baseline"]))
     if result["expired_waivers"]:
         print("EXPIRED WAIVER: " + ", ".join(result["expired_waivers"]))
+    if result["expired_acceptances"]:
+        print("EXPIRED ACCEPTANCE: " + ", ".join(result["expired_acceptances"]))
+    if result["pending_acceptances"]:
+        print("PENDING ACCEPTANCE: " + ", ".join(result["pending_acceptances"]))
     for warning in result["warnings"]:
         print(f"WARN: {warning}")
+
+
+def review_diff(
+    before_path: Path,
+    after_path: Path,
+    *,
+    project_root: Path | None = None,
+) -> dict[str, Any]:
+    validation: dict[str, Any] = {}
+    if project_root is not None:
+        root = project_root.resolve()
+        if not before_path.is_absolute():
+            before_path = root / before_path
+        if not after_path.is_absolute():
+            after_path = root / after_path
+        before_path = require_within_root(root, before_path, "review diff before")
+        after_path = require_within_root(root, after_path, "review diff after")
+        profile = validate_file(
+            root / ".architecture" / "profile.yaml",
+            "project-profile.schema.json",
+        )
+        validation = {
+            "rule_pack_ids": profile["project"]["rule_packs"],
+            "strict_trust": True,
+            "repository_root": root,
+        }
+    before = validate_review(before_path.resolve(), **validation)
+    after = validate_review(after_path.resolve(), **validation)
+    before_subject = before["review"]["subject"]["id"]
+    after_subject = after["review"]["subject"]["id"]
+    if before_subject != after_subject:
+        raise ArchitectureError(
+            "Review diff requires the same subject, got "
+            f"{before_subject} and {after_subject}"
+        )
+    if before["review"]["kind"] != after["review"]["kind"]:
+        raise ArchitectureError("Review diff requires the same review kind")
+
+    before_findings = {item["id"]: item for item in before["findings"]}
+    after_findings = {item["id"]: item for item in after["findings"]}
+    before_ids = set(before_findings)
+    after_ids = set(after_findings)
+    comparable_fields = (
+        "kind",
+        "rule_id",
+        "title",
+        "invariant",
+        "severity",
+        "confidence",
+        "verification",
+        "status",
+        "evidence",
+        "impact",
+        "counter_evidence",
+        "last_seen",
+        "tags",
+    )
+    changed: list[dict[str, Any]] = []
+    unchanged: list[str] = []
+    for finding_id in sorted(before_ids & after_ids):
+        previous = before_findings[finding_id]
+        current = after_findings[finding_id]
+        fields = [
+            field
+            for field in comparable_fields
+            if previous.get(field) != current.get(field)
+        ]
+        if fields:
+            changed.append(
+                {
+                    "id": finding_id,
+                    "changed_fields": fields,
+                    "before": {
+                        "severity": previous["severity"],
+                        "status": previous["status"],
+                        "verification": previous["verification"]["status"],
+                        "fingerprint": previous.get("fingerprint"),
+                    },
+                    "after": {
+                        "severity": current["severity"],
+                        "status": current["status"],
+                        "verification": current["verification"]["status"],
+                        "fingerprint": current.get("fingerprint"),
+                    },
+                }
+            )
+        else:
+            unchanged.append(finding_id)
+
+    before_coverage = {
+        item["rule_id"]: {
+            "status": item["status"],
+            "reason": item.get("reason"),
+            "finding_ids": item["finding_ids"],
+        }
+        for item in before["coverage"]
+    }
+    after_coverage = {
+        item["rule_id"]: {
+            "status": item["status"],
+            "reason": item.get("reason"),
+            "finding_ids": item["finding_ids"],
+        }
+        for item in after["coverage"]
+    }
+    coverage_changes = [
+        {
+            "rule_id": rule_id,
+            "before": before_coverage.get(rule_id),
+            "after": after_coverage.get(rule_id),
+        }
+        for rule_id in sorted(set(before_coverage) | set(after_coverage))
+        if before_coverage.get(rule_id) != after_coverage.get(rule_id)
+    ]
+    added = sorted(after_ids - before_ids)
+    removed = sorted(before_ids - after_ids)
+    return {
+        "schema_version": "1.0",
+        "subject": before_subject,
+        "kind": before["review"]["kind"],
+        "before": {
+            "review_id": before["review"]["id"],
+            "performed_at": before["review"]["performed_at"],
+            "commit": before["review"].get("commit"),
+        },
+        "after": {
+            "review_id": after["review"]["id"],
+            "performed_at": after["review"]["performed_at"],
+            "commit": after["review"].get("commit"),
+        },
+        "summary": {
+            "added": len(added),
+            "removed": len(removed),
+            "changed": len(changed),
+            "unchanged": len(unchanged),
+            "coverage_changed": len(coverage_changes),
+        },
+        "added": [
+            {
+                "id": finding_id,
+                "severity": after_findings[finding_id]["severity"],
+                "status": after_findings[finding_id]["status"],
+                "verification": after_findings[finding_id]["verification"]["status"],
+            }
+            for finding_id in added
+        ],
+        "removed": [
+            {
+                "id": finding_id,
+                "severity": before_findings[finding_id]["severity"],
+                "status": before_findings[finding_id]["status"],
+                "verification": before_findings[finding_id]["verification"]["status"],
+            }
+            for finding_id in removed
+        ],
+        "changed": changed,
+        "unchanged": unchanged,
+        "coverage_changes": coverage_changes,
+    }
+
+
+def review_bindings(project_root: Path, candidate_path: Path) -> dict[str, Any]:
+    root = project_root.resolve()
+    if not candidate_path.is_absolute():
+        candidate_path = root / candidate_path
+    candidate_path = require_within_root(root, candidate_path, "candidate review")
+    candidate = validate_review(candidate_path)
+    if candidate["review"]["verification_state"] != "candidates":
+        raise ArchitectureError("Bindings require a candidate review")
+    profile_path = root / ".architecture" / "profile.yaml"
+    profile = validate_file(profile_path, "project-profile.schema.json")
+    declared = [item["id"] for item in candidate["review"].get("rule_packs", [])]
+    pack_ids = declared or [REVIEW_KIND_CORE_PACK[candidate["review"]["kind"]]]
+    unknown = sorted(set(pack_ids) - set(profile["project"]["rule_packs"]))
+    if unknown:
+        raise ArchitectureError(
+            "Candidate review declares packs absent from project profile: "
+            + ", ".join(unknown)
+        )
+    packs = load_rule_packs(
+        pack_ids,
+        local_rule_pack_roots(root),
+    )
+    return {
+        "repository_identity": profile["project"]["id"],
+        "commit": current_git_commit(root),
+        "dirty_tree": not git_is_clean(root),
+        "profile": str(profile_path.relative_to(root)),
+        "profile_sha256": file_sha256(profile_path),
+        "source_candidate": {
+            "path": str(candidate_path.relative_to(root)),
+            "review_id": candidate["review"]["id"],
+            "sha256": file_sha256(candidate_path),
+        },
+        "rule_packs": [
+            {
+                "id": pack_id,
+                "version": record["payload"]["version"],
+                "sha256": file_sha256(record["path"]),
+            }
+            for pack_id, record in sorted(packs.items())
+        ],
+        "finding_fingerprints": {
+            finding["id"]: finding_fingerprint(
+                candidate["review"]["subject"]["id"],
+                finding,
+            )
+            for finding in candidate["findings"]
+        },
+    }
+
+
+def benchmark_evidence_valid(fixture: Path, evidence: list[dict[str, Any]]) -> bool:
+    if not evidence:
+        return False
+    fixture = fixture.resolve()
+    for record in evidence:
+        relative = Path(record["path"])
+        if relative.is_absolute() or ".." in relative.parts:
+            return False
+        source = (fixture / relative).resolve()
+        try:
+            source.relative_to(fixture)
+            lines = source.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeDecodeError, ValueError):
+            return False
+        line_start = record["line_start"]
+        line_end = record["line_end"]
+        if line_end < line_start or line_end > len(lines):
+            return False
+        selected = "\n".join(lines[line_start - 1 : line_end])
+        if record["excerpt"] not in selected:
+            return False
+    return True
+
+
+def score_benchmark(
+    ground_truth_path: Path,
+    run_path: Path,
+) -> dict[str, Any]:
+    truth = validate_file(ground_truth_path, "benchmark.schema.json")
+    observed = validate_file(run_path, "benchmark.schema.json")
+    if truth["benchmark"]["kind"] != "ground-truth":
+        raise ArchitectureError(f"{ground_truth_path} is not ground truth")
+    if observed["benchmark"]["kind"] != "run":
+        raise ArchitectureError(f"{run_path} is not a benchmark run")
+    for field in ("id", "version"):
+        if truth["benchmark"][field] != observed["benchmark"][field]:
+            raise ArchitectureError(
+                f"Benchmark run {field} does not match ground truth"
+            )
+    truth_case_ids = [case["id"] for case in truth["cases"]]
+    run_case_ids = [case["id"] for case in observed["cases"]]
+    if len(truth_case_ids) != len(set(truth_case_ids)):
+        raise ArchitectureError("Ground truth has duplicate benchmark case IDs")
+    if len(run_case_ids) != len(set(run_case_ids)):
+        raise ArchitectureError("Benchmark run has duplicate case IDs")
+    truth_cases = {case["id"]: case for case in truth["cases"]}
+    run_cases = {case["id"]: case for case in observed["cases"]}
+    if set(truth_cases) != set(run_cases):
+        raise ArchitectureError("Benchmark run case IDs do not match ground truth")
+
+    true_positive = 0
+    false_positive = 0
+    false_negative = 0
+    severity_matches = 0
+    severity_compared = 0
+    valid_evidence = 0
+    observed_evidence = 0
+    forbidden_hits = 0
+    total_trials = 0
+    finding_stability_values: list[float] = []
+    stable_severity = 0
+    compared_severity_stability = 0
+    durations: list[float] = []
+    input_tokens = 0
+    output_tokens = 0
+    cost_usd = 0.0
+    for case_id, expected_case in truth_cases.items():
+        run_case = run_cases[case_id]
+        if run_case["fixture"] != expected_case["fixture"]:
+            raise ArchitectureError(
+                f"Benchmark case {case_id} fixture does not match ground truth"
+            )
+        expected_rule_ids = [
+            item["rule_id"] for item in expected_case["expected_findings"]
+        ]
+        if len(expected_rule_ids) != len(set(expected_rule_ids)):
+            raise ArchitectureError(
+                f"Ground truth case {case_id} has duplicate rule IDs"
+            )
+        expected = {
+            item["rule_id"]: item
+            for item in expected_case["expected_findings"]
+            if item["present"]
+        }
+        trials = run_case.get("trials") or [
+            {
+                "index": 1,
+                "duration_seconds": 0.0,
+                "observed_findings": run_case.get("observed_findings", []),
+                "observed_recommendations": run_case.get(
+                    "observed_recommendations",
+                    [],
+                ),
+            }
+        ]
+        declared_repetitions = observed["benchmark"].get("repetitions")
+        if declared_repetitions is not None and len(trials) != declared_repetitions:
+            raise ArchitectureError(
+                f"Benchmark case {case_id} trial count does not match repetitions"
+            )
+        if run_case.get("trials") and (
+            run_case.get("observed_findings") != trials[0]["observed_findings"]
+            or run_case.get("observed_recommendations")
+            != trials[0]["observed_recommendations"]
+        ):
+            raise ArchitectureError(
+                f"Benchmark case {case_id} summary does not match first trial"
+            )
+        total_trials += len(trials)
+        trial_actuals: list[dict[str, dict[str, Any]]] = []
+        fixture = require_within_root(
+            ground_truth_path.parent.parent,
+            ground_truth_path.parent.parent / run_case["fixture"],
+            f"benchmark case {case_id} fixture",
+        )
+        for trial in trials:
+            observed_rule_ids = [item["rule_id"] for item in trial["observed_findings"]]
+            if len(observed_rule_ids) != len(set(observed_rule_ids)):
+                raise ArchitectureError(
+                    f"Benchmark run case {case_id} trial {trial['index']} "
+                    "has duplicate rule IDs"
+                )
+            actual = {item["rule_id"]: item for item in trial["observed_findings"]}
+            trial_actuals.append(actual)
+            true_positive += len(set(expected) & set(actual))
+            false_negative += len(set(expected) - set(actual))
+            false_positive += len(set(actual) - set(expected))
+            for rule_id in set(expected) & set(actual):
+                severity_compared += 1
+                if expected[rule_id]["severity"] == actual[rule_id]["severity"]:
+                    severity_matches += 1
+            for item in actual.values():
+                observed_evidence += 1
+                computed_validity = benchmark_evidence_valid(
+                    fixture,
+                    item["evidence"],
+                )
+                if item["evidence_valid"] != computed_validity:
+                    raise ArchitectureError(
+                        f"Benchmark case {case_id} evidence_valid does not "
+                        "match fixture evidence"
+                    )
+                valid_evidence += int(computed_validity)
+            recommendations = {
+                value.lower() for value in trial["observed_recommendations"]
+            }
+            forbidden_hits += sum(
+                1
+                for forbidden in expected_case["forbidden_recommendations"]
+                if any(forbidden.lower() in value for value in recommendations)
+            )
+            durations.append(trial["duration_seconds"])
+            usage = trial.get("usage", {})
+            input_tokens += usage.get("input_tokens", 0)
+            output_tokens += usage.get("output_tokens", 0)
+            cost_usd += usage.get("cost_usd", 0.0)
+        for left_index, left in enumerate(trial_actuals):
+            for right in trial_actuals[left_index + 1 :]:
+                union = set(left) | set(right)
+                finding_stability_values.append(
+                    len(set(left) & set(right)) / len(union) if union else 1.0
+                )
+                for rule_id in set(left) & set(right):
+                    compared_severity_stability += 1
+                    if left[rule_id]["severity"] == right[rule_id]["severity"]:
+                        stable_severity += 1
+
+    precision_denominator = true_positive + false_positive
+    recall_denominator = true_positive + false_negative
+    return {
+        "cases": len(truth_cases),
+        "trials": total_trials,
+        "true_positive": true_positive,
+        "false_positive": false_positive,
+        "false_negative": false_negative,
+        "precision": (
+            true_positive / precision_denominator
+            if precision_denominator
+            else float(not recall_denominator)
+        ),
+        "recall": true_positive / recall_denominator if recall_denominator else 1.0,
+        "severity_agreement": (
+            severity_matches / severity_compared if severity_compared else 1.0
+        ),
+        "evidence_validity": (
+            valid_evidence / observed_evidence if observed_evidence else 1.0
+        ),
+        "forbidden_recommendation_hits": forbidden_hits,
+        "finding_stability": (
+            sum(finding_stability_values) / len(finding_stability_values)
+            if finding_stability_values
+            else 1.0
+        ),
+        "severity_stability": (
+            stable_severity / compared_severity_stability
+            if compared_severity_stability
+            else 1.0
+        ),
+        "mean_duration_seconds": (
+            sum(durations) / len(durations) if durations else 0.0
+        ),
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "cost_usd": cost_usd,
+    }
+
+
+def gate_result_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
+    rules: dict[str, dict[str, Any]] = {}
+    sarif_results: list[dict[str, Any]] = []
+    for finding in result["blocking"]:
+        rule_id = finding["id"]
+        rules.setdefault(
+            rule_id,
+            {
+                "id": rule_id,
+                "shortDescription": {"text": finding["title"]},
+                "properties": {"severity": finding["severity"]},
+            },
+        )
+        sarif_results.append(
+            {
+                "ruleId": rule_id,
+                "level": (
+                    "error"
+                    if finding["severity"] in {"critical", "high"}
+                    else "warning"
+                ),
+                "message": {"text": finding["reason"]},
+            }
+        )
+    for index, failure in enumerate(result["policy_failures"], start=1):
+        rule_id = f"ARCH-POLICY-{index:03d}"
+        rules[rule_id] = {
+            "id": rule_id,
+            "shortDescription": {"text": "Architecture policy failure"},
+        }
+        sarif_results.append(
+            {
+                "ruleId": rule_id,
+                "level": "error",
+                "message": {"text": failure},
+            }
+        )
+    return {
+        "version": "2.1.0",
+        "$schema": ("https://json.schemastore.org/sarif-2.1.0.json"),
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "Codex Architecture Governance",
+                        "version": TOOL_VERSION,
+                        "rules": [rules[key] for key in sorted(rules)],
+                    }
+                },
+                "results": sarif_results,
+            }
+        ],
+    }
 
 
 def append_repeatable(parser: argparse.ArgumentParser, flag: str, dest: str) -> None:
@@ -751,12 +3878,113 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate one candidate or verified review.",
     )
     validate_review_parser.add_argument("path")
+    validate_review_parser.add_argument("--project")
 
     validate_plan_parser = subparsers.add_parser(
         "validate-plan",
         help="Validate one remediation plan.",
     )
     validate_plan_parser.add_argument("path")
+    validate_plan_parser.add_argument("--review")
+    validate_plan_parser.add_argument("--decision")
+    validate_plan_parser.add_argument(
+        "--project",
+        help="Repository root used to resolve completion evidence.",
+    )
+
+    validate_decision_parser = subparsers.add_parser(
+        "validate-decision",
+        help="Validate one architecture decision and its source review.",
+    )
+    validate_decision_parser.add_argument("path")
+    validate_decision_parser.add_argument("--review")
+    validate_decision_parser.add_argument(
+        "--project",
+        help="Repository root used to validate Profile quality attributes.",
+    )
+    validate_decision_parser.add_argument("--require-accepted", action="store_true")
+
+    validate_acceptance_parser = subparsers.add_parser(
+        "validate-risk-acceptances",
+        help="Validate a risk-acceptance registry.",
+    )
+    validate_acceptance_parser.add_argument("path")
+
+    subparsers.add_parser(
+        "validate-knowledge",
+        help="Validate bundled knowledge, rules, providers, and freshness.",
+    )
+
+    provider_status_parser = subparsers.add_parser(
+        "evidence-providers",
+        help="List configured evidence providers, detection, and readiness.",
+    )
+    provider_status_parser.add_argument("--project", default=".")
+
+    provider_run_parser = subparsers.add_parser(
+        "run-evidence-provider",
+        help="Run one enabled provider without a shell and bind its outputs.",
+    )
+    provider_run_parser.add_argument("--project", default=".")
+    provider_run_parser.add_argument("--provider", required=True)
+    provider_run_parser.add_argument("--output", type=Path)
+
+    validate_provider_run_parser = subparsers.add_parser(
+        "validate-evidence-run",
+        help="Validate a provider run and its captured output hashes.",
+    )
+    validate_provider_run_parser.add_argument("path")
+    validate_provider_run_parser.add_argument("--project", default=".")
+    validate_provider_run_parser.add_argument(
+        "--require-passed",
+        action="store_true",
+    )
+
+    signature_parser = subparsers.add_parser(
+        "verify-review-signature",
+        help="Verify a trusted review's detached SSH signature against policy.",
+    )
+    signature_parser.add_argument("--project", default=".")
+    signature_parser.add_argument("--review", required=True)
+
+    verify_evidence_parser = subparsers.add_parser(
+        "verify-evidence",
+        help="Resolve confirmed review evidence against Git objects.",
+    )
+    verify_evidence_parser.add_argument("--repo", required=True)
+    verify_evidence_parser.add_argument("--review", required=True)
+
+    bindings_parser = subparsers.add_parser(
+        "review-bindings",
+        help="Print hashes and identities needed to bind a verified review.",
+    )
+    bindings_parser.add_argument("--project", required=True)
+    bindings_parser.add_argument("--candidate", required=True)
+
+    diff_parser = subparsers.add_parser(
+        "review-diff",
+        help="Compare findings and rule coverage between two valid reviews.",
+    )
+    diff_parser.add_argument("--before", required=True)
+    diff_parser.add_argument("--after", required=True)
+    diff_parser.add_argument(
+        "--project",
+        help="Strictly validate both reviews against this project.",
+    )
+
+    decision_bindings_parser = subparsers.add_parser(
+        "decision-bindings",
+        help="Print review and knowledge hashes for an architecture decision.",
+    )
+    decision_bindings_parser.add_argument("--project", required=True)
+    decision_bindings_parser.add_argument("--review", required=True)
+
+    benchmark_parser = subparsers.add_parser(
+        "benchmark-score",
+        help="Score a behavior benchmark run against ground truth.",
+    )
+    benchmark_parser.add_argument("--ground-truth", required=True)
+    benchmark_parser.add_argument("--run", required=True)
 
     gate = subparsers.add_parser(
         "gate",
@@ -766,7 +3994,21 @@ def build_parser() -> argparse.ArgumentParser:
     gate_target.add_argument("--project")
     gate_target.add_argument("--portfolio")
     gate.add_argument("--review")
+    gate.add_argument(
+        "--base-commit",
+        help="Classify the change from this ancestor to HEAD.",
+    )
+    gate.add_argument(
+        "--stage",
+        choices=["all", "contract", "finding", "change", "release"],
+        default="all",
+    )
     gate.add_argument("--json", action="store_true", dest="json_output")
+    gate.add_argument(
+        "--sarif-output",
+        type=Path,
+        help="Write GitHub-compatible SARIF 2.1.0 results to this path.",
+    )
     return parser
 
 
@@ -792,23 +4034,205 @@ def run(args: argparse.Namespace) -> int:
         )
         return 0
     if args.command == "validate-review":
-        validate_review(Path(args.path).resolve())
+        if args.project:
+            project_root = Path(args.project).resolve()
+            profile = validate_file(
+                project_root / ".architecture" / "profile.yaml",
+                "project-profile.schema.json",
+            )
+            validate_review(
+                Path(args.path).resolve(),
+                rule_pack_ids=profile["project"]["rule_packs"],
+                strict_trust=True,
+                repository_root=project_root,
+            )
+        else:
+            validate_review(Path(args.path).resolve())
         print("Architecture review is valid.")
         return 0
     if args.command == "validate-plan":
-        validate_plan(Path(args.path).resolve())
+        validate_plan(
+            Path(args.path).resolve(),
+            review_path=Path(args.review).resolve() if args.review else None,
+            decision_path=Path(args.decision).resolve() if args.decision else None,
+            repository_root=(Path(args.project).resolve() if args.project else None),
+        )
         print("Architecture remediation plan is valid.")
+        return 0
+    if args.command == "validate-decision":
+        validate_decision(
+            Path(args.path).resolve(),
+            review_path=Path(args.review).resolve() if args.review else None,
+            require_accepted=args.require_accepted,
+            repository_root=(Path(args.project).resolve() if args.project else None),
+        )
+        print("Architecture decision is valid.")
+        return 0
+    if args.command == "validate-risk-acceptances":
+        validate_risk_acceptances(Path(args.path).resolve())
+        print("Architecture risk acceptances are valid.")
+        return 0
+    if args.command == "validate-knowledge":
+        result = validate_knowledge()
+        print(
+            "Architecture knowledge is valid "
+            f"({result['catalogs']} catalogs, {result['entries']} entries, "
+            f"{result['rule_packs']} rule packs, {result['providers']} providers)."
+        )
+        return 0
+    if args.command == "evidence-providers":
+        result = evidence_provider_status(Path(args.project))
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "run-evidence-provider":
+        artifact_path, artifact = run_evidence_provider(
+            Path(args.project),
+            args.provider,
+            output_path=args.output,
+        )
+        print(
+            json.dumps(
+                {
+                    "artifact": str(artifact_path),
+                    "run_id": artifact["run"]["id"],
+                    "status": artifact["result"]["status"],
+                    "exit_code": artifact["result"]["exit_code"],
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+        return 0 if artifact["result"]["status"] == "passed" else 1
+    if args.command == "validate-evidence-run":
+        validate_evidence_run(
+            Path(args.path),
+            Path(args.project),
+            require_passed=args.require_passed,
+        )
+        print("Evidence provider run is valid.")
+        return 0
+    if args.command == "verify-review-signature":
+        project_root = Path(args.project).resolve()
+        review_path = Path(args.review)
+        if not review_path.is_absolute():
+            review_path = project_root / review_path
+        profile = validate_file(
+            project_root / ".architecture" / "profile.yaml",
+            "project-profile.schema.json",
+        )
+        review = validate_review(
+            review_path,
+            rule_pack_ids=profile["project"]["rule_packs"],
+            strict_trust=True,
+            repository_root=project_root,
+        )
+        policy = validate_file(
+            project_root / ".architecture" / "gate-policy.yaml",
+            "gate-policy.schema.json",
+        )
+        if "artifact_signatures" not in policy:
+            raise ArchitectureError(
+                "Project policy has no artifact_signatures configuration"
+            )
+        verify_review_signature(
+            review_path,
+            review,
+            project_root,
+            policy["artifact_signatures"],
+        )
+        print("Review SSH signature is valid.")
+        return 0
+    if args.command == "verify-evidence":
+        review = validate_review(Path(args.review).resolve())
+        result = verify_review_evidence(review, Path(args.repo))
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "review-bindings":
+        result = review_bindings(
+            Path(args.project),
+            Path(args.candidate),
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "review-diff":
+        result = review_diff(
+            Path(args.before),
+            Path(args.after),
+            project_root=Path(args.project) if args.project else None,
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "decision-bindings":
+        project_root = Path(args.project).resolve()
+        profile = validate_file(
+            project_root / ".architecture" / "profile.yaml",
+            "project-profile.schema.json",
+        )
+        review_path = Path(args.review)
+        if not review_path.is_absolute():
+            review_path = project_root / review_path
+        review_path = require_within_root(
+            project_root,
+            review_path,
+            "decision source review",
+        )
+        review = validate_review(
+            review_path,
+            rule_pack_ids=profile["project"]["rule_packs"],
+            strict_trust=True,
+            repository_root=project_root,
+        )
+        print(
+            json.dumps(
+                {
+                    "source_review": review["review"]["id"],
+                    "source_review_sha256": file_sha256(review_path),
+                    "knowledge_snapshot": decision_knowledge_snapshot(),
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+        return 0
+    if args.command == "benchmark-score":
+        result = score_benchmark(
+            Path(args.ground_truth).resolve(),
+            Path(args.run).resolve(),
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
     if args.command == "gate":
         review_path = Path(args.review) if args.review else None
         if args.portfolio:
-            result = gate_portfolio(Path(args.portfolio), review_path)
+            result = gate_portfolio(
+                Path(args.portfolio),
+                review_path,
+                mode=args.stage,
+                base_commit=args.base_commit,
+            )
         else:
-            result = gate_project(Path(args.project or "."), review_path)
+            result = gate_project(
+                Path(args.project or "."),
+                review_path,
+                mode=args.stage,
+                base_commit=args.base_commit,
+            )
         if args.json_output:
             print(json.dumps(result, indent=2, ensure_ascii=False))
         else:
             print_gate_result(result)
+        if args.sarif_output:
+            sarif_path = args.sarif_output.expanduser().resolve()
+            sarif_path.parent.mkdir(parents=True, exist_ok=True)
+            sarif_path.write_text(
+                json.dumps(
+                    gate_result_to_sarif(result),
+                    indent=2,
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
         return 0 if result["status"] == "pass" else 1
     raise ArchitectureError(f"Unknown command: {args.command}")
 

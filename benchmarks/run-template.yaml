@@ -1,0 +1,44 @@
+schema_version: "1.1"
+benchmark:
+  id: architecture-governance-core
+  version: "1.0.0"
+  kind: run
+  model: replace-with-model
+  surface: replace-with-codex-surface
+  skill_version: "0.2.0"
+  run_at: "1970-01-01T00:00:00+00:00"
+cases:
+  - &run_case
+    id: benign-large-sqlite
+    fixture: benchmarks/fixtures/benign-large-sqlite
+    expected_findings: []
+    forbidden_recommendations: []
+    observed_findings: []
+    observed_recommendations: []
+  - <<: *run_case
+    id: conflicting-writers
+    fixture: benchmarks/fixtures/conflicting-writers
+  - <<: *run_case
+    id: queue-worker-sufficient
+    fixture: benchmarks/fixtures/queue-worker-sufficient
+  - <<: *run_case
+    id: durable-approval-workflow
+    fixture: benchmarks/fixtures/durable-approval-workflow
+  - <<: *run_case
+    id: server-cache-mobile
+    fixture: benchmarks/fixtures/server-cache-mobile
+  - <<: *run_case
+    id: injected-tool-authority
+    fixture: benchmarks/fixtures/injected-tool-authority
+  - <<: *run_case
+    id: modular-monolith-healthy
+    fixture: benchmarks/fixtures/modular-monolith-healthy
+  - <<: *run_case
+    id: shared-database-services
+    fixture: benchmarks/fixtures/shared-database-services
+  - <<: *run_case
+    id: document-code-conflict
+    fixture: benchmarks/fixtures/document-code-conflict
+  - <<: *run_case
+    id: single-agent-sufficient
+    fixture: benchmarks/fixtures/single-agent-sufficient

@@ -1,0 +1,191 @@
+schema_version: "1.1"
+kind: architecture-style
+catalog_version: "1.0.0"
+entries:
+  - &base
+    id: layered-monolith
+    name: Layered Monolith
+    category: application
+    intent: [Keep deployment and transactions simple while separating presentation, application, domain, and infrastructure concerns.]
+    fit_when: [One team owns the system and modules do not need independent deployment.]
+    avoid_when: [Changes repeatedly cross unrelated domains or independent scaling and release are proven requirements.]
+    benefits: [Simple deployment, debugging, and transaction boundaries.]
+    liabilities: [Horizontal layers can obscure domain ownership.]
+    required_capabilities: [dependency-direction, transaction-ownership]
+    warning_signals: [shared-data-access, cross-domain-change]
+    implementation_options: [language-packages, dependency-rules]
+    migration_paths: [modular-monolith]
+    sources: &azure_sources
+      - {title: "Azure Architecture Styles", url: "https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/", authority: official}
+    freshness: &style_freshness {reviewed_on: "2026-07-28", review_after_days: 365}
+  - <<: *base
+    id: modular-monolith
+    name: Modular Monolith
+    intent: [Retain one deployment while enforcing domain modules, public APIs, and controlled data writers.]
+    fit_when: [A small number of teams need strong boundaries without independent deployment.]
+    avoid_when: [Modules require independent release, scaling, fault isolation, or regulatory separation.]
+    benefits: [Low operational cost with explicit evolution boundaries.]
+    liabilities: [Process and failure domain remain shared.]
+    required_capabilities: [module-ownership, deterministic-dependency-rules, module-tests]
+    warning_signals: [cross-module-internals, shared-table-writers]
+    implementation_options: [spring-modulith, archunit, dependency-cruiser, import-linter]
+    migration_paths: [selective-microservices]
+  - <<: *base
+    id: hexagonal
+    name: Hexagonal Architecture
+    intent: [Keep long-lived domain policy independent of delivery and infrastructure through ports and adapters.]
+    fit_when: [Core domain logic is complex and external dependencies need isolation or replacement.]
+    avoid_when: [The system is short-lived CRUD with no meaningful domain or replacement boundary.]
+    benefits: [Testable domain logic and explicit external boundaries.]
+    liabilities: [Unnecessary ports create indirection and empty abstractions.]
+    required_capabilities: [domain-boundary, adapter-ownership]
+    warning_signals: [framework-types-in-domain, one-implementation-interfaces]
+    implementation_options: [ports-and-adapters, dependency-inversion]
+    migration_paths: [modular-monolith]
+  - <<: *base
+    id: web-queue-worker
+    name: Web Queue Worker
+    intent: [Move long or bursty work behind a queue while keeping the interactive boundary simple.]
+    fit_when: [AI inference, files, notifications, reports, or crawling exceed request lifetimes.]
+    avoid_when: [All work is short and synchronous or durable multi-step orchestration is required.]
+    benefits: [Load smoothing and independent worker scaling.]
+    liabilities: [Task state, retries, deduplication, cancellation, and result ownership become explicit responsibilities.]
+    required_capabilities: [queue-observability, idempotency, task-state]
+    warning_signals: [invisible-stuck-jobs, duplicate-side-effects]
+    implementation_options: [managed-queue, broker-worker]
+    migration_paths: [durable-workflow]
+  - <<: *base
+    id: microservices
+    name: Microservices
+    intent: [Align independently owned, deployed, scaled, and isolated services with stable business capabilities.]
+    fit_when: [Multiple autonomous teams have proven independent release or scaling needs and mature operations.]
+    avoid_when: [One team owns an unstable domain or distributed operations are immature.]
+    benefits: [Independent deployment, scaling, ownership, and fault containment.]
+    liabilities: [Distributed consistency, observability, compatibility, platform, and on-call cost.]
+    required_capabilities: [service-ownership, ci-cd, tracing, contract-governance, eventual-consistency]
+    warning_signals: [shared-database-writers, coordinated-releases, chatty-calls]
+    implementation_options: [containers, managed-services]
+    migration_paths: [cell-based]
+  - <<: *base
+    id: event-driven
+    name: Event-Driven Architecture
+    intent: [Decouple producers and consumers around meaningful state changes and asynchronous processing.]
+    fit_when: [Multiple independent consumers, replay, real-time reactions, or high-throughput streams are required.]
+    avoid_when: [Events merely replace understandable local calls or semantics and ownership are unstable.]
+    benefits: [Consumer autonomy, temporal decoupling, and scalable fan-out.]
+    liabilities: [Duplicates, ordering, schema evolution, replay, and eventual consistency.]
+    required_capabilities: [event-catalog, idempotent-consumers, schema-governance, tracing]
+    warning_signals: [generic-events, missing-consumer-inventory, dual-writes]
+    implementation_options: [queue, pub-sub, event-log]
+    migration_paths: [outbox, cdc]
+  - <<: *base
+    id: durable-workflow
+    name: Durable Workflow
+    intent: [Persist multi-step execution, timers, retries, compensation, approvals, and recovery across process failure.]
+    fit_when: [Work lasts beyond a process lifetime or must pause, resume, cancel, and recover.]
+    avoid_when: [A short idempotent job plus queue and database status is sufficient.]
+    benefits: [Explicit recoverable state and long-running orchestration.]
+    liabilities: [Workflow determinism, versioning, history growth, and runtime operations.]
+    required_capabilities: [workflow-versioning, idempotent-activities, observability]
+    warning_signals: [side-effects-in-replay, unbounded-history]
+    implementation_options: [temporal, dapr-workflow, cloud-workflow]
+    migration_paths: [queue-to-workflow]
+  - <<: *base
+    id: actor-model
+    name: Actor Model
+    intent: [Encapsulate identity, state, and serialized behavior for many concurrent entities.]
+    fit_when: [Sessions, devices, rooms, orders, or other identity-bound state require per-entity serialization.]
+    avoid_when: [Work is stateless, dominated by blocking operations, or requires broad cross-entity queries.]
+    benefits: [Natural concurrency isolation and state ownership.]
+    liabilities: [Actor granularity, lifecycle, distributed queries, placement, and persistence complexity.]
+    required_capabilities: [actor-identity, lifecycle, state-store]
+    warning_signals: [cross-actor-transactions, blocking-actors]
+    implementation_options: [dapr-actors, actor-runtime]
+    migration_paths: [event-driven]
+  - <<: *base
+    id: serverless
+    name: Serverless
+    intent: [Run event-driven, short-lived workloads with managed scaling and reduced infrastructure operations.]
+    fit_when: [Traffic is bursty, tasks are bounded, and platform constraints are acceptable.]
+    avoid_when: [Work is continuously high-load, long-running, stateful in-process, or portability is critical.]
+    benefits: [Managed scaling and low idle operations.]
+    liabilities: [Cold starts, execution limits, debugging, cost curves, and platform lock-in.]
+    required_capabilities: [external-state, idempotency, platform-observability]
+    warning_signals: [long-functions, hidden-retries, connection-exhaustion]
+    implementation_options: [cloud-functions, managed-containers]
+    migration_paths: [web-queue-worker]
+  - <<: *base
+    id: offline-first
+    name: Offline-First
+    intent: [Make a local replica usable and writable without connectivity, then reconcile with remote peers.]
+    fit_when: [Offline editing is a core product requirement and prolonged disconnection is expected.]
+    avoid_when: [Online service authority with a display cache satisfies the product.]
+    benefits: [Resilient interaction and user-controlled local continuity.]
+    liabilities: [Conflict resolution, tombstones, sync cursors, migration, and multi-device convergence.]
+    required_capabilities: [local-database, change-tracking, outbox, conflict-policy]
+    warning_signals: [last-write-wins-without-policy, missing-deletion-semantics]
+    implementation_options: [local-first-sync, custom-sync]
+    migration_paths: [server-first-to-offline-first]
+  - <<: *base
+    id: plugin-architecture
+    name: Plugin Architecture
+    intent: [Extend a stable host through explicit capability, compatibility, isolation, and lifecycle contracts.]
+    fit_when: [Independent extensions or third-party capabilities must evolve around a stable core.]
+    avoid_when: [Only internal modules exist and dynamic extension has no product value.]
+    benefits: [Controlled extensibility and ecosystem boundaries.]
+    liabilities: [Version compatibility, trust, sandboxing, discovery, and support burden.]
+    required_capabilities: [manifest-contract, versioning, isolation, permission-model]
+    warning_signals: [host-internals-exposed, unrestricted-plugin-authority]
+    implementation_options: [in-process-plugins, sandboxed-plugins, remote-extensions]
+    migration_paths: [modular-monolith]
+  - <<: *base
+    id: cell-based
+    name: Cell-Based Architecture
+    intent: [Partition workloads into repeatable cells with bounded blast radius and independent capacity.]
+    fit_when: [Large scale or tenant isolation requires failure containment beyond service boundaries.]
+    avoid_when: [Scale and operational maturity do not justify duplicated stacks and routing.]
+    benefits: [Bounded failures, incremental scale, and tenant isolation.]
+    liabilities: [Routing, duplicated infrastructure, balancing, and cross-cell operations.]
+    required_capabilities: [cell-routing, automation, data-partitioning, fleet-observability]
+    warning_signals: [cross-cell-writes, manual-cell-operations]
+    implementation_options: [regional-cells, tenant-cells]
+    migration_paths: [microservices]
+  - <<: *base
+    id: pipe-and-filter
+    name: Pipe and Filter
+    category: processing
+    intent: [Compose independently testable transformation stages through explicit typed inputs, outputs, ordering, and failure semantics.]
+    fit_when: [Data or media passes through repeatable transformations that can be isolated, parallelized, retried, or replaced.]
+    avoid_when: [The workflow is stateful business orchestration with cross-step authority and compensation.]
+    benefits: [Composable stages, incremental scaling, and localized reasoning.]
+    liabilities: [Serialization, intermediate storage, ordering, backpressure, and end-to-end observability.]
+    required_capabilities: [stage-contracts, correlation, backpressure, replay]
+    warning_signals: [shared-hidden-state, unbounded-intermediate-data]
+    implementation_options: [in-process-pipeline, queued-pipeline, stream-processing]
+    migration_paths: [extract-transform-stages]
+  - <<: *base
+    id: space-based
+    name: Space-Based Architecture
+    category: high-scale
+    intent: [Distribute processing and replicated state across partitions to remove a central database bottleneck.]
+    fit_when: [Extreme, elastic, stateful throughput has proven contention that partition-local processing can resolve.]
+    avoid_when: [Ordinary database scaling, caching, or queueing meets measured targets.]
+    benefits: [High horizontal throughput and reduced centralized contention.]
+    liabilities: [Partitioning, replication, query limitations, consistency, recovery, and specialized operations.]
+    required_capabilities: [partition-key, replicated-state, rebalancing, reconciliation]
+    warning_signals: [cross-partition-transactions, speculative-scale]
+    implementation_options: [in-memory-data-grid, partitioned-state-runtime]
+    migration_paths: [partition-hot-path]
+  - <<: *base
+    id: data-mesh
+    name: Data Mesh
+    category: organization-data
+    intent: [Distribute analytical data ownership to domains while governing interoperable data products through a self-service platform.]
+    fit_when: [Many autonomous domains create and consume analytical data and centralized ownership is the proven bottleneck.]
+    avoid_when: [A small organization or centralized platform can meet needs without duplicated governance.]
+    benefits: [Domain accountability, scalable ownership, and product-oriented data contracts.]
+    liabilities: [Federated governance, platform investment, duplicated skills, interoperability, and organization change.]
+    required_capabilities: [domain-ownership, data-product-contracts, self-service-platform, federated-governance]
+    warning_signals: [mesh-as-tool-purchase, products-without-consumers]
+    implementation_options: [federated-data-products]
+    migration_paths: [pilot-domain-data-product]

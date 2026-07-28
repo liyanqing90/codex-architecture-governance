@@ -1,0 +1,160 @@
+schema_version: "1.1"
+kind: reference-architecture
+catalog_version: "1.0.0"
+entries:
+  - &reference_base
+    id: modular-monolith-service
+    name: Modular Monolith Service
+    category: application
+    intent: [Provide one deployment with domain modules, module-owned writes, public module APIs, adapters, and deterministic dependency tests.]
+    fit_when: [One or a few teams need clear boundaries without independent deployment.]
+    avoid_when: [Independent release, fault isolation, or regulatory separation is required.]
+    benefits: [Simple operations, local transactions, and controlled evolution.]
+    liabilities: [Shared process and capacity failure domain.]
+    required_capabilities: [module-map, code-ownership, dependency-tests, contract-tests]
+    warning_signals: [cross-module-writes, shared-internal-types]
+    implementation_options: [spring-modulith, archunit, dependency-cruiser, import-linter]
+    migration_paths: [layered-monolith-to-modular]
+    decision_rules: [Prefer this over microservices until independent deployment value is demonstrated.]
+    sources: &reference_sources
+      - {title: "Azure Architecture Styles", url: "https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/", authority: official}
+    freshness: &reference_freshness {reviewed_on: "2026-07-28", review_after_days: 365}
+  - <<: *reference_base
+    id: web-queue-worker-ai
+    name: Web Queue Worker for AI Tasks
+    intent: [Separate interactive requests from bounded asynchronous inference or tool work using durable task identity and idempotent workers.]
+    fit_when: [Tasks outlive requests but do not require multi-step durable orchestration.]
+    avoid_when: [Work requires days-long state, approval, compensation, or complex branching.]
+    benefits: [Low-complexity asynchronous scaling.]
+    liabilities: [Task visibility, result ownership, cancellation, and duplicate execution.]
+    required_capabilities: [task-store, queue, idempotency-key, worker-observability]
+    warning_signals: [queue-as-state-store, hidden-side-effects]
+    implementation_options: [managed-queue, broker-worker]
+    migration_paths: [queue-to-durable-workflow]
+    decision_rules: [Escalate to durable workflow only when recovery semantics exceed queue and database state.]
+  - <<: *reference_base
+    id: durable-agent-workflow
+    name: Durable Agent Workflow
+    category: ai-agent
+    intent: [Combine deterministic workflow state with bounded model decisions, authorized tools, checkpoints, evaluation, and human approval.]
+    fit_when: [Agent work spans time, failures, approvals, resumptions, or multiple committed side effects.]
+    avoid_when: [A fixed short workflow or one agent turn is sufficient.]
+    benefits: [Recoverable execution and explicit authority boundaries.]
+    liabilities: [Workflow versioning, replay safety, state privacy, and higher operations cost.]
+    required_capabilities: [durable-workflow, tool-policy, state-schema, idempotency, tracing, evaluations]
+    warning_signals: [model-owned-policy, side-effects-during-replay]
+    implementation_options: [temporal, langgraph, microsoft-agent-framework]
+    migration_paths: [queue-to-durable-workflow]
+    decision_rules: [Keep deterministic policy outside model judgment.]
+  - <<: *reference_base
+    id: offline-first-mobile
+    name: Offline-First Mobile
+    category: mobile
+    intent: [Use a local authoritative working copy, durable outbox, versioned sync protocol, conflicts, tombstones, and background reconciliation.]
+    fit_when: [Prolonged offline editing is a core user requirement.]
+    avoid_when: [Server authority plus cache meets offline display needs.]
+    benefits: [Continuous user work through disconnection.]
+    liabilities: [Conflict policy, multi-device convergence, deletion, migration, and battery cost.]
+    required_capabilities: [local-database, migration-tests, sync-cursor, outbox, conflict-policy]
+    warning_signals: [silent-last-write-wins, no-tombstones]
+    implementation_options: [custom-sync, managed-sync]
+    migration_paths: [server-first-to-offline-first]
+    decision_rules: [Do not choose offline-first solely for perceived responsiveness.]
+  - <<: *reference_base
+    id: multi-tenant-saas
+    name: Multi-Tenant SaaS
+    category: service
+    intent: [Bind tenant identity to authorization, data partitioning, background work, observability, export, deletion, and cost attribution.]
+    fit_when: [One product serves multiple organizations with controlled isolation.]
+    avoid_when: [Dedicated instances are required by regulation or operational boundaries.]
+    benefits: [Shared delivery and efficient platform operations.]
+    liabilities: [Isolation failures, noisy neighbors, migrations, and tenant-aware operations.]
+    required_capabilities: [tenant-context, authorization, data-isolation, quotas, audit]
+    warning_signals: [optional-tenant-filter, shared-admin-authority]
+    implementation_options: [shared-schema, schema-per-tenant, database-per-tenant]
+    migration_paths: [single-tenant-to-multi-tenant]
+    decision_rules: [Choose isolation level from threat, scale, and operations evidence.]
+  - <<: *reference_base
+    id: event-driven-integration
+    name: Event-Driven Integration
+    category: integration
+    intent: [Publish owned integration events through an outbox and schema contract to idempotent, independently operated consumers.]
+    fit_when: [Multiple consumers need temporal decoupling, replay, or independent processing.]
+    avoid_when: [A direct synchronous call gives clearer ownership and acceptable coupling.]
+    benefits: [Consumer autonomy, reliable publication, replay, and independent scaling.]
+    liabilities: [Eventual consistency, duplicates, ordering, schema evolution, and incident reconstruction.]
+    required_capabilities: [outbox, schema-registry, idempotent-consumers, correlation, replay-operations]
+    warning_signals: [events-as-rpc, unknown-consumers]
+    implementation_options: [apache-kafka, apache-pulsar, managed-pubsub]
+    migration_paths: [sync-to-event-integration]
+    decision_rules: [Publish business-meaningful facts, not internal table changes.]
+  - <<: *reference_base
+    id: real-time-stream-processing
+    name: Real-Time Stream Processing
+    category: data
+    intent: [Partition ordered event streams into stateful processors with checkpoints, watermarks, replay, and controlled outputs.]
+    fit_when: [Continuous processing with bounded event-time latency is a product requirement.]
+    avoid_when: [Batch processing meets freshness targets.]
+    benefits: [Continuous derived state and scalable partition-aligned processing.]
+    liabilities: [Time semantics, late data, state recovery, backpressure, and operational complexity.]
+    required_capabilities: [partition-key, schema-registry, checkpoints, watermark-policy, replay, backpressure]
+    warning_signals: [processing-time-used-as-event-time, side-effects-without-idempotency]
+    implementation_options: [apache-kafka, apache-pulsar, managed-stream-processing]
+    migration_paths: [batch-to-incremental-stream]
+    decision_rules: [Do not adopt streaming without a measurable freshness requirement.]
+  - <<: *reference_base
+    id: cell-based-saas
+    name: Cell-Based SaaS
+    category: high-scale
+    intent: [Route tenants into repeatable cells with local services and data so capacity and failure blast radius remain bounded.]
+    fit_when: [Scale or tenant isolation exceeds what one shared stack can safely provide.]
+    avoid_when: [Duplicated infrastructure and routing operations exceed demonstrated reliability value.]
+    benefits: [Bounded incidents, incremental capacity, and per-cell rollout.]
+    liabilities: [Fleet automation, tenant placement, cross-cell operations, balancing, and cost.]
+    required_capabilities: [cell-routing, tenant-placement, fleet-automation, data-partitioning, cell-slo]
+    warning_signals: [cross-cell-writes, manually-different-cells]
+    implementation_options: [regional-cells, tenant-cells]
+    migration_paths: [shared-saas-to-cells]
+    decision_rules: [Introduce cells only after service-level failure containment is insufficient.]
+  - <<: *reference_base
+    id: secure-plugin-host
+    name: Secure Plugin Host
+    category: extensibility
+    intent: [Load signed extensions through schema manifests, compatibility checks, explicit capability grants, isolated execution, and lifecycle control.]
+    fit_when: [Independent extension publishers and release lifecycles are a product requirement.]
+    avoid_when: [Internal modules within one trust and release boundary are sufficient.]
+    benefits: [Controlled ecosystem extensibility and host stability.]
+    liabilities: [Sandbox, compatibility, revocation, permissions, support, and publisher trust.]
+    required_capabilities: [manifest-contract, provenance, capability-policy, sandbox, version-matrix]
+    warning_signals: [plugins-import-host-internals, unrestricted-file-network-access]
+    implementation_options: [sandboxed-process, wasm, remote-extension]
+    migration_paths: [internal-extension-to-plugin]
+    decision_rules: [Expose capabilities rather than host implementation internals.]
+  - <<: *reference_base
+    id: retrieval-augmented-agent
+    name: Retrieval-Augmented Agent
+    category: ai-agent
+    intent: [Combine governed source ingestion and retrieval with bounded agent reasoning, citations, tool authorization, and evaluation.]
+    fit_when: [Agent decisions require changing private knowledge with provenance.]
+    avoid_when: [Static prompt context or deterministic search and presentation meets the need.]
+    benefits: [Fresh grounded context and inspectable source attribution.]
+    liabilities: [Ingestion trust, authorization filtering, staleness, retrieval quality, prompt injection, and cost.]
+    required_capabilities: [source-governance, chunk-lineage, retrieval-evaluation, authorization-filtering, tool-policy]
+    warning_signals: [retrieval-bypasses-acl, citation-not-bound-to-claim]
+    implementation_options: [postgresql, pgvector, elasticsearch-opensearch, milvus]
+    migration_paths: [search-to-governed-retrieval]
+    decision_rules: [Retrieval improves access to evidence but does not make generated claims true.]
+  - <<: *reference_base
+    id: cloud-native-service-platform
+    name: Cloud-Native Service Platform
+    category: platform
+    intent: [Provide self-service workload deployment, identity, telemetry, policy, secrets, progressive delivery, and recovery contracts.]
+    fit_when: [Several teams repeatedly need the same owned operational capabilities.]
+    avoid_when: [Managed hosting and repository automation satisfy current delivery needs.]
+    benefits: [Consistent controls, reduced service setup cost, and observable ownership.]
+    liabilities: [Platform product ownership, paved-road limits, upgrades, fleet cost, and abstraction leakage.]
+    required_capabilities: [platform-product-owner, service-catalog, workload-identity, opentelemetry, progressive-delivery]
+    warning_signals: [platform-without-consumer-research, kubernetes-exposed-as-product]
+    implementation_options: [kubernetes, managed-containers, service-mesh]
+    migration_paths: [golden-path-pilot]
+    decision_rules: [Build a platform around repeated consumer jobs, not infrastructure fashion.]

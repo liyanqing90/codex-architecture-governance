@@ -1,0 +1,16 @@
+schema_version: "1.1"
+id: mobile-core
+version: "1.0.0"
+review_kind: mobile
+rules:
+  - {id: MOBILE.STATE.001, domain: state-ownership, invariant: "Each durable and transient client state has one authoritative owner and explicit lifecycle.", evidence_requirements: ["Trace state from UI through persistence and process death."], quality_attributes: [reliability, maintainability]}
+  - {id: MOBILE.LOCAL.001, domain: local-data, invariant: "Local persistence protects integrity, schema evolution, backup policy, and sensitive data.", evidence_requirements: ["Inspect model constraints, storage policy, and migration."], quality_attributes: [reliability, security]}
+  - {id: MOBILE.SYNC.001, domain: synchronization, invariant: "Synchronization defines authority, cursors, retries, conflicts, deletion, and recovery.", evidence_requirements: ["Trace offline edit, reconnect, conflict, and deletion."], quality_attributes: [reliability, compatibility]}
+  - {id: MOBILE.MIGRATION.001, domain: migration, invariant: "Client data migrations are ordered, testable, recoverable, and compatible with supported app versions.", evidence_requirements: ["Inspect versioned migrations and failure tests."], quality_attributes: [recoverability, reliability]}
+  - {id: MOBILE.BACKGROUND.001, domain: background-work, invariant: "Background work tolerates suspension, expiration, duplication, and platform scheduling limits.", evidence_requirements: ["Trace platform lifecycle and retry identity."], quality_attributes: [reliability, performance-efficiency]}
+  - {id: MOBILE.NOTIFICATION.001, domain: notifications, invariant: "Notification scheduling, authorization, deduplication, delivery assumptions, and user changes are explicit.", evidence_requirements: ["Inspect permission and scheduling state changes."], quality_attributes: [reliability, interaction-capability]}
+  - {id: MOBILE.NETWORK.001, domain: networking, invariant: "Networking has bounded retries, cancellation, caching, expiry, authentication recovery, and weak-network behavior.", evidence_requirements: ["Trace weak-network and auth-expiry paths."], quality_attributes: [reliability, performance-efficiency]}
+  - {id: MOBILE.PRIVACY.001, domain: privacy, invariant: "Platform permissions and collected data are minimal, explained, revocable, and lifecycle-governed.", evidence_requirements: ["Inspect permission requests and data lifecycle."], quality_attributes: [security, privacy]}
+  - {id: MOBILE.POWER.001, domain: battery, invariant: "Polling, sensors, location, networking, and background work respect declared energy budgets.", evidence_requirements: ["Inspect scheduling and performance evidence."], quality_attributes: [performance-efficiency]}
+  - {id: MOBILE.UISTATE.001, domain: ui-state, invariant: "UI state survives expected navigation and lifecycle changes without duplicating authoritative business state.", evidence_requirements: ["Trace state restoration and ownership."], quality_attributes: [interaction-capability, maintainability]}
+  - {id: MOBILE.BUSINESS.001, domain: client-boundary, invariant: "Cross-client and security-sensitive invariants remain authoritative outside presentation-only client logic.", evidence_requirements: ["Trace validation to the authoritative boundary."], quality_attributes: [security, compatibility]}

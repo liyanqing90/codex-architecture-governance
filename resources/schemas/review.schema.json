@@ -15,7 +15,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.0"
+      "enum": ["1.0", "1.1"]
     },
     "review": {
       "type": "object",
@@ -36,6 +36,10 @@
         },
         "kind": {
           "enum": ["project", "ai-agent", "mobile", "portfolio"]
+        },
+        "workflow": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
         },
         "subject": {
           "type": "object",
@@ -95,6 +99,82 @@
         },
         "profile": {
           "type": "string"
+        },
+        "repository_identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "dirty_tree": {
+          "type": "boolean"
+        },
+        "rule_packs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "version", "sha256"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$"
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        "scope_manifest": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "verification_run": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "surface", "started_at", "completed_at"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "model": {"type": "string"},
+            "surface": {"type": "string", "minLength": 1},
+            "started_at": {"type": "string", "format": "date-time"},
+            "completed_at": {"type": "string", "format": "date-time"}
+          }
+        },
+        "source_candidate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "review_id", "sha256"],
+          "properties": {
+            "path": {"type": "string", "minLength": 1},
+            "review_id": {"type": "string", "minLength": 1},
+            "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          }
+        },
+        "signature": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["format", "identity", "namespace", "path"],
+          "properties": {
+            "format": {"const": "ssh"},
+            "identity": {"type": "string", "minLength": 1},
+            "namespace": {"type": "string", "minLength": 1},
+            "path": {"type": "string", "minLength": 1}
+          }
         }
       },
       "anyOf": [
@@ -141,6 +221,8 @@
     },
     "coverage": {
       "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -169,12 +251,14 @@
     },
     "findings": {
       "type": "array",
+      "minItems": 0,
       "items": {
         "type": "object"
       }
     },
     "evidence_sources": {
       "type": "array",
+      "minItems": 1,
       "uniqueItems": true,
       "items": {
         "type": "string",
@@ -187,6 +271,76 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "coverage_complete": {
+      "type": "boolean"
+    },
+    "tool_evidence": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider_id", "run_path", "run_sha256"],
+        "properties": {
+          "provider_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "run_path": {"type": "string", "minLength": 1},
+          "run_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.1"}
+        }
+      },
+      "then": {
+        "required": ["coverage_complete"],
+        "properties": {
+          "review": {
+            "required": [
+              "repository_identity",
+              "workflow",
+              "profile_sha256",
+              "dirty_tree",
+              "rule_packs",
+              "scope_manifest"
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "review": {
+                  "properties": {
+                    "verification_state": {"const": "verified"}
+                  }
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "review": {
+                  "required": [
+                    "verification_run",
+                    "source_candidate"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
 }

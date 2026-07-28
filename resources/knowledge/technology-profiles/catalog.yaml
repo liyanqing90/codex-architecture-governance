@@ -1,0 +1,429 @@
+schema_version: "1.1"
+kind: technology-profile
+catalog_version: "1.0.0"
+entries:
+  - &tech_base
+    id: spring-modulith
+    name: Spring Modulith
+    category: modularity
+    intent: [Discover, verify, test, document, and observe functional modules in Spring Boot applications.]
+    fit_when: [A Java Spring Boot modular monolith needs deterministic module boundaries.]
+    avoid_when: [The project is not Spring Boot or independent service deployment is already required.]
+    benefits: [Module verification, module tests, documentation, events, and observability.]
+    liabilities: [Spring-specific model and adoption constraints.]
+    required_capabilities: [spring-boot, domain-modules]
+    operational_requirements: [Run verification and module tests in CI.]
+    alternatives: [archunit]
+    lock_in: {level: medium, notes: [Tied to Spring Boot module conventions.]}
+    sources:
+      - {title: "Spring Modulith Reference", url: "https://docs.spring.io/spring-modulith/reference/index.html", authority: official}
+    freshness: &tech_freshness {reviewed_on: "2026-07-28", review_after_days: 90}
+  - <<: *tech_base
+    id: archunit
+    name: ArchUnit
+    category: architecture-testing
+    intent: [Test Java package, layer, dependency, cycle, and API rules deterministically.]
+    fit_when: [Java bytecode boundaries can express architecture invariants.]
+    avoid_when: [Runtime ownership or behavior cannot be inferred from dependencies.]
+    benefits: [Executable architecture constraints in ordinary tests.]
+    liabilities: [Static rules cannot prove runtime semantics.]
+    required_capabilities: [java-tests]
+    alternatives: [spring-modulith]
+    lock_in: {level: low, notes: [Rules are Java-specific but conceptually portable.]}
+    sources:
+      - {title: "ArchUnit User Guide", url: "https://www.archunit.org/userguide/html/000_Index.html", authority: official}
+  - <<: *tech_base
+    id: dependency-cruiser
+    name: dependency-cruiser
+    category: architecture-testing
+    intent: [Validate JavaScript and TypeScript dependency rules, cycles, and forbidden boundaries.]
+    fit_when: [JS or TS module paths express meaningful architecture boundaries.]
+    avoid_when: [Runtime contracts and data ownership are the actual concern.]
+    benefits: [Fast deterministic dependency evidence.]
+    liabilities: [Configuration can drift from intended domain ownership.]
+    required_capabilities: [node-project]
+    alternatives: [nx-boundaries]
+    lock_in: {level: low, notes: [Rule concepts are portable.]}
+    sources:
+      - {title: "dependency-cruiser", url: "https://github.com/sverweij/dependency-cruiser", authority: maintainer}
+  - <<: *tech_base
+    id: import-linter
+    name: Import Linter
+    category: architecture-testing
+    intent: [Enforce Python import contracts between packages and layers.]
+    fit_when: [Python package boundaries represent owned architecture modules.]
+    avoid_when: [Dynamic runtime ownership is not visible through imports.]
+    benefits: [Deterministic Python dependency evidence.]
+    liabilities: [Does not prove data or runtime contracts.]
+    required_capabilities: [python-packages]
+    alternatives: [custom-import-tests]
+    lock_in: {level: low, notes: [Contracts are project configuration.]}
+    sources:
+      - {title: "Import Linter Documentation", url: "https://import-linter.readthedocs.io/", authority: maintainer}
+  - <<: *tech_base
+    id: dapr
+    name: Dapr
+    category: distributed-runtime
+    intent: [Expose distributed application building blocks through HTTP or gRPC APIs and pluggable components.]
+    fit_when: [Multiple applications benefit from consistent invocation, pub-sub, state, workflow, actor, secret, or configuration APIs.]
+    avoid_when: [A small system does not justify sidecar and runtime operations.]
+    benefits: [Portable building-block APIs and component abstraction.]
+    liabilities: [Sidecar latency, runtime operations, component semantics, and version compatibility.]
+    required_capabilities: [distributed-operations, sidecar-observability]
+    alternatives: [native-cloud-services, application-libraries]
+    lock_in: {level: medium, notes: [APIs are portable across components but applications depend on the Dapr runtime.]}
+    sources:
+      - {title: "Dapr Building Blocks", url: "https://docs.dapr.io/concepts/building-blocks-concept/", authority: official}
+  - <<: *tech_base
+    id: kubernetes
+    name: Kubernetes
+    category: container-orchestration
+    intent: [Schedule and reconcile containerized workloads with declarative deployment, discovery, configuration, and scaling.]
+    fit_when: [Workload count, platform needs, portability, and operational maturity justify a cluster control plane.]
+    avoid_when: [Managed application hosting satisfies the workload with lower operational burden.]
+    benefits: [Declarative reconciliation and ecosystem-level workload management.]
+    liabilities: [Cluster operations, security, networking, cost, and platform engineering.]
+    required_capabilities: [platform-ownership, observability, security-operations]
+    alternatives: [managed-containers, serverless]
+    lock_in: {level: medium, notes: [Portable API with significant ecosystem and operational coupling.]}
+    sources:
+      - {title: "Kubernetes Concepts", url: "https://kubernetes.io/docs/concepts/", authority: official}
+  - <<: *tech_base
+    id: opentelemetry
+    name: OpenTelemetry
+    category: observability
+    intent: [Instrument, generate, collect, and export vendor-neutral traces, metrics, and logs.]
+    fit_when: [Critical flows cross components or telemetry portability and correlation matter.]
+    avoid_when: [Instrumentation has no owner, privacy policy, or operational backend.]
+    benefits: [Standard context propagation and portable telemetry.]
+    liabilities: [Sampling, cardinality, privacy, collector, and backend operations.]
+    required_capabilities: [telemetry-owner, collector-or-backend, data-governance]
+    alternatives: [vendor-native-instrumentation]
+    lock_in: {level: low, notes: [Vendor-neutral APIs reduce backend coupling.]}
+    sources:
+      - {title: "OpenTelemetry Documentation", url: "https://opentelemetry.io/docs/", authority: official}
+  - <<: *tech_base
+    id: temporal
+    name: Temporal
+    category: durable-workflow
+    intent: [Provide durable execution for long-running workflows, activities, timers, retries, signals, and recovery.]
+    fit_when: [Multi-step work must resume reliably across crashes and long waits.]
+    avoid_when: [A queue plus database status machine is sufficient.]
+    benefits: [Durable orchestration and failure recovery.]
+    liabilities: [Workflow determinism, versioning, event history, worker, and service operations.]
+    required_capabilities: [workflow-versioning, idempotent-activities]
+    alternatives: [dapr-workflow, cloud-workflows]
+    lock_in: {level: medium, notes: [Workflow code follows the Temporal execution model.]}
+    sources:
+      - {title: "Temporal Documentation", url: "https://docs.temporal.io/", authority: official}
+  - <<: *tech_base
+    id: openai-agents-sdk
+    name: OpenAI Agents SDK
+    category: agent-runtime
+    intent: [Build agent loops with tools, handoffs, guardrails, sessions, and tracing using a small abstraction set.]
+    fit_when: [Applications need managed turns, tools, handoffs, sessions, or agent traces.]
+    avoid_when: [A single deterministic model call or fixed workflow is sufficient.]
+    benefits: [Integrated agent primitives and tracing.]
+    liabilities: [Provider/runtime semantics, tool authorization, trace privacy, and evolving APIs.]
+    required_capabilities: [tool-policy, evaluation, trace-governance]
+    alternatives: [custom-workflow, langgraph, microsoft-agent-framework]
+    lock_in: {level: medium, notes: [Agent and trace APIs bind orchestration to the SDK.]}
+    sources:
+      - {title: "OpenAI Agents SDK", url: "https://openai.github.io/openai-agents-python/", authority: official}
+  - <<: *tech_base
+    id: langgraph
+    name: LangGraph
+    category: agent-orchestration
+    intent: [Model stateful agent orchestration as durable graphs with streaming and human interaction.]
+    fit_when: [Explicit branching, loops, persistence, resumption, or human-in-the-loop state is required.]
+    avoid_when: [A short linear workflow or single agent already meets the need.]
+    benefits: [Explicit graph state and durable orchestration capabilities.]
+    liabilities: [Checkpoint, node idempotency, graph versioning, and runtime complexity.]
+    required_capabilities: [checkpoint-store, state-schema, evaluation]
+    alternatives: [openai-agents-sdk, temporal]
+    lock_in: {level: medium, notes: [Graph and checkpoint semantics bind orchestration to the runtime.]}
+    sources:
+      - {title: "LangGraph Overview", url: "https://langchain-ai.github.io/langgraph/index.html", authority: official}
+  - <<: *tech_base
+    id: microsoft-agent-framework
+    name: Microsoft Agent Framework
+    category: agent-orchestration
+    intent: [Build and orchestrate agents and explicit workflows with typed messages, checkpoints, approvals, and multiple orchestration patterns.]
+    fit_when: [Python or .NET applications need explicit agent workflow patterns and Microsoft ecosystem integration.]
+    avoid_when: [One model call, one agent, or a simple deterministic workflow is sufficient.]
+    benefits: [Agent and workflow separation with built-in orchestration patterns.]
+    liabilities: [Framework evolution, runtime semantics, and orchestration complexity.]
+    required_capabilities: [workflow-ownership, evaluation, authorization]
+    alternatives: [openai-agents-sdk, langgraph, temporal]
+    lock_in: {level: medium, notes: [Workflow and agent abstractions bind code to the framework.]}
+    sources:
+      - {title: "Agent Framework Orchestrations", url: "https://learn.microsoft.com/en-us/agent-framework/workflows/orchestrations/", authority: official}
+  - <<: *tech_base
+    id: service-mesh
+    name: Service Mesh
+    category: service-networking
+    intent: [Provide workload identity, mTLS, traffic policy, and telemetry through a managed service communication layer.]
+    fit_when: [Many independently operated services need consistent east-west security or traffic controls.]
+    avoid_when: [A small service estate can enforce the same controls through platform-native networking and libraries.]
+    benefits: [Consistent workload communication policy and telemetry.]
+    liabilities: [Data-plane overhead, control-plane operations, debugging complexity, and policy sprawl.]
+    required_capabilities: [platform-ownership, workload-identity, network-observability]
+    alternatives: [platform-native-service-networking]
+    lock_in: {level: medium, notes: [APIs may be portable while policy and operations remain implementation-specific.]}
+    sources:
+      - {title: "Istio Documentation", url: "https://istio.io/latest/docs/", authority: official}
+      - {title: "Linkerd Documentation", url: "https://linkerd.io/2/overview/", authority: official}
+  - <<: *tech_base
+    id: dapr-workflow
+    name: Dapr Workflow
+    category: durable-workflow
+    intent: [Run durable workflows and activities alongside Dapr building blocks and sidecars.]
+    fit_when: [A system already benefits from Dapr and needs durable timers, retries, state, and recovery.]
+    avoid_when: [A queue or database state machine is sufficient or Dapr adoption has no broader value.]
+    benefits: [Durable orchestration integrated with Dapr runtime capabilities.]
+    liabilities: [Sidecar/runtime operations, workflow determinism, versioning, and ecosystem coupling.]
+    required_capabilities: [dapr-runtime, workflow-versioning, idempotent-activities]
+    alternatives: [temporal, aws-step-functions, azure-durable-functions, google-workflows]
+    lock_in: {level: medium, notes: [Workflow and building-block APIs bind applications to Dapr semantics.]}
+    sources:
+      - {title: "Dapr Workflow Overview", url: "https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/", authority: official}
+  - <<: *tech_base
+    id: aws-step-functions
+    name: AWS Step Functions
+    category: managed-workflow
+    intent: [Orchestrate AWS services and application tasks through managed state machines.]
+    fit_when: [AWS-native integrations and managed orchestration outweigh portability and local-runtime needs.]
+    avoid_when: [Workflow portability, in-process coding models, or non-AWS operation is a primary constraint.]
+    benefits: [Managed availability, visual state, service integrations, retries, and execution history.]
+    liabilities: [State-language constraints, service quotas, pricing, local parity, and AWS lock-in.]
+    required_capabilities: [aws-operations, state-machine-versioning, idempotent-tasks]
+    alternatives: [temporal, azure-durable-functions, google-workflows]
+    lock_in: {level: high, notes: [Definitions, integrations, identity, and operations are AWS-specific.]}
+    sources:
+      - {title: "AWS Step Functions Developer Guide", url: "https://docs.aws.amazon.com/step-functions/latest/dg/welcome.html", authority: official}
+  - <<: *tech_base
+    id: azure-durable-functions
+    name: Azure Durable Functions
+    category: managed-workflow
+    intent: [Build stateful serverless orchestrations, entities, and activity workflows on Azure Functions.]
+    fit_when: [Azure Functions is already appropriate and code-first durable orchestration is required.]
+    avoid_when: [Work is short and stateless or portability beyond Azure is required.]
+    benefits: [Managed checkpoints, retries, timers, fan-out, and external events.]
+    liabilities: [Deterministic orchestrator constraints, storage/runtime coupling, versioning, and Azure lock-in.]
+    required_capabilities: [azure-functions, deterministic-orchestrators, idempotent-activities]
+    alternatives: [temporal, aws-step-functions, google-workflows]
+    lock_in: {level: high, notes: [Runtime, hosting, storage, and binding semantics are Azure-specific.]}
+    sources:
+      - {title: "Durable Functions Overview", url: "https://learn.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-overview", authority: official}
+  - <<: *tech_base
+    id: google-workflows
+    name: Google Cloud Workflows
+    category: managed-workflow
+    intent: [Orchestrate Google Cloud services and HTTP APIs with managed workflow executions.]
+    fit_when: [Google Cloud integrations and low-operations orchestration match the workflow.]
+    avoid_when: [Long-lived code-centric workers or cloud portability are primary needs.]
+    benefits: [Managed execution, connectors, retries, callbacks, and observability.]
+    liabilities: [Workflow language, quotas, local experience, and Google Cloud lock-in.]
+    required_capabilities: [gcp-operations, idempotent-services, workflow-versioning]
+    alternatives: [temporal, aws-step-functions, azure-durable-functions]
+    lock_in: {level: high, notes: [Connectors, identity, deployment, and operations are Google Cloud-specific.]}
+    sources:
+      - {title: "Google Cloud Workflows Overview", url: "https://cloud.google.com/workflows/docs/overview", authority: official}
+  - <<: *tech_base
+    id: postgresql
+    name: PostgreSQL
+    category: relational-database
+    intent: [Provide transactional relational storage, constraints, indexing, SQL queries, extensions, and operational replication.]
+    fit_when: [Relations, transactions, constraints, flexible queries, and mature tooling match the data model.]
+    avoid_when: [A specialized access model or scale cannot be met without harmful contortions.]
+    benefits: [Strong integrity, rich SQL, extensibility, and broad operational support.]
+    liabilities: [Schema and query governance, connection management, vacuum, replication, and capacity ownership.]
+    required_capabilities: [database-operations, migration-discipline, backup-restore]
+    alternatives: [mysql, mongodb]
+    lock_in: {level: low, notes: [SQL is portable but extensions and operational features may create coupling.]}
+    sources:
+      - {title: "PostgreSQL Documentation", url: "https://www.postgresql.org/docs/", authority: official}
+  - <<: *tech_base
+    id: mysql
+    name: MySQL
+    category: relational-database
+    intent: [Provide transactional relational storage, constraints, indexes, SQL queries, and replication.]
+    fit_when: [MySQL ecosystem, managed-service support, and relational access match team and product needs.]
+    avoid_when: [Required query or extension capabilities would rely on unsafe workarounds.]
+    benefits: [Mature ecosystem, broad hosting, and transactional relational model.]
+    liabilities: [Engine and configuration semantics, migrations, replication, and operations.]
+    required_capabilities: [database-operations, migration-discipline, backup-restore]
+    alternatives: [postgresql, mongodb]
+    lock_in: {level: low, notes: [SQL and data are portable with dialect and operational differences.]}
+    sources:
+      - {title: "MySQL Reference Manual", url: "https://dev.mysql.com/doc/refman/en/", authority: official}
+  - <<: *tech_base
+    id: mongodb
+    name: MongoDB
+    category: document-database
+    intent: [Store and query aggregate-shaped documents with indexes, replication, transactions, and horizontal partitioning.]
+    fit_when: [Documents align with ownership and access patterns and independent aggregate evolution has value.]
+    avoid_when: [Cross-document relations and constraints dominate or flexible schema would hide data governance.]
+    benefits: [Aggregate-local reads, flexible documents, and mature managed options.]
+    liabilities: [Schema discipline, document growth, joins, transactions, sharding, and vendor feature coupling.]
+    required_capabilities: [document-schema-governance, index-operations, backup-restore]
+    alternatives: [postgresql]
+    lock_in: {level: medium, notes: [Query, aggregation, and operational APIs are product-specific.]}
+    sources:
+      - {title: "MongoDB Documentation", url: "https://www.mongodb.com/docs/", authority: official}
+  - <<: *tech_base
+    id: redis-valkey
+    name: Redis or Valkey
+    category: key-value-cache
+    intent: [Provide low-latency key-value and data-structure operations for caches, ephemeral coordination, streams, or selected durable state.]
+    fit_when: [Access is key-oriented and latency or data-structure semantics justify an in-memory service.]
+    avoid_when: [It would become an ungoverned authoritative database or correctness depends on cache availability.]
+    benefits: [Low latency and useful atomic data structures.]
+    liabilities: [Memory cost, eviction, persistence semantics, hot keys, failover, and misuse as a queue or lock.]
+    required_capabilities: [memory-capacity, eviction-policy, failure-semantics]
+    alternatives: [application-cache, relational-database, managed-queue]
+    lock_in: {level: low, notes: [Protocol compatibility is broad but modules and managed features vary.]}
+    sources:
+      - {title: "Redis Documentation", url: "https://redis.io/docs/latest/", authority: official}
+      - {title: "Valkey Documentation", url: "https://valkey.io/topics/", authority: official}
+  - <<: *tech_base
+    id: rabbitmq
+    name: RabbitMQ
+    category: message-broker
+    intent: [Route and deliver queued messages with acknowledgements, exchanges, consumer control, and broker-managed durability.]
+    fit_when: [Work queues or flexible routing matter more than long-term replayable logs.]
+    avoid_when: [A managed queue is sufficient or retained high-throughput event replay is central.]
+    benefits: [Rich routing, delivery controls, and mature work-queue semantics.]
+    liabilities: [Cluster operations, queue topology, ordering, backpressure, redelivery, and storage limits.]
+    required_capabilities: [broker-operations, idempotent-consumers, topology-governance]
+    alternatives: [aws-sqs, kafka]
+    lock_in: {level: low, notes: [AMQP helps portability while topology and operational semantics still matter.]}
+    sources:
+      - {title: "RabbitMQ Documentation", url: "https://www.rabbitmq.com/docs", authority: official}
+  - <<: *tech_base
+    id: aws-sqs
+    name: Amazon SQS
+    category: managed-queue
+    intent: [Provide managed standard or FIFO message queues with visibility timeouts, redelivery, and dead-letter routing.]
+    fit_when: [AWS-hosted workers need durable queues without broker operations.]
+    avoid_when: [Complex routing, streaming replay, or cloud portability dominates.]
+    benefits: [Managed availability, scaling, and queue operations.]
+    liabilities: [At-least-once semantics, visibility tuning, quotas, payload limits, and AWS lock-in.]
+    required_capabilities: [idempotent-consumers, queue-observability, aws-identity]
+    alternatives: [rabbitmq, kafka]
+    lock_in: {level: high, notes: [API, identity, operations, and surrounding integrations are AWS-specific.]}
+    sources:
+      - {title: "Amazon SQS Developer Guide", url: "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html", authority: official}
+  - <<: *tech_base
+    id: apache-kafka
+    name: Apache Kafka
+    category: event-streaming
+    intent: [Provide partitioned durable event logs with consumer offsets, retention, replay, and stream processing integrations.]
+    fit_when: [Multiple independent consumers, replay, ordering by key, and sustained event throughput are core needs.]
+    avoid_when: [A simple work queue or direct API meets the requirement.]
+    benefits: [Durable replayable logs, consumer autonomy, and scalable partitioned throughput.]
+    liabilities: [Partition design, schema governance, lag, cluster operations, rebalancing, and semantic complexity.]
+    required_capabilities: [event-governance, partition-key, idempotent-consumers, platform-operations]
+    alternatives: [apache-pulsar, rabbitmq, aws-sqs]
+    lock_in: {level: medium, notes: [Protocol ecosystem is broad while platform features and operations vary.]}
+    sources:
+      - {title: "Apache Kafka Documentation", url: "https://kafka.apache.org/documentation/", authority: official}
+  - <<: *tech_base
+    id: apache-pulsar
+    name: Apache Pulsar
+    category: event-streaming
+    intent: [Provide durable pub-sub and queue semantics with segmented storage, subscriptions, retention, and multi-tenancy.]
+    fit_when: [Streaming and messaging coexist and the team can operate or procure the Pulsar platform.]
+    avoid_when: [A simpler queue or established Kafka ecosystem already meets needs.]
+    benefits: [Flexible subscriptions, separated compute and storage, and geo-replication capabilities.]
+    liabilities: [Operational topology, ecosystem maturity tradeoffs, schema, partitions, and cost.]
+    required_capabilities: [platform-operations, event-governance, idempotent-consumers]
+    alternatives: [apache-kafka, rabbitmq]
+    lock_in: {level: medium, notes: [Client and operational semantics are Pulsar-specific.]}
+    sources:
+      - {title: "Apache Pulsar Documentation", url: "https://pulsar.apache.org/docs/", authority: official}
+  - <<: *tech_base
+    id: elasticsearch-opensearch
+    name: Elasticsearch or OpenSearch
+    category: search-engine
+    intent: [Index and query text, structured fields, aggregations, and relevance-oriented read models.]
+    fit_when: [Search, filtering, aggregation, or ranking needs exceed authoritative database query capabilities.]
+    avoid_when: [It would become the sole uncontrolled source of truth or direct indexed SQL meets targets.]
+    benefits: [Full-text search, flexible retrieval, aggregations, and horizontal read scaling.]
+    liabilities: [Index consistency, mappings, cluster operations, memory, rebuild, security, and product divergence.]
+    required_capabilities: [index-pipeline, rebuild, authorization-filtering, cluster-operations]
+    alternatives: [postgresql, managed-search]
+    lock_in: {level: medium, notes: [APIs are similar but features and compatibility differ between products and versions.]}
+    sources:
+      - {title: "Elasticsearch Reference", url: "https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html", authority: official}
+      - {title: "OpenSearch Documentation", url: "https://docs.opensearch.org/latest/", authority: official}
+  - <<: *tech_base
+    id: neo4j
+    name: Neo4j
+    category: graph-database
+    intent: [Persist and query connected data through graph traversal and declarative graph queries.]
+    fit_when: [Relationship traversal is central and cannot be served acceptably by relational or index projections.]
+    avoid_when: [The graph is merely a visualization or ordinary joins satisfy measured queries.]
+    benefits: [Expressive graph traversal and relationship-centric modeling.]
+    liabilities: [Specialized model, query language, clustering, migration, and ecosystem lock-in.]
+    required_capabilities: [graph-modeling, query-governance, backup-restore]
+    alternatives: [postgresql, materialized-view]
+    lock_in: {level: high, notes: [Data model, Cypher capabilities, and operational tooling create product coupling.]}
+    sources:
+      - {title: "Neo4j Documentation", url: "https://neo4j.com/docs/", authority: official}
+  - <<: *tech_base
+    id: pgvector
+    name: pgvector
+    category: vector-retrieval
+    intent: [Add vector similarity search and indexes to PostgreSQL alongside relational filtering and transactions.]
+    fit_when: [Vector scale and latency fit PostgreSQL and combining metadata, transactions, and retrieval reduces complexity.]
+    avoid_when: [Vector scale, indexing, isolation, or serving needs exceed the operational database boundary.]
+    benefits: [One governed store for metadata and vectors with SQL filtering.]
+    liabilities: [Index build, memory, recall, query planning, write load, and database contention.]
+    required_capabilities: [postgresql-operations, retrieval-evaluation, index-capacity]
+    alternatives: [milvus, managed-vector-service]
+    lock_in: {level: low, notes: [Vectors are portable while index and SQL integration are extension-specific.]}
+    sources:
+      - {title: "pgvector", url: "https://github.com/pgvector/pgvector", authority: maintainer}
+  - <<: *tech_base
+    id: milvus
+    name: Milvus
+    category: vector-database
+    intent: [Serve large-scale vector similarity workloads with specialized indexes, filtering, and distributed storage.]
+    fit_when: [Measured vector volume, latency, throughput, or isolation justifies a dedicated retrieval platform.]
+    avoid_when: [PostgreSQL plus pgvector or a managed search service meets the need more simply.]
+    benefits: [Specialized vector indexing and horizontal retrieval scale.]
+    liabilities: [Dedicated operations, consistency, metadata joins, backups, evaluation, and ecosystem coupling.]
+    required_capabilities: [vector-platform-operations, retrieval-evaluation, data-synchronization]
+    alternatives: [pgvector, managed-vector-service]
+    lock_in: {level: medium, notes: [Client, index, and operational semantics are product-specific.]}
+    sources:
+      - {title: "Milvus Documentation", url: "https://milvus.io/docs", authority: official}
+  - <<: *tech_base
+    id: timescaledb
+    name: TimescaleDB
+    category: time-series-database
+    intent: [Extend PostgreSQL for time-partitioned ingestion, retention, compression, and time-series analytics.]
+    fit_when: [Time-series access dominates and PostgreSQL compatibility and relational joins have value.]
+    avoid_when: [Prometheus monitoring semantics or ordinary partitioned PostgreSQL already meet requirements.]
+    benefits: [SQL model, PostgreSQL ecosystem, retention, compression, and continuous aggregates.]
+    liabilities: [Extension coupling, ingestion capacity, lifecycle policies, and operational tuning.]
+    required_capabilities: [postgresql-operations, retention-policy, capacity-testing]
+    alternatives: [prometheus, postgresql]
+    lock_in: {level: medium, notes: [Core data is SQL while hypertables and policies use extension semantics.]}
+    sources:
+      - {title: "Timescale Documentation", url: "https://docs.timescale.com/", authority: official}
+  - <<: *tech_base
+    id: prometheus
+    name: Prometheus
+    category: metrics-monitoring
+    intent: [Collect and query labeled time-series metrics for operational monitoring and alerting.]
+    fit_when: [Pull-based service metrics and PromQL-based alerting match the observability platform.]
+    avoid_when: [It would be used as an authoritative business database or labels cannot be bounded.]
+    benefits: [Open ecosystem, expressive queries, service discovery, and alerting integration.]
+    liabilities: [Cardinality, retention, federation, long-term storage, and pull-model constraints.]
+    required_capabilities: [metric-governance, cardinality-budgets, alert-ownership]
+    alternatives: [managed-metrics, timescaledb]
+    lock_in: {level: low, notes: [Open exposition and query ecosystem reduce vendor coupling.]}
+    sources:
+      - {title: "Prometheus Documentation", url: "https://prometheus.io/docs/introduction/overview/", authority: official}

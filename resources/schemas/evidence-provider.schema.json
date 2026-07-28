@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/evidence-provider.schema.json",
+  "title": "Deterministic evidence provider registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "providers"],
+  "properties": {
+    "schema_version": {"const": "1.1"},
+    "providers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "evidence_type", "detect", "command", "output", "trust"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+          "evidence_type": {"enum": ["static", "contract", "runtime", "security", "supply-chain", "test"]},
+          "detect": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "command": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "output": {"enum": ["exit-code", "json", "sarif", "junit", "text"]},
+          "trust": {"enum": ["deterministic", "runtime-observation", "model-assisted"]},
+          "documentation": {"type": "string", "format": "uri"},
+          "notes": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,137 @@
+name: Architecture gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  architecture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install architecture governance runtime
+        run: >-
+          python -m pip install --require-hashes
+          --requirement requirements-runtime.lock
+
+      - name: Run cumulative change gate
+        id: architecture-gate
+        continue-on-error: true
+        env:
+          BASE_COMMIT: ${{ github.event.pull_request.base.sha || github.event.before }}
+        shell: bash
+        run: |
+          set +e
+          gate_args=(
+            --project .
+            --stage change
+            --sarif-output architecture-results.sarif
+            --json
+          )
+          if [[ "${BASE_COMMIT}" =~ ^[0-9a-f]{40}$ ]] &&
+             [[ "${BASE_COMMIT}" != "0000000000000000000000000000000000000000" ]]; then
+            gate_args+=(--base-commit "${BASE_COMMIT}")
+          fi
+          python resources/scripts/architecture_tool.py gate "${gate_args[@]}" \
+            > architecture-gate.json
+          gate_status=$?
+          set -e
+          cat architecture-gate.json
+          exit "${gate_status}"
+
+      - name: Write architecture Check summary
+        if: always() && hashFiles('architecture-gate.json') != ''
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          result = json.loads(
+              Path("architecture-gate.json").read_text(encoding="utf-8")
+          )
+          marker = "<!-- codex-architecture-governance -->"
+          lines = [
+              marker,
+              "## Architecture gate",
+              "",
+              f"**Status:** {result['status'].upper()}  ",
+              f"**Review:** `{result['review_id']}`  ",
+              f"**Blocking findings:** {len(result['blocking'])}  ",
+              f"**Policy failures:** {len(result['policy_failures'])}",
+          ]
+          if result["policy_failures"]:
+              lines.extend(["", "### Policy failures", ""])
+              lines.extend(f"- {item}" for item in result["policy_failures"])
+          if result["blocking"]:
+              lines.extend(["", "### Blocking findings", ""])
+              lines.extend(
+                  f"- `{item['id']}` [{item['severity']}] "
+                  f"{item['title']} — {item['reason']}"
+                  for item in result["blocking"]
+              )
+          body = "\n".join(lines) + "\n"
+          Path("architecture-comment.md").write_text(body, encoding="utf-8")
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          with summary.open("a", encoding="utf-8") as handle:
+              handle.write(body)
+          PY
+
+      - name: Publish or update pull-request summary
+        if: >-
+          always() &&
+          github.event_name == 'pull_request' &&
+          hashFiles('architecture-comment.md') != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          comment_id="$(
+            gh api \
+              --paginate \
+              "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
+              --jq \
+              '.[] | select(.user.login == "github-actions[bot]") | select(.body | contains("<!-- codex-architecture-governance -->")) | .id' \
+              | tail -1
+          )"
+          if [[ -n "${comment_id}" ]]; then
+            gh api \
+              --method PATCH \
+              "repos/${REPOSITORY}/issues/comments/${comment_id}" \
+              -F body=@architecture-comment.md
+          else
+            gh api \
+              --method POST \
+              "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
+              -F body=@architecture-comment.md
+          fi
+
+      - name: Upload architecture SARIF
+        if: always() && hashFiles('architecture-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          sarif_file: architecture-results.sarif
+          category: architecture-governance
+
+      - name: Enforce gate result
+        if: steps.architecture-gate.outcome == 'failure'
+        run: exit 1

@@ -1,0 +1,110 @@
+schema_version: "1.1"
+id: project-core
+version: "1.0.0"
+review_kind: project
+rules:
+  - id: PROJECT.BOUNDARY.001
+    domain: module-boundaries
+    invariant: A module has a coherent responsibility and an explicit public boundary.
+    evidence_requirements: [Inspect module API, callers, and ownership.]
+    quality_attributes: [maintainability, flexibility]
+  - id: PROJECT.DEPENDENCY.001
+    domain: dependency-direction
+    invariant: Stable policy does not depend on volatile delivery or infrastructure details without an intentional adapter.
+    evidence_requirements: [Trace dependency direction through imports and runtime composition.]
+    quality_attributes: [maintainability, flexibility]
+  - id: PROJECT.COHESION.001
+    domain: cohesion
+    invariant: A logical change is owned by a bounded set of components rather than a grab-bag.
+    evidence_requirements: [Inspect change ownership and unrelated responsibilities.]
+    quality_attributes: [maintainability]
+  - id: PROJECT.FRONTEND.001
+    domain: frontend-backend
+    invariant: Security, authoritative validation, and cross-client invariants are enforced at an authoritative boundary.
+    evidence_requirements: [Trace client input to authoritative validation.]
+    quality_attributes: [security, functional-suitability]
+  - id: PROJECT.DATA.001
+    domain: data-model
+    invariant: Persisted models express identity, lifecycle, constraints, and relationships without contradictory sources of truth.
+    evidence_requirements: [Inspect schemas, migrations, writers, and lifecycle transitions.]
+    quality_attributes: [reliability, maintainability]
+  - id: PROJECT.OWNERSHIP.001
+    domain: data-ownership
+    invariant: Every authoritative datum has one declared owner and controlled writers.
+    evidence_requirements: [Identify every writer and authoritative read path.]
+    quality_attributes: [reliability, security]
+  - id: PROJECT.CONTRACT.001
+    domain: contracts
+    invariant: Interfaces have explicit semantics, validation, errors, compatibility expectations, and ownership.
+    evidence_requirements: [Inspect schemas, callers, consumers, and contract tests.]
+    quality_attributes: [compatibility, maintainability]
+  - id: PROJECT.TRANSACTION.001
+    domain: transactions
+    invariant: Atomicity boundaries match business invariants and partial failure has an explicit strategy.
+    evidence_requirements: [Trace commit points and failure between side effects.]
+    quality_attributes: [reliability]
+  - id: PROJECT.IDEMPOTENCY.001
+    domain: idempotency
+    invariant: Retried or duplicated commands cannot repeat irreversible side effects.
+    evidence_requirements: [Trace retry ownership, identity, and side-effect deduplication.]
+    quality_attributes: [reliability, safety]
+  - id: PROJECT.RELIABILITY.001
+    domain: resilience
+    invariant: Timeouts, retries, backoff, cancellation, overload, and degraded behavior are deliberate and observable.
+    evidence_requirements: [Inspect failure configuration and runtime evidence.]
+    quality_attributes: [reliability, performance-efficiency]
+  - id: PROJECT.STATE.001
+    domain: state-machines
+    invariant: Long-lived workflows have explicit states, legal transitions, recovery, and terminal outcomes.
+    evidence_requirements: [Trace primary, recovery, cancellation, and terminal paths.]
+    quality_attributes: [reliability, maintainability]
+  - id: PROJECT.SECURITY.001
+    domain: security
+    invariant: Authentication, authorization, secrets, trust boundaries, and least privilege are enforced at owning boundaries.
+    evidence_requirements: [Trace identity and authority to protected operations.]
+    quality_attributes: [security]
+  - id: PROJECT.PRIVACY.001
+    domain: privacy
+    invariant: Collection, retention, access, export, deletion, and logging follow declared data classifications.
+    evidence_requirements: [Trace classified data throughout its lifecycle.]
+    quality_attributes: [security, safety]
+  - id: PROJECT.OBSERVABILITY.001
+    domain: observability
+    invariant: Critical flows can be correlated across logs, metrics, traces, jobs, and external dependencies.
+    evidence_requirements: [Inspect identifiers and signals across a critical flow.]
+    quality_attributes: [reliability, maintainability]
+  - id: PROJECT.CONFIG.001
+    domain: configuration
+    invariant: Configuration has one precedence model, validation, safe defaults, and no secret leakage.
+    evidence_requirements: [Inspect configuration sources, precedence, validation, and logs.]
+    quality_attributes: [security, reliability]
+  - id: PROJECT.PERFORMANCE.001
+    domain: performance
+    invariant: Known latency, throughput, memory, storage, and cost budgets are protected by evidence and backpressure.
+    evidence_requirements: [Inspect declared budgets and load or runtime evidence.]
+    quality_attributes: [performance-efficiency]
+  - id: PROJECT.TEST.001
+    domain: testability
+    invariant: Critical invariants have stable seams and behavioral protection at the owning boundary.
+    evidence_requirements: [Inspect primary, owning-boundary, and alternate-path tests.]
+    quality_attributes: [maintainability, reliability]
+  - id: PROJECT.DEPLOY.001
+    domain: build-deploy
+    invariant: Artifacts are reproducible and rollout, rollback, migration ordering, and drift are controlled.
+    evidence_requirements: [Inspect build, deployment, migration, and rollback automation.]
+    quality_attributes: [reliability, maintainability]
+  - id: PROJECT.CHANGE.001
+    domain: evolution
+    invariant: Public and persisted contracts can evolve without silent consumer breakage.
+    evidence_requirements: [Inspect versioning, compatibility, and migration evidence.]
+    quality_attributes: [compatibility, flexibility]
+  - id: PROJECT.DEBT.001
+    domain: technical-debt
+    invariant: Debt has demonstrated change or operational cost rather than disliked style.
+    evidence_requirements: [Prove a change-cost or operational failure path.]
+    quality_attributes: [maintainability]
+  - id: PROJECT.DESIGN.001
+    domain: proportionality
+    invariant: Abstractions and services solve present variability or isolation needs rather than hypothetical futures.
+    evidence_requirements: [Compare complexity with current constraints and alternatives.]
+    quality_attributes: [maintainability, flexibility]

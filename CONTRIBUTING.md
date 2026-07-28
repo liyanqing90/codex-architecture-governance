@@ -21,7 +21,7 @@ Keep each change tied to one observable outcome. Separate:
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements-dev.txt
+python3 -m pip install --require-hashes -r requirements-dev.lock
 ```
 
 Windows PowerShell users can activate with:
@@ -53,13 +53,28 @@ Skill as `$skill-name`.
 ## Changing schemas or the CLI
 
 - Treat artifact schemas and CLI exit codes as public contracts.
-- Prefer additive, backward-compatible changes.
+- Keep schema `1.0` readable and prefer additive, backward-compatible changes.
 - Update templates, tests, documentation, and changelog in the same pull
   request.
 - Add a migration note before intentionally rejecting a previously valid
   artifact.
-- Never weaken verification state, baseline, or waiver integrity to obtain a
+- Never weaken provenance, complete Rule Pack coverage, verification level,
+  fingerprint, baseline, waiver, or risk-acceptance integrity to obtain a
   passing gate.
+- Update the accepted decision record when a change alters authority,
+  fingerprint semantics, public contracts, or trust boundaries.
+
+## Changing architecture knowledge
+
+- Define which decision an entry changes.
+- Use standards, official documentation, or maintainer documentation.
+- Record fit, avoid, benefits, liabilities, alternatives, lock-in, source, and
+  freshness.
+- Keep architecture styles separate from technologies and current versions.
+- Update Rule Packs only when a rule protects an invariant with testable
+  evidence.
+- Add or update an adversarial fixture when a change affects diagnosis,
+  false-positive resistance, solution proportionality, or evidence quality.
 
 ## Required checks
 
@@ -68,10 +83,17 @@ Run:
 ```bash
 python3 scripts/validate_repository.py
 python3 resources/scripts/architecture_tool.py validate-project .
+python3 resources/scripts/architecture_tool.py validate-knowledge
 python3 -m pytest
 python3 -m ruff check .
 python3 -m ruff format --check .
+python3 -m pip_audit -r requirements-runtime.lock
+python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --output-dir dist
+python3 scripts/verify_checksum.py dist/*.zip.sha256
+python3 scripts/generate_sbom.py \
+  --archive dist/codex-architecture-governance-0.2.0.zip \
+  --output dist/codex-architecture-governance-0.2.0.spdx.json
 ```
 
 The pull request should explain what each new test proves. A generated archive

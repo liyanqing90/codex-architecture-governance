@@ -1,0 +1,195 @@
+schema_version: "1.1"
+kind: domain-guidance
+catalog_version: "1.0.0"
+entries:
+  - &domain_base
+    id: ai-agent
+    name: AI Agent Systems
+    category: domain
+    intent: [Govern probabilistic boundaries, context, memory, tools, recovery, evaluation, cost, and human authority.]
+    fit_when: [Models select actions, use tools, maintain memory, or participate in workflows.]
+    avoid_when: [The system only performs deterministic processing.]
+    benefits: [Makes AI-specific authority and reliability risks explicit.]
+    liabilities: [Requires model-versioned and time-bound behavioral evidence.]
+    required_capabilities: [ai-agent-core, evaluations, traceability]
+    warning_signals: [model-owned-policy, unaudited-tools]
+    decision_rules: [Prefer deterministic code, then model call, fixed workflow, single agent, and only then multi-agent.]
+    sources: &domain_sources
+      - {title: "OpenAI Practical Guide to Building Agents", url: "https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/", authority: official}
+    freshness: &domain_freshness {reviewed_on: "2026-07-28", review_after_days: 90}
+  - <<: *domain_base
+    id: mobile
+    name: Mobile and Client Applications
+    intent: [Govern local state, lifecycle, weak networks, synchronization, migration, notifications, privacy, and energy.]
+    fit_when: [A mobile or desktop client persists state or performs background work.]
+    avoid_when: [Only a stateless web presentation is in scope.]
+    benefits: [Connects platform lifecycle with data integrity and reliability.]
+    liabilities: [Runtime proof often requires devices and multiple app versions.]
+    required_capabilities: [mobile-core, migration-tests]
+    warning_signals: [client-as-authority, untested-upgrades]
+    decision_rules: [Choose server-first, cache, or offline-first from explicit offline requirements.]
+  - <<: *domain_base
+    id: web-frontend
+    name: Web Frontend
+    intent: [Govern UI state ownership, server/client authority, data fetching, accessibility, performance, security, and release boundaries.]
+    fit_when: [Browser applications contain stateful workflows or business orchestration.]
+    avoid_when: [Only static content is present.]
+    benefits: [Prevents duplicated authority and uncontrolled client complexity.]
+    liabilities: [Requires rendered, network, and accessibility evidence.]
+    required_capabilities: [contract-validation, performance-budgets, accessibility]
+    warning_signals: [security-in-client-only, duplicated-server-state]
+    decision_rules: [Keep authoritative security and cross-client invariants on a trusted boundary.]
+  - <<: *domain_base
+    id: data-platform
+    name: Data Platform
+    intent: [Govern ownership, schemas, lineage, freshness, quality, replay, retention, and analytical versus operational boundaries.]
+    fit_when: [Pipelines, warehouses, lakes, streams, indexes, or derived datasets support decisions.]
+    avoid_when: [A single operational database has no analytical consumers.]
+    benefits: [Makes data products and lineage accountable.]
+    liabilities: [Backfills, schema evolution, privacy, and cost governance.]
+    required_capabilities: [catalog, lineage, quality-checks, retention]
+    warning_signals: [unknown-owner, silent-schema-drift]
+    decision_rules: [Select stores from access, consistency, volume, retention, and operations evidence.]
+  - <<: *domain_base
+    id: identity
+    name: Identity and Authorization
+    intent: [Govern principals, authentication, authorization, sessions, delegation, audit, recovery, and tenant isolation.]
+    fit_when: [Any protected resource or cross-system identity exists.]
+    avoid_when: [No identity or protected operation is present.]
+    benefits: [Clarifies trust and authority boundaries.]
+    liabilities: [Key lifecycle, policy complexity, and recovery risk.]
+    required_capabilities: [threat-model, audit, least-privilege]
+    warning_signals: [role-string-sprawl, client-only-authorization]
+    decision_rules: [Centralize semantics only when trust, lifecycle, and availability requirements align.]
+  - <<: *domain_base
+    id: multi-tenant-saas
+    name: Multi-Tenant SaaS
+    intent: [Govern tenant context, isolation, quotas, noisy neighbors, migrations, export, deletion, and support authority.]
+    fit_when: [One service hosts multiple independent organizations.]
+    avoid_when: [Regulation or operations require dedicated deployments.]
+    benefits: [Efficient shared product delivery.]
+    liabilities: [Isolation failure has portfolio-wide impact.]
+    required_capabilities: [tenant-aware-auth, data-partitioning, quotas, audit]
+    warning_signals: [optional-tenant-filter, global-admin-bypass]
+    decision_rules: [Select isolation tier from threat, scale, cost, and operational maturity.]
+  - <<: *domain_base
+    id: backend-api
+    name: Backend API Services
+    intent: [Govern public contracts, resource authorization, transaction ownership, overload, dependency failure, and compatibility.]
+    fit_when: [A service exposes HTTP, RPC, GraphQL, webhook, or other consumer-facing operations.]
+    avoid_when: [No network contract is in scope.]
+    benefits: [Connects transport behavior with authoritative business boundaries.]
+    liabilities: [Requires consumer inventory and runtime traffic evidence.]
+    required_capabilities: [backend-api, contract-tests, rate-limits]
+    warning_signals: [transport-owned-domain, undocumented-errors]
+    decision_rules: [Select synchronous APIs only when caller deadlines and coupling are acceptable.]
+  - <<: *domain_base
+    id: real-time-system
+    name: Real-Time Systems
+    intent: [Govern deadlines, time semantics, ordering, backpressure, partitioning, state recovery, and overload.]
+    fit_when: [Correctness depends on bounded latency or continuous event processing.]
+    avoid_when: [Batch or request-response processing meets product targets.]
+    benefits: [Makes timing and overload part of correctness.]
+    liabilities: [Representative load, clocks, and recovery evidence are difficult.]
+    required_capabilities: [real-time-system, load-tests, state-recovery]
+    warning_signals: [average-latency-only, unbounded-buffer]
+    decision_rules: [Use the simplest processing model that meets measured latency and ordering needs.]
+  - <<: *domain_base
+    id: financial-trading
+    name: Financial Trading Systems
+    intent: [Govern market-data provenance, pre-trade limits, order state, strategy isolation, reconciliation, and audit.]
+    fit_when: [The system submits, manages, simulates, or recommends financially consequential orders.]
+    avoid_when: [No financial position or execution side effect is possible.]
+    benefits: [Places deterministic risk controls before irreversible action.]
+    liabilities: [Requires venue-specific, regulatory, and operational validation.]
+    required_capabilities: [financial-trading, deterministic-risk, reconciliation]
+    warning_signals: [model-direct-to-order, stale-position-state]
+    decision_rules: [Models may inform decisions but cannot own authoritative risk limits.]
+  - <<: *domain_base
+    id: iot-edge
+    name: IoT and Edge Systems
+    intent: [Govern device identity, intermittent connectivity, command safety, firmware lifecycle, time, and physical failure.]
+    fit_when: [Remote devices sense, store, communicate, update, or actuate.]
+    avoid_when: [The system has no device or edge boundary.]
+    benefits: [Connects cloud behavior with device lifecycle and physical safety.]
+    liabilities: [Hardware diversity and field recovery require real-device evidence.]
+    required_capabilities: [iot-edge, device-inventory, signed-updates]
+    warning_signals: [cloud-only-safety, shared-device-credentials]
+    decision_rules: [Keep safety-critical controls local and deterministic.]
+  - <<: *domain_base
+    id: search-recommendation
+    name: Search and Recommendation
+    intent: [Govern source/index consistency, ranking quality, freshness, authorization, experimentation, and rollback.]
+    fit_when: [Users retrieve or rank content through indexes, embeddings, or learned models.]
+    avoid_when: [Direct authoritative queries meet the requirement.]
+    benefits: [Makes relevance, freshness, and access control testable.]
+    liabilities: [Offline metrics can diverge from user outcomes.]
+    required_capabilities: [search-recommendation, evaluation-datasets, index-reconciliation]
+    warning_signals: [authorization-after-ranking, no-index-rebuild]
+    decision_rules: [Choose search or vector infrastructure from retrieval semantics and scale, not popularity.]
+  - <<: *domain_base
+    id: streaming-media
+    name: Streaming Media
+    intent: [Govern ingest, processing, packaging, delivery, rights, client quality, and regional capacity.]
+    fit_when: [Audio or video is uploaded, transcoded, streamed, or protected.]
+    avoid_when: [Static file delivery is sufficient.]
+    benefits: [Connects pipeline reliability with viewer quality.]
+    liabilities: [Device, codec, network, CDN, and rights combinations expand the test matrix.]
+    required_capabilities: [streaming-media, media-observability, content-rights]
+    warning_signals: [non-resumable-ingest, no-qoe-metrics]
+    decision_rules: [Use managed media services unless custom control produces demonstrated value.]
+  - <<: *domain_base
+    id: test-automation-platform
+    name: Test Automation Platforms
+    intent: [Govern execution state, isolation, scheduling, reproducible evidence, flake semantics, and artifact retention.]
+    fit_when: [The product schedules or runs user or system test workloads.]
+    avoid_when: [Only a repository-local test suite is in scope.]
+    benefits: [Makes test outcomes reproducible and trustworthy.]
+    liabilities: [Untrusted execution and capacity management create platform responsibilities.]
+    required_capabilities: [test-automation-platform, sandboxing, immutable-run-inputs]
+    warning_signals: [retry-means-pass, shared-worker-credentials]
+    decision_rules: [Treat every test result as an artifact bound to code and environment.]
+  - <<: *domain_base
+    id: plugin-platform
+    name: Plugin Platforms
+    intent: [Govern extension contracts, capability authority, isolation, compatibility, lifecycle, and supply-chain trust.]
+    fit_when: [A host loads independently versioned or third-party extensions.]
+    avoid_when: [Internal modules within one release satisfy extensibility.]
+    benefits: [Makes ecosystem boundaries explicit.]
+    liabilities: [Compatibility and trust become long-lived public obligations.]
+    required_capabilities: [plugin-platform, manifest-schema, artifact-provenance]
+    warning_signals: [plugins-call-host-internals, unbounded-permissions]
+    decision_rules: [Prefer internal modules until independent extension lifecycle is a product need.]
+  - <<: *domain_base
+    id: local-first-application
+    name: Local-First Applications
+    intent: [Govern replicas, convergence, sync, conflicts, tombstones, migrations, storage, and device privacy.]
+    fit_when: [Users must create and modify durable state through prolonged disconnection.]
+    avoid_when: [Server authority plus a display cache satisfies offline requirements.]
+    benefits: [Continuous local work and user resilience.]
+    liabilities: [Distributed data semantics move into every client.]
+    required_capabilities: [local-first, sync-protocol, migration-matrix]
+    warning_signals: [implicit-last-write-wins, missing-delete-sync]
+    decision_rules: [Require explicit product evidence before accepting local-first complexity.]
+  - <<: *domain_base
+    id: desktop-application
+    name: Desktop Applications
+    intent: [Govern local state, updates, OS integration, IPC, multi-instance behavior, device privacy, and recovery.]
+    fit_when: [A native desktop process owns user data or privileged OS interactions.]
+    avoid_when: [Only a browser application is in scope.]
+    benefits: [Connects application architecture to platform lifecycle.]
+    liabilities: [OS versions, distribution channels, and update paths expand compatibility.]
+    required_capabilities: [desktop-application, signed-updates, upgrade-tests]
+    warning_signals: [privileged-unauthenticated-ipc, destructive-update]
+    decision_rules: [Keep privileged helpers minimal and authenticate local callers.]
+  - <<: *domain_base
+    id: cloud-native-platform
+    name: Cloud-Native Platforms
+    intent: [Govern workload ownership, identity, failure domains, progressive delivery, drift, capacity, cost, and platform contracts.]
+    fit_when: [Many cloud workloads share deployment and operational capabilities.]
+    avoid_when: [Managed application hosting meets needs without a platform layer.]
+    benefits: [Consistent operational control and self-service delivery.]
+    liabilities: [Platform ownership and abstraction can exceed product value.]
+    required_capabilities: [cloud-native-platform, workload-catalog, platform-slo]
+    warning_signals: [platform-without-consumers, kubernetes-as-architecture]
+    decision_rules: [Build a platform only around repeated, owned consumer needs.]

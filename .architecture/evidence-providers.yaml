@@ -1,0 +1,92 @@
+schema_version: "1.1"
+providers:
+  - id: archunit
+    enabled: false
+    command: ["./mvnw", "test", "-Dtest=*ArchitectureTest"]
+    timeout_seconds: 600
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL, JAVA_HOME]
+    output_source: stdout
+  - id: dependency-cruiser
+    enabled: false
+    command: ["npx", "depcruise", "--output-type", "json", "src"]
+    timeout_seconds: 300
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL]
+    output_source: stdout
+  - id: import-linter
+    enabled: false
+    command: ["lint-imports"]
+    timeout_seconds: 300
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL, VIRTUAL_ENV]
+    output_source: stdout
+  - id: semgrep
+    enabled: false
+    command: ["semgrep", "--config", ".semgrep.yml", "--sarif"]
+    timeout_seconds: 600
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL]
+    output_source: stdout
+  - id: codeql
+    enabled: false
+    command: ["codeql", "database", "analyze", "codeql-db", "--format=sarif-latest", "--output={evidence_output}"]
+    timeout_seconds: 1800
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL]
+    output_source: file
+    result_path: "{evidence_output}"
+  - id: openapi-diff
+    enabled: false
+    command: ["openapi-diff", "baseline/openapi.yaml", "openapi.yaml", "--json"]
+    timeout_seconds: 300
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL]
+    output_source: stdout
+  - id: migration-check
+    enabled: false
+    command: ["python", "-m", "pytest", "-q", "tests/migrations"]
+    timeout_seconds: 600
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL, VIRTUAL_ENV]
+    output_source: stdout
+  - id: test-results
+    enabled: false
+    command: ["python", "-m", "pytest", "-q", "--junitxml={evidence_output}"]
+    timeout_seconds: 1200
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL, VIRTUAL_ENV]
+    output_source: file
+    result_path: "{evidence_output}"
+  - id: opentelemetry
+    enabled: false
+    command: ["otel-cli", "status"]
+    timeout_seconds: 300
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL]
+    output_source: stdout
+  - id: kubernetes-manifest
+    enabled: false
+    command: ["kubectl", "kustomize", "."]
+    timeout_seconds: 300
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL]
+    output_source: stdout
+  - id: sbom
+    enabled: false
+    command: ["syft", ".", "-o", "spdx-json"]
+    timeout_seconds: 600
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL]
+    output_source: stdout

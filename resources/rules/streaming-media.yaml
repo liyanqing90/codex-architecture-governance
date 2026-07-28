@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: streaming-media
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: MEDIA.INGEST.001, domain: media-ingest, invariant: "Upload and live ingest define integrity, resumability, quotas, authentication, and partial failure.", evidence_requirements: ["Exercise interruption, duplicate chunks, and malformed media."], quality_attributes: [reliability, security]}
+  - {id: MEDIA.PIPELINE.001, domain: processing-pipeline, invariant: "Transcode and packaging stages are idempotent, observable, restartable, and bound to source versions.", evidence_requirements: ["Trace retry between stage output and job state commit."], quality_attributes: [recoverability, reliability]}
+  - {id: MEDIA.DELIVERY.001, domain: delivery, invariant: "Origin, CDN, manifests, segments, cache keys, and invalidation meet latency and availability targets.", evidence_requirements: ["Inspect cache behavior, failover, and regional playback evidence."], quality_attributes: [performance-efficiency, reliability]}
+  - {id: MEDIA.RIGHTS.001, domain: rights-security, invariant: "Playback authorization, entitlement, signed access, DRM where required, and expiry align with content rights.", evidence_requirements: ["Trace sharing, expiry, revocation, and offline licenses."], quality_attributes: [security]}
+  - {id: MEDIA.QOE.001, domain: quality-of-experience, invariant: "Startup, rebuffering, bitrate, errors, and completion are measured by device, region, and content.", evidence_requirements: ["Inspect client telemetry and release guardrails."], quality_attributes: [interaction-capability, reliability]}

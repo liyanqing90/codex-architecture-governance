@@ -15,6 +15,7 @@ RUNTIME_FILES = (
     Path(".codex-plugin/plugin.json"),
     Path("LICENSE"),
     Path("NOTICE"),
+    Path("requirements-runtime.lock"),
     Path("requirements.txt"),
     Path("third_party/PAAD-MIT.txt"),
 )

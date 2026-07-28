@@ -7,7 +7,7 @@
   "required": ["schema_version", "project"],
   "properties": {
     "schema_version": {
-      "const": "1.0"
+      "enum": ["1.0", "1.1"]
     },
     "project": {
       "type": "object",
@@ -69,6 +69,113 @@
             "pattern": "^[a-z0-9][a-z0-9-]*$"
           }
         },
+        "quality_attributes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "priority", "rationale"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9.-]*$"
+              },
+              "priority": {
+                "enum": ["critical", "high", "medium", "low"]
+              },
+              "rationale": {
+                "type": "string",
+                "minLength": 3
+              },
+              "target": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": ["string", "number", "integer", "boolean"]
+                }
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "scenario": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "source",
+                  "trigger",
+                  "environment",
+                  "target",
+                  "response",
+                  "measure"
+                ],
+                "properties": {
+                  "source": {"type": "string", "minLength": 3},
+                  "trigger": {"type": "string", "minLength": 3},
+                  "environment": {"type": "string", "minLength": 3},
+                  "target": {"type": "string", "minLength": 3},
+                  "response": {"type": "string", "minLength": 3},
+                  "measure": {"type": "string", "minLength": 3}
+                }
+              }
+            }
+          }
+        },
+        "business_context": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "product_stage": {
+              "enum": ["prototype", "early", "growth", "scale", "mature", "retiring"]
+            },
+            "team_count": {"type": "integer", "minimum": 1},
+            "ownership_model": {"type": "string", "minLength": 1},
+            "operational_maturity": {
+              "enum": ["low", "medium", "high"]
+            },
+            "distributed_system_experience": {
+              "enum": ["none", "limited", "experienced", "expert", "unknown"]
+            },
+            "on_call": {"type": "boolean"},
+            "change_frequency": {
+              "enum": ["rare", "periodic", "frequent", "continuous", "unknown"]
+            },
+            "regulatory_constraints": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            },
+            "user_scale": {"type": "string", "minLength": 1},
+            "throughput": {"type": "string", "minLength": 1},
+            "latency_targets": {"type": "string", "minLength": 1},
+            "availability_target": {"type": "string", "minLength": 1},
+            "data_volume": {"type": "string", "minLength": 1},
+            "consistency": {"type": "string", "minLength": 1},
+            "offline_requirement": {
+              "enum": ["none", "cached", "limited", "full", "unknown"]
+            },
+            "deployment_model": {"type": "string", "minLength": 1},
+            "budget": {"type": "string"},
+            "deadlines": {"type": "string"},
+            "required_stack": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            },
+            "prohibited_services": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            },
+            "migration_limits": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        },
         "required_reviews": {
           "type": "array",
           "minItems": 1,
@@ -76,6 +183,33 @@
           "items": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "review_requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kind", "rule_packs"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$"
+              },
+              "kind": {
+                "enum": ["project", "ai-agent", "mobile", "portfolio"]
+              },
+              "rule_packs": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]*$"
+                }
+              }
+            }
           }
         },
         "rule_packs": {
@@ -104,5 +238,48 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.1"}
+        }
+      },
+      "then": {
+        "properties": {
+          "project": {
+            "required": [
+              "quality_attributes",
+              "business_context",
+              "review_requirements"
+            ],
+            "properties": {
+              "quality_attributes": {
+                "items": {
+                  "required": ["scenario"]
+                }
+              },
+              "business_context": {
+                "required": [
+                  "product_stage",
+                  "team_count",
+                  "ownership_model",
+                  "operational_maturity",
+                  "distributed_system_experience",
+                  "on_call",
+                  "change_frequency",
+                  "regulatory_constraints",
+                  "offline_requirement",
+                  "deployment_model",
+                  "budget",
+                  "migration_limits"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

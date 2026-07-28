@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: backend-api
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: API.CONTRACT.001, domain: api-contract, invariant: "API inputs, outputs, errors, pagination, idempotency, and compatibility are explicit and consumer-tested.", evidence_requirements: ["Inspect machine contract, consumers, and compatibility tests."], quality_attributes: [compatibility, reliability]}
+  - {id: API.AUTH.001, domain: authorization, invariant: "Every protected operation authorizes the authenticated principal against the target resource and tenant.", evidence_requirements: ["Trace principal and resource context to the data operation."], quality_attributes: [security]}
+  - {id: API.RESOURCE.001, domain: resource-control, invariant: "Request size, concurrency, deadlines, rate limits, cancellation, and expensive queries are bounded.", evidence_requirements: ["Inspect limits and overload behavior at ingress and dependencies."], quality_attributes: [performance-efficiency, reliability]}
+  - {id: API.DATA.001, domain: transaction-ownership, invariant: "API transaction boundaries protect business invariants without leaking transport concerns into data ownership.", evidence_requirements: ["Trace a mutation through validation, commit, event publication, and failure."], quality_attributes: [reliability, maintainability]}
+  - {id: API.OBSERVABILITY.001, domain: api-observability, invariant: "Latency, errors, saturation, dependency failures, and business outcomes are correlated without logging sensitive payloads.", evidence_requirements: ["Inspect one request across metrics, traces, logs, and audit."], quality_attributes: [reliability, security]}

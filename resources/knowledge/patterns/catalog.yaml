@@ -1,0 +1,305 @@
+schema_version: "1.1"
+kind: pattern
+catalog_version: "1.0.0"
+entries:
+  - &pattern_base
+    id: outbox
+    name: Transactional Outbox
+    category: data-messaging
+    intent: [Atomically record domain state and messages in one local transaction for later relay.]
+    fit_when: [A database commit and external message publication must not diverge.]
+    avoid_when: [No external publication exists or the transport participates in the same atomic boundary.]
+    benefits: [Prevents lost messages after committed state.]
+    liabilities: [Relay lag, duplicate publication, cleanup, and table growth.]
+    required_capabilities: [idempotent-consumers, relay-observability]
+    warning_signals: [unbounded-outbox, non-idempotent-consumers]
+    alternatives: [cdc]
+    sources: &pattern_sources
+      - {title: "Azure Cloud Design Patterns", url: "https://learn.microsoft.com/en-us/azure/architecture/patterns/", authority: official}
+    freshness: &pattern_freshness {reviewed_on: "2026-07-28", review_after_days: 365}
+  - <<: *pattern_base
+    id: inbox
+    name: Consumer Inbox
+    intent: [Record processed message identities within the consumer transaction to suppress duplicate effects.]
+    fit_when: [At-least-once delivery can repeat commands or events.]
+    avoid_when: [Operations are naturally idempotent and duplicate processing is harmless.]
+    benefits: [Protects side effects from duplicate delivery.]
+    liabilities: [Identity scope, retention, storage, and concurrency controls.]
+    required_capabilities: [stable-message-identity, cleanup-policy]
+    warning_signals: [global-id-collisions, check-then-act-race]
+    alternatives: [idempotency-key]
+  - <<: *pattern_base
+    id: saga
+    name: Saga
+    intent: [Coordinate a long business transaction through local commits and compensating actions.]
+    fit_when: [Multiple autonomous data owners must participate without a distributed transaction.]
+    avoid_when: [A single database transaction can protect the invariant.]
+    benefits: [Explicit partial-failure and compensation workflow.]
+    liabilities: [Compensation is business-specific and cannot always restore prior reality.]
+    required_capabilities: [durable-state, idempotent-steps, compensation-ownership]
+    warning_signals: [implicit-compensation, missing-terminal-states]
+    alternatives: [single-transaction, durable-workflow]
+  - <<: *pattern_base
+    id: circuit-breaker
+    name: Circuit Breaker
+    category: resilience
+    intent: [Stop repeated calls to a failing dependency and probe recovery deliberately.]
+    fit_when: [Persistent dependency failure consumes capacity or amplifies latency.]
+    avoid_when: [Simple timeout and bounded retry already contain the failure.]
+    benefits: [Reduces cascading failure and resource exhaustion.]
+    liabilities: [Threshold tuning, half-open behavior, and shared state.]
+    required_capabilities: [timeouts, metrics, degraded-mode]
+    warning_signals: [breaker-without-timeout, global-breaker-for-unrelated-traffic]
+    alternatives: [timeout, bulkhead]
+  - <<: *pattern_base
+    id: bulkhead
+    name: Bulkhead
+    category: resilience
+    intent: [Partition concurrency, connections, queues, or capacity to contain failure.]
+    fit_when: [One workload can exhaust shared resources used by critical flows.]
+    avoid_when: [Workloads share identical priority and isolated pools would waste scarce capacity.]
+    benefits: [Bounds blast radius and preserves critical capacity.]
+    liabilities: [Capacity fragmentation and tuning complexity.]
+    required_capabilities: [workload-classification, capacity-observability]
+    warning_signals: [unbounded-default-pool, static-partitions-without-data]
+    alternatives: [backpressure, rate-limit]
+  - <<: *pattern_base
+    id: retry-timeout
+    name: Retry with Timeout and Backoff
+    category: resilience
+    intent: [Bound waiting and retry only transient failures with backoff, jitter, and an attempt budget.]
+    fit_when: [A dependency exposes safe retry semantics and transient failures are expected.]
+    avoid_when: [The operation is non-idempotent or the failure is permanent or overloaded.]
+    benefits: [Recovers bounded transient faults.]
+    liabilities: [Can amplify outages and duplicate side effects.]
+    required_capabilities: [idempotency, error-classification, retry-budget]
+    warning_signals: [nested-retries, no-deadline, retry-all-errors]
+    alternatives: [degraded-mode, circuit-breaker]
+  - <<: *pattern_base
+    id: cache-aside
+    name: Cache Aside
+    category: data
+    intent: [Load data into a cache on demand while retaining an authoritative backing store.]
+    fit_when: [Repeated reads have measurable latency or origin-load impact and bounded staleness is acceptable.]
+    avoid_when: [Strong freshness is required or the working set has low reuse.]
+    benefits: [Reduces read latency and origin load.]
+    liabilities: [Invalidation, stampede, penetration, and stale data.]
+    required_capabilities: [ttl-policy, invalidation, observability]
+    warning_signals: [cache-as-source-of-truth, unbounded-keys]
+    alternatives: [materialized-view]
+  - <<: *pattern_base
+    id: idempotency-key
+    name: Idempotency Key
+    category: reliability
+    intent: [Bind repeated client commands to one durable outcome within a declared scope and lifetime.]
+    fit_when: [Clients or infrastructure may retry a side-effecting command.]
+    avoid_when: [The operation is a pure read or has no stable request identity.]
+    benefits: [Prevents duplicate externally visible effects.]
+    liabilities: [Key scope, retention, payload equivalence, and concurrent races.]
+    required_capabilities: [durable-key-store, request-fingerprint]
+    warning_signals: [key-without-payload-binding, check-then-act]
+    alternatives: [inbox]
+  - <<: *pattern_base
+    id: strangler
+    name: Strangler Fig
+    category: migration
+    intent: [Replace a legacy capability incrementally behind a routing or compatibility boundary.]
+    fit_when: [A big-bang replacement is too risky and behavior can be partitioned.]
+    avoid_when: [No stable routing seam exists or dual operation costs exceed migration risk.]
+    benefits: [Reversible incremental migration.]
+    liabilities: [Dual paths, routing, data ownership transition, and prolonged complexity.]
+    required_capabilities: [traffic-routing, compatibility-tests, observability]
+    warning_signals: [permanent-dual-path, unclear-data-owner]
+    alternatives: [branch-by-abstraction]
+  - <<: *pattern_base
+    id: anti-corruption-layer
+    name: Anti-Corruption Layer
+    category: integration
+    intent: [Translate an external or legacy model into a bounded internal model.]
+    fit_when: [External semantics would otherwise leak into core policy.]
+    avoid_when: [Models already align and translation would only rename fields.]
+    benefits: [Protects domain language and change boundaries.]
+    liabilities: [Mapping, error handling, and semantic drift.]
+    required_capabilities: [contract-owner, translation-tests]
+    warning_signals: [pass-through-layer, hidden-lossy-mapping]
+    alternatives: [direct-integration]
+  - <<: *pattern_base
+    id: backend-for-frontend
+    name: Backend for Frontend
+    category: integration
+    intent: [Provide client-specific aggregation and adaptation while keeping authoritative rules in owned services.]
+    fit_when: [Clients have materially different interaction and data-shaping needs.]
+    avoid_when: [One API serves all clients without harmful coupling.]
+    benefits: [Client autonomy and fewer chatty calls.]
+    liabilities: [Duplicated orchestration and additional operational surface.]
+    required_capabilities: [client-ownership, contract-governance]
+    warning_signals: [business-authority-in-bff, duplicated-core-rules]
+    alternatives: [api-gateway]
+  - <<: *pattern_base
+    id: materialized-view
+    name: Materialized View
+    category: data
+    intent: [Precompute a read model for expensive queries with explicit rebuild and freshness semantics.]
+    fit_when: [Read shapes differ from writes and measured query cost matters.]
+    avoid_when: [Direct indexed queries meet targets.]
+    benefits: [Predictable read latency and query isolation.]
+    liabilities: [Staleness, rebuild, ordering, and storage.]
+    required_capabilities: [rebuild, checkpoint, freshness-signal]
+    warning_signals: [no-rebuild-path, unknown-lag]
+    alternatives: [cache-aside, cqrs]
+  - <<: *pattern_base
+    id: change-data-capture
+    name: Change Data Capture
+    category: data-integration
+    intent: [Publish committed database changes from a log or change stream.]
+    fit_when: [Existing committed changes must feed independent downstream consumers.]
+    avoid_when: [Business event semantics cannot be derived safely from storage changes.]
+    benefits: [Avoids application dual writes and supports replay.]
+    liabilities: [Schema coupling, ordering, backfill, and operational lag.]
+    required_capabilities: [schema-governance, checkpoint, replay]
+    warning_signals: [raw-row-as-domain-event, no-backfill-plan]
+    alternatives: [outbox]
+  - <<: *pattern_base
+    id: expand-contract
+    name: Expand and Contract
+    category: migration
+    intent: [Introduce a compatible contract, migrate producers and consumers, then remove the old shape.]
+    fit_when: [Schemas, APIs, or persisted data must change across mixed versions.]
+    avoid_when: [There is one atomic deployment with no persisted compatibility.]
+    benefits: [Supports rolling and reversible migration.]
+    liabilities: [Temporary dual semantics and cleanup discipline.]
+    required_capabilities: [consumer-inventory, compatibility-tests, removal-gate]
+    warning_signals: [same-release-contraction, unknown-consumers]
+    alternatives: [versioned-contract]
+  - <<: *pattern_base
+    id: feature-flag
+    name: Feature Flag
+    category: delivery
+    intent: [Separate deployment from exposure and provide bounded rollback or cohort control.]
+    fit_when: [Incremental rollout or rapid containment materially reduces risk.]
+    avoid_when: [The flag cannot isolate the change or will become permanent configuration.]
+    benefits: [Controlled exposure and fast behavioral rollback.]
+    liabilities: [State combinations, cleanup, and inconsistent user experience.]
+    required_capabilities: [flag-owner, expiry, telemetry]
+    warning_signals: [permanent-flag, untested-combinations]
+    alternatives: [canary-deployment]
+  - <<: *pattern_base
+    id: lease
+    name: Lease
+    category: coordination
+    intent: [Grant temporary ownership that expires unless renewed.]
+    fit_when: [Distributed workers need recoverable exclusive responsibility.]
+    avoid_when: [A local lock or partition ownership already provides the invariant.]
+    benefits: [Ownership can recover after failure.]
+    liabilities: [Clock assumptions, renewal, fencing, and split-brain.]
+    required_capabilities: [fencing-token, monotonic-time, expiry-observability]
+    warning_signals: [lease-without-fencing, work-past-expiry]
+    alternatives: [leader-election]
+  - <<: *pattern_base
+    id: cqrs-event-sourcing
+    name: CQRS and Event Sourcing
+    category: data
+    intent: [Separate read and write models and preserve a versioned event history when both have demonstrated domain value.]
+    fit_when: [Read/write models diverge materially and audit, temporal reconstruction, or replay is a core requirement.]
+    avoid_when: [The system is ordinary CRUD or the team lacks event evolution capability.]
+    benefits: [Purpose-built reads and complete change history.]
+    liabilities: [Event versioning, projections, eventual consistency, replay, and high cognitive cost.]
+    required_capabilities: [event-governance, projection-rebuild, idempotency]
+    warning_signals: [events-as-row-deltas, no-replay-tests]
+    alternatives: [transactional-model, materialized-view]
+  - <<: *pattern_base
+    id: api-gateway
+    name: API Gateway
+    category: integration
+    intent: [Provide a governed external ingress for routing, authentication integration, throttling, protocol adaptation, and observability.]
+    fit_when: [Multiple services need consistent edge policy or client-facing composition.]
+    avoid_when: [One service already provides a coherent boundary or the gateway would own domain policy.]
+    benefits: [Central edge controls and stable client entry point.]
+    liabilities: [Bottleneck, failure domain, policy coupling, and hidden orchestration.]
+    required_capabilities: [high-availability, configuration-governance, trace-propagation]
+    warning_signals: [business-logic-in-gateway, gateway-shared-database]
+    alternatives: [backend-for-frontend, direct-service-ingress]
+  - <<: *pattern_base
+    id: leader-election
+    name: Leader Election
+    category: coordination
+    intent: [Select one active coordinator for work that cannot safely run concurrently.]
+    fit_when: [A distributed singleton responsibility is unavoidable and failover is required.]
+    avoid_when: [Work can be partitioned, made idempotent, or delegated to a managed scheduler.]
+    benefits: [Controlled singleton execution with failover.]
+    liabilities: [Split brain, fencing, election availability, and coordinator bottleneck.]
+    required_capabilities: [consensus-or-lease, fencing-token, health-observation]
+    warning_signals: [leader-without-fencing, global-leader-for-partitionable-work]
+    alternatives: [lease, partition-ownership]
+  - <<: *pattern_base
+    id: sharding
+    name: Sharding
+    category: data
+    intent: [Partition data and workload by a stable key across independent storage or compute units.]
+    fit_when: [Measured volume, throughput, isolation, or locality exceeds a single unit and access is partition-aligned.]
+    avoid_when: [Vertical scale, indexes, replicas, archiving, or caching satisfy current targets.]
+    benefits: [Horizontal capacity and bounded failure or tenant domains.]
+    liabilities: [Key choice, hotspots, rebalancing, cross-shard queries, transactions, and operations.]
+    required_capabilities: [partition-key, routing, rebalancing, shard-observability]
+    warning_signals: [random-key-with-range-queries, cross-shard-invariants]
+    alternatives: [read-replica, partitioned-tables]
+  - <<: *pattern_base
+    id: read-replica
+    name: Read Replica
+    category: data
+    intent: [Serve eligible reads from replicated database copies to reduce primary load or improve locality.]
+    fit_when: [Read pressure dominates and bounded replication lag is acceptable for identified queries.]
+    avoid_when: [Read-after-write consistency is required or query/index optimization solves the bottleneck.]
+    benefits: [Read capacity, locality, and optional recovery copies.]
+    liabilities: [Staleness, failover semantics, routing, consistency surprises, and cost.]
+    required_capabilities: [lag-observation, consistency-routing, failover-runbook]
+    warning_signals: [unbounded-stale-reads, replicas-as-backups-only]
+    alternatives: [cache-aside, materialized-view]
+  - <<: *pattern_base
+    id: compensating-transaction
+    name: Compensating Transaction
+    category: reliability
+    intent: [Apply domain-specific actions that reduce or reverse the effects of previously committed steps.]
+    fit_when: [A long-running operation crosses irreversible local commits and failure must be repaired.]
+    avoid_when: [A local atomic transaction can protect the invariant or reality cannot meaningfully be reversed.]
+    benefits: [Explicit recovery for partial business completion.]
+    liabilities: [Compensation can fail, is not equivalent to rollback, and needs audit and reconciliation.]
+    required_capabilities: [durable-state, idempotent-compensation, escalation]
+    warning_signals: [generic-undo, silent-compensation-failure]
+    alternatives: [saga, manual-reconciliation]
+  - <<: *pattern_base
+    id: schema-registry
+    name: Schema Registry
+    category: messaging
+    intent: [Govern versioned message schemas, compatibility rules, producers, consumers, and serialization identifiers.]
+    fit_when: [Independent producers and consumers exchange durable or replayable records.]
+    avoid_when: [One atomic deployment owns a private transient message.]
+    benefits: [Machine compatibility checks and discoverable contract history.]
+    liabilities: [Registry availability, policy selection, generated-code coupling, and semantic gaps.]
+    required_capabilities: [consumer-inventory, compatibility-policy, ownership]
+    warning_signals: [structural-only-compatibility, unmanaged-subject-names]
+    alternatives: [repository-contracts]
+  - <<: *pattern_base
+    id: dead-letter-replay
+    name: Dead Letter and Replay
+    category: messaging
+    intent: [Quarantine repeatedly failing messages with complete context and provide authorized, idempotent replay.]
+    fit_when: [Poison messages must not block progress and operators can repair or classify failures.]
+    avoid_when: [Dead lettering would silently discard required work without ownership.]
+    benefits: [Failure isolation and recoverable operations.]
+    liabilities: [Unbounded queues, stale data, privacy retention, replay duplication, and operational backlog.]
+    required_capabilities: [failure-classification, retention, replay-authorization, idempotency]
+    warning_signals: [write-only-dlq, replay-without-version-binding]
+    alternatives: [parking-lot-queue, terminal-failure-state]
+  - <<: *pattern_base
+    id: branch-by-abstraction
+    name: Branch by Abstraction
+    category: migration
+    intent: [Introduce a stable seam so old and new implementations can coexist while callers migrate incrementally.]
+    fit_when: [A large internal replacement cannot safely land atomically.]
+    avoid_when: [The abstraction has no durable ownership boundary or a direct small replacement is safer.]
+    benefits: [Incremental rollout, comparison, and rollback.]
+    liabilities: [Temporary dual paths, abstraction leakage, cleanup, and divergent semantics.]
+    required_capabilities: [characterization-tests, routing, equivalence-observation, removal-gate]
+    warning_signals: [permanent-dual-implementation, seam-at-wrong-boundary]
+    alternatives: [strangler, feature-flag]

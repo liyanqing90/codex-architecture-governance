@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: real-time-system
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: REALTIME.DEADLINE.001, domain: deadline, invariant: "End-to-end latency and jitter targets are budgeted per stage and proven under representative load.", evidence_requirements: ["Inspect percentile latency, clock source, load, and missed-deadline behavior."], quality_attributes: [performance-efficiency, reliability]}
+  - {id: REALTIME.ORDER.001, domain: ordering, invariant: "Ordering, duplicate, late, and missing-message semantics are explicit per key and consumer.", evidence_requirements: ["Trace reordering and redelivery through state updates."], quality_attributes: [reliability]}
+  - {id: REALTIME.BACKPRESSURE.001, domain: backpressure, invariant: "Each bounded resource defines admission, buffering, shedding, degradation, and recovery behavior.", evidence_requirements: ["Inspect overload from ingress through every queue."], quality_attributes: [reliability, performance-efficiency]}
+  - {id: REALTIME.STATE.001, domain: state-recovery, invariant: "Stateful processors restore deterministically from checkpoints and replay without duplicating effects.", evidence_requirements: ["Exercise failure between state commit and output publication."], quality_attributes: [recoverability, reliability]}
+  - {id: REALTIME.TIME.001, domain: time-semantics, invariant: "Event time, processing time, watermark, clock skew, and window closure semantics are declared.", evidence_requirements: ["Inspect late-event tests and time-source assumptions."], quality_attributes: [functional-suitability, reliability]}

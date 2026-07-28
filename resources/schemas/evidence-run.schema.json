@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/evidence-run.schema.json",
+  "title": "Deterministic evidence provider run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run", "result"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "provider_id",
+        "provider_catalog_sha256",
+        "provider_definition_sha256",
+        "provider_config_sha256",
+        "evidence_type",
+        "trust",
+        "project_id",
+        "repository_identity",
+        "commit",
+        "dirty_tree",
+        "started_at",
+        "completed_at",
+        "command",
+        "executable",
+        "executable_sha256",
+        "detect_matches",
+        "output_source",
+        "timeout_seconds",
+        "success_exit_codes",
+        "environment_names"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{2,159}$"
+        },
+        "provider_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "provider_catalog_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "provider_definition_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "provider_config_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "evidence_type": {
+          "enum": ["static", "contract", "runtime", "security", "supply-chain", "test"]
+        },
+        "trust": {
+          "enum": ["deterministic", "runtime-observation", "model-assisted"]
+        },
+        "project_id": {"type": "string", "minLength": 1},
+        "repository_identity": {"type": "string", "minLength": 1},
+        "commit": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{40,64}$"
+        },
+        "dirty_tree": {"type": "boolean"},
+        "started_at": {"type": "string", "format": "date-time"},
+        "completed_at": {"type": "string", "format": "date-time"},
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "executable": {"type": "string", "minLength": 1},
+        "executable_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "detect_matches": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "output_source": {"enum": ["stdout", "stderr", "file"]},
+        "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 3600},
+        "success_exit_codes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 0, "maximum": 255}
+        },
+        "environment_names": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "exit_code",
+        "output_format",
+        "content_validation",
+        "stdout",
+        "stderr"
+      ],
+      "properties": {
+        "status": {"enum": ["passed", "failed", "timed-out"]},
+        "exit_code": {"type": ["integer", "null"]},
+        "output_format": {
+          "enum": ["exit-code", "json", "sarif", "junit", "text"]
+        },
+        "content_validation": {
+          "enum": ["valid", "invalid", "not-applicable"]
+        },
+        "content_error": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stdout": {"$ref": "#/$defs/output"},
+        "stderr": {"$ref": "#/$defs/output"},
+        "structured_output": {"$ref": "#/$defs/output"}
+      }
+    }
+  },
+  "$defs": {
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "bytes"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "bytes": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

@@ -5,11 +5,13 @@ Maintainers review them with every release that changes a public contract.
 
 ## Product and business
 
-- The seven public Skill names and their distinct user goals are compatibility
+- The nine public Skill names and their distinct user goals are compatibility
   contracts. Owner: maintainers. Source: plugin manifest and README. Changing
   them requires a documented migration and an appropriate SemVer release.
 - Architecture diagnosis, independent verification, remediation planning, and
-  deterministic gating remain separate workflows. Owner: maintainers. Source:
+  deterministic gating remain separate workflows. Architecture solution
+  selection sits between verification and remediation; knowledge curation
+  remains separate from product decisions. Owner: maintainers. Source:
   accepted repository layout decision. This boundary is fixed unless a new
   architecture decision supersedes it.
 
@@ -21,22 +23,31 @@ Maintainers review them with every release that changes a public contract.
 - The plugin keeps Skills as direct children of `skills/` and shared runtime
   contracts under root `resources/`. Owner: maintainers. Source: Codex plugin
   validation. Review when the Codex packaging contract changes.
-- Artifact schemas and CLI exit codes are public contracts. Compatible
+- Artifact schemas and CLI exit codes are public contracts. Schema `1.0`
+  remains readable; only trusted `1.1` artifacts enter enforcement. Compatible
   additions are preferred; incompatible changes require migration guidance.
 
 ## Security, privacy, and compliance
 
 - Runtime behavior requires no network, credentials, telemetry, or external
-  service. Adding any of these requires a separate security and privacy review.
+  service. Explicitly enabled Evidence Provider commands are project-owned
+  subprocesses and may have their own access; the governance runtime never
+  supplies network or credentials implicitly. Adding access to the runtime
+  itself requires a separate security and privacy review.
 - Candidate model findings cannot block a build. Only schema-valid verified
-  findings may enter the deterministic quality gate.
+  findings with complete Rule Pack coverage, provenance, evidence bindings,
+  and authorized verification may enter the deterministic quality gate.
 - Initialization may create `.architecture/` or `.architecture-portfolio/`
   only at an explicit target and must refuse to overwrite existing state.
+- Bundled Rule Packs and repository-local organization Rule Packs are separate
+  namespaces under one validator. Local packs cannot shadow bundled IDs or
+  cross a review-kind boundary.
 
 ## Operations, cost, and team
 
 - Release artifacts contain only an explicit runtime allowlist and carry a
-  reproducible SHA-256 checksum. CI and a maintainer verify both before release.
+  reproducible SHA-256 checksum. Exact dependency locks, license policy, SPDX
+  package declarations, and GitHub attestations are release requirements.
 - The repository is maintained through reviewable source, schemas, tests,
   evaluation cases, and decision records; undocumented maintainer-only steps
   are not release prerequisites.
@@ -45,5 +56,5 @@ Maintainers review them with every release that changes a public contract.
 
 - This project does not implement an MCP server, hosted service, architecture
   dashboard, or automatic repository discovery.
-- It does not accept risk, create waivers, or modify audited product code on a
-  user's behalf.
+- It records but never autonomously approves risk acceptance or waivers, and
+  never modifies audited product code on a user's behalf.

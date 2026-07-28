@@ -1,0 +1,163 @@
+schema_version: "1.1"
+kind: migration
+catalog_version: "1.0.0"
+entries:
+  - &migration_base
+    id: layered-monolith-to-modular
+    name: Layered Monolith to Modular Monolith
+    category: code-boundary
+    intent: [Introduce module ownership and public APIs before changing deployment.]
+    fit_when: [Change coupling is proven but one deployment remains appropriate.]
+    avoid_when: [Domain boundaries and ownership cannot yet be identified.]
+    benefits: [Reduces coupling with low operational change.]
+    liabilities: [Temporary adapters and boundary-test adoption.]
+    required_capabilities: [module-map, characterization-tests]
+    warning_signals: [directory-only-modules, shared-writers]
+    migration_paths: [inventory-dependencies, define-apis, enforce-boundaries, migrate-writers, remove-backdoors]
+    decision_rules: [Stop before service extraction unless independent deployment value is proven.]
+    sources: &migration_sources
+      - {title: "Azure Cloud Design Patterns", url: "https://learn.microsoft.com/en-us/azure/architecture/patterns/", authority: official}
+    freshness: &migration_freshness {reviewed_on: "2026-07-28", review_after_days: 365}
+  - <<: *migration_base
+    id: strangler-migration
+    name: Strangler Migration
+    category: system-replacement
+    intent: [Route bounded slices from legacy to replacement while preserving observable compatibility and rollback.]
+    fit_when: [Behavior can be partitioned behind a routing seam.]
+    avoid_when: [Data and behavior cannot be separated safely or dual operation is unaffordable.]
+    benefits: [Incremental and reversible replacement.]
+    liabilities: [Dual routing, data transition, and prolonged compatibility.]
+    required_capabilities: [routing, contract-tests, traffic-observability]
+    warning_signals: [no-removal-gate, dual-writes-without-owner]
+    migration_paths: [characterize, introduce-router, shadow-read, migrate-slice, verify, retire-slice]
+    decision_rules: [Each slice requires rollback and ownership transfer evidence.]
+  - <<: *migration_base
+    id: expand-contract-migration
+    name: Expand and Contract Migration
+    category: contract
+    intent: [Add compatible fields or shapes, migrate all consumers, then remove the old contract after evidence.]
+    fit_when: [Mixed versions or persisted data prevent atomic change.]
+    avoid_when: [All consumers deploy atomically and no data persists.]
+    benefits: [Rolling compatibility and reversible expansion.]
+    liabilities: [Temporary dual semantics and cleanup debt.]
+    required_capabilities: [consumer-inventory, compatibility-tests, usage-signals]
+    warning_signals: [same-release-removal, unknown-consumer]
+    migration_paths: [expand, dual-read, backfill, migrate-consumers, verify-zero-use, contract]
+    decision_rules: [Never contract until telemetry proves old-path disuse.]
+  - <<: *migration_base
+    id: queue-to-durable-workflow
+    name: Queue to Durable Workflow
+    category: orchestration
+    intent: [Move task state, timers, retries, approvals, and recovery into an explicit durable workflow.]
+    fit_when: [Queue plus status rows cannot reliably express or recover multi-step work.]
+    avoid_when: [A single idempotent worker remains sufficient.]
+    benefits: [Explicit workflow state and resumption.]
+    liabilities: [Runtime adoption, determinism, worker versioning, and history migration.]
+    required_capabilities: [idempotent-activities, workflow-versioning, correlation]
+    warning_signals: [side-effects-in-workflow-code, unversioned-state]
+    migration_paths: [model-state, wrap-activities, mirror-status, route-new-tasks, drain-old-queue]
+    decision_rules: [Migrate new tasks first; drain legacy tasks without converting in-flight histories.]
+  - <<: *migration_base
+    id: server-first-to-offline-first
+    name: Server-First to Offline-First
+    category: mobile-data
+    intent: [Introduce a versioned local replica, durable operation log, reconciliation protocol, and conflict policy incrementally.]
+    fit_when: [Offline editing becomes a confirmed core product requirement.]
+    avoid_when: [Offline display cache meets user needs.]
+    benefits: [Continuous local work and resilient synchronization.]
+    liabilities: [Data migration, conflicts, tombstones, battery, and multi-version servers.]
+    required_capabilities: [local-schema, sync-protocol, conflict-policy, migration-tests]
+    warning_signals: [implicit-last-write-wins, no-delete-protocol]
+    migration_paths: [cache-read, local-identities, outbox, server-idempotency, conflict-policy, background-sync]
+    decision_rules: [Gate each step with offline, reconnect, conflict, deletion, and upgrade evidence.]
+  - <<: *migration_base
+    id: sync-to-event-integration
+    name: Synchronous API to Event Integration
+    category: integration
+    intent: [Introduce owned events and idempotent consumers without breaking the existing synchronous contract.]
+    fit_when: [Independent consumers or failure decoupling are proven needs.]
+    avoid_when: [The caller still needs an immediate authoritative result.]
+    benefits: [Incremental temporal decoupling and consumer autonomy.]
+    liabilities: [Dual paths, eventual consistency, duplicate effects, and operational transition.]
+    required_capabilities: [outbox, event-contract, idempotent-consumer, correlation]
+    warning_signals: [event-as-hidden-command, synchronous-and-event-double-effect]
+    migration_paths: [characterize-api, publish-shadow-event, validate-consumer, switch-owned-flow, remove-old-call]
+    decision_rules: [Keep the synchronous path until event outcome and recovery are observable.]
+  - <<: *migration_base
+    id: shared-saas-to-cells
+    name: Shared SaaS to Cells
+    category: scaling
+    intent: [Introduce repeatable cells and route selected tenants while preserving global control-plane integrity.]
+    fit_when: [Failure containment or capacity evidence justifies duplicated data planes.]
+    avoid_when: [Service or database scaling resolves the proven bottleneck.]
+    benefits: [Bounded blast radius and incremental scale.]
+    liabilities: [Tenant moves, routing, duplicated infrastructure, global dependencies, and fleet operations.]
+    required_capabilities: [tenant-placement, fleet-automation, cell-routing, data-movement]
+    warning_signals: [global-data-plane-dependency, snowflake-cells]
+    migration_paths: [define-cell-contract, automate-empty-cell, route-pilot-tenants, rehearse-move, scale-fleet]
+    decision_rules: [Prove one repeatable cell before partitioning the tenant base.]
+  - <<: *migration_base
+    id: batch-to-incremental-stream
+    name: Batch to Incremental Stream
+    category: data
+    intent: [Introduce incremental events, checkpoints, and reconciliation beside an authoritative batch output.]
+    fit_when: [Measured freshness requirements cannot be met by optimized batch schedules.]
+    avoid_when: [Batch remains within the product freshness target.]
+    benefits: [Lower data latency with comparison against a known baseline.]
+    liabilities: [Dual computation, event-time semantics, state recovery, and divergence.]
+    required_capabilities: [event-log, checkpoints, reconciliation, watermark-policy]
+    warning_signals: [stream-without-replay, no-batch-reconciliation]
+    migration_paths: [emit-changes, build-shadow-stream, reconcile, switch-readers, retain-recovery-job]
+    decision_rules: [Run stream and batch in comparison until discrepancy is bounded and owned.]
+  - <<: *migration_base
+    id: shared-database-to-owned-data
+    name: Shared Database to Owned Data
+    category: data-boundary
+    intent: [Move writers and readers behind an owning module or service before separating physical storage.]
+    fit_when: [Multiple components write the same data and independent ownership is required.]
+    avoid_when: [One transactional owner already exists and physical separation adds no value.]
+    benefits: [Clarifies authority and creates a reversible extraction seam.]
+    liabilities: [Compatibility views, backfills, dual reads, and temporary latency.]
+    required_capabilities: [writer-inventory, contract-tests, change-capture, reconciliation]
+    warning_signals: [physical-split-before-owner, uncontrolled-dual-write]
+    migration_paths: [inventory-writers, route-owner-api, enforce-write-boundary, migrate-reads, split-storage-if-needed]
+    decision_rules: [Change logical ownership before physical database topology.]
+  - <<: *migration_base
+    id: single-region-to-multi-region
+    name: Single Region to Multi-Region
+    category: resilience
+    intent: [Add a second region through explicit recovery targets, data replication, traffic control, failover, and failback.]
+    fit_when: [Regional outage impact and recovery targets justify cost and consistency tradeoffs.]
+    avoid_when: [Backup and single-region recovery meet business requirements.]
+    benefits: [Reduced regional recovery time and optional locality.]
+    liabilities: [Consistency, split brain, capacity, testing, data residency, and doubled operations.]
+    required_capabilities: [rto-rpo, replication, traffic-management, failover-runbook, capacity]
+    warning_signals: [active-active-with-global-writes, untested-failback]
+    migration_paths: [define-recovery, restore-secondary, replicate, shadow-read, rehearse-failover, automate-failback]
+    decision_rules: [Start active-passive unless concurrent regional writes are a proven requirement.]
+  - <<: *migration_base
+    id: internal-extension-to-plugin
+    name: Internal Extension to Plugin Platform
+    category: extensibility
+    intent: [Extract a stable capability contract, manifest, permissions, compatibility, and isolation around existing extensions.]
+    fit_when: [Independent extension release or third-party participation becomes a product requirement.]
+    avoid_when: [Extensions remain internal and deploy with the host.]
+    benefits: [Incremental contract hardening before ecosystem exposure.]
+    liabilities: [Adapters, compatibility promises, sandboxing, and migration of internal access.]
+    required_capabilities: [extension-inventory, contract-tests, permission-model, provenance]
+    warning_signals: [publishing-host-internals, permissions-after-launch]
+    migration_paths: [inventory-capabilities, define-manifest, mediate-host-calls, isolate, sign, open-publisher-boundary]
+    decision_rules: [Do not expose third-party loading until authority and revocation are enforceable.]
+  - <<: *migration_base
+    id: cache-introduction
+    name: Introduce Cache Safely
+    category: performance
+    intent: [Add a measured cache with explicit keys, consistency, invalidation, expiry, stampede control, and bypass.]
+    fit_when: [Observed repeated reads or dependency cost exceeds targets.]
+    avoid_when: [Indexes, query changes, or capacity fixes resolve the problem more simply.]
+    benefits: [Reduced latency and backend load.]
+    liabilities: [Staleness, memory cost, invalidation, cold starts, and new failure modes.]
+    required_capabilities: [load-baseline, cache-key-contract, invalidation, telemetry]
+    warning_signals: [cache-as-authority, infinite-ttl]
+    migration_paths: [measure, cache-shadow-read, compare, enable-cohorts, protect-stampede, define-bypass]
+    decision_rules: [Retain a correct uncached path and prove the cache changes the measured bottleneck.]

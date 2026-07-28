@@ -1,0 +1,102 @@
+schema_version: "1.1"
+kind: decision-guide
+catalog_version: "1.0.0"
+entries:
+  - id: system-style-selection
+    name: System Architecture Style Selection
+    category: decision-process
+    intent: [Select the least complex architecture that satisfies business scenarios, quality attributes, team capability, cost, and migration constraints.]
+    fit_when: [A verified problem requires an architecture or platform decision.]
+    avoid_when: [No confirmed problem or decision authority exists.]
+    benefits: [Makes alternatives, tradeoffs, assumptions, and revisit triggers explicit.]
+    liabilities: [Scores can create false precision if evidence is weak.]
+    required_capabilities: [quality-scenarios, current-architecture-map, verified-findings, decision-authority]
+    warning_signals: [single-option-recommendation, technology-first-design, missing-do-nothing]
+    decision_rules:
+      - Always include keep-current with local repair.
+      - Reject microservices when independent deployment and team autonomy are unproven.
+      - Reject durable workflow when short idempotent queue work is sufficient.
+      - Reject event sourcing for ordinary CRUD without temporal or audit value.
+      - Reject offline-first when server authority plus cache meets the offline requirement.
+      - Reject multi-agent when a fixed workflow or single agent meets the capability.
+      - Compare business fit, quality effects, team capability, implementation and operations complexity, migration risk, reversibility, cost, maturity, and lock-in.
+      - Record why each non-selected option was rejected and what evidence would trigger reconsideration.
+    sources:
+      - {title: "AWS Well-Architected Framework", url: "https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html", authority: official}
+      - {title: "Google Cloud Well-Architected Framework", url: "https://cloud.google.com/architecture/framework", authority: official}
+      - {title: "Azure Architecture Center", url: "https://learn.microsoft.com/en-us/azure/architecture/", authority: official}
+    freshness: {reviewed_on: "2026-07-28", review_after_days: 180}
+  - id: data-store-selection
+    name: Data Store Selection
+    category: decision-process
+    intent: [Choose the least complex store that satisfies ownership, integrity, access, consistency, scale, lifecycle, recovery, and operations.]
+    fit_when: [A verified access or quality need may justify a new or changed data store.]
+    avoid_when: [Technology preference is the only reason to add a store.]
+    benefits: [Separates data semantics from brand selection and limits polyglot persistence.]
+    liabilities: [Future workload estimates can create false precision.]
+    required_capabilities: [data-model, query-inventory, consistency-scenarios, scale-evidence, operations-owner]
+    warning_signals: [database-per-feature, no-authoritative-owner, migration-omitted]
+    decision_rules:
+      - Start with the existing relational store when it meets integrity and access needs.
+      - Add search, vector, graph, stream, cache, or time-series systems only for a measured specialized capability.
+      - Define authoritative source, replication lag, rebuild, deletion, backup, restore, and exit path for every derived store.
+      - Compare operational maturity, unit cost, portability, and migration before peak benchmark claims.
+    sources:
+      - {title: "Azure Data Store Models", url: "https://learn.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-overview", authority: official}
+    freshness: {reviewed_on: "2026-07-28", review_after_days: 180}
+  - id: integration-style-selection
+    name: Integration Style Selection
+    category: decision-process
+    intent: [Choose direct API, queue, pub-sub event, stream, webhook, or workflow from coupling, latency, fan-out, replay, ordering, and failure requirements.]
+    fit_when: [A cross-boundary interaction requires a durable contract.]
+    avoid_when: [An in-process owned call is sufficient.]
+    benefits: [Prevents event-driven complexity and synchronous coupling from being chosen by habit.]
+    liabilities: [Hybrid systems still require explicit semantic boundaries.]
+    required_capabilities: [consumer-inventory, deadline-scenarios, failure-semantics, delivery-semantics]
+    warning_signals: [events-as-rpc, queues-as-workflow-state, retries-without-idempotency]
+    decision_rules:
+      - Prefer a direct API when the caller requires an immediate result and temporal coupling is acceptable.
+      - Prefer a queue for one owned asynchronous work outcome.
+      - Prefer pub-sub events for independently owned consumers reacting to a fact.
+      - Prefer a durable workflow for multi-step state, timers, approvals, compensation, or recovery.
+      - Require idempotency, correlation, schema evolution, and replay ownership for asynchronous choices.
+    sources:
+      - {title: "Azure Messaging Services", url: "https://learn.microsoft.com/en-us/azure/architecture/guide/technology-choices/messaging", authority: official}
+    freshness: {reviewed_on: "2026-07-28", review_after_days: 180}
+  - id: agent-orchestration-selection
+    name: Agent Orchestration Selection
+    category: decision-process
+    intent: [Choose deterministic code, model call, fixed workflow, single agent, manager, handoff, graph, or durable agent from actual uncertainty and authority needs.]
+    fit_when: [Models may plan, use tools, preserve state, or coordinate specialists.]
+    avoid_when: [A deterministic implementation already satisfies the task.]
+    benefits: [Limits autonomy and multi-agent complexity to demonstrated value.]
+    liabilities: [Behavioral evidence is model-versioned and time-bound.]
+    required_capabilities: [task-analysis, tool-policy, evaluation, state-lifecycle, cost-budget]
+    warning_signals: [multi-agent-by-default, model-owned-policy, side-effects-without-approval]
+    decision_rules:
+      - Evaluate deterministic code before any model.
+      - Evaluate a single call before a workflow and a fixed workflow before an agent.
+      - Require a distinct ownership or context benefit before adding another agent.
+      - Use durable orchestration only for state that must survive process or human time.
+      - Keep authorization and irreversible policy deterministic.
+    sources:
+      - {title: "OpenAI Practical Guide to Building Agents", url: "https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/", authority: official}
+    freshness: {reviewed_on: "2026-07-28", review_after_days: 90}
+  - id: client-data-model-selection
+    name: Client Data Model Selection
+    category: decision-process
+    intent: [Choose server-first, thin-client cache, or local-first replicas from offline, authority, conflict, migration, privacy, and energy requirements.]
+    fit_when: [A mobile or desktop client needs durable data or weak-network behavior.]
+    avoid_when: [The client is a stateless presentation.]
+    benefits: [Prevents accidental distributed data systems in clients.]
+    liabilities: [Product assumptions about offline use require field evidence.]
+    required_capabilities: [offline-scenarios, authority-map, version-matrix, privacy-classification]
+    warning_signals: [local-database-means-offline-first, cache-used-as-authority]
+    decision_rules:
+      - Prefer server-first when connectivity is required and the server is authoritative.
+      - Add a cache for bounded stale reads and optimistic presentation without offline ownership.
+      - Choose local-first only when prolonged offline creation or editing is a core capability.
+      - Require conflict, tombstone, migration, storage, and recovery semantics before local-first adoption.
+    sources:
+      - {title: "Android Offline-first Guidance", url: "https://developer.android.com/topic/architecture/data-layer/offline-first", authority: official}
+    freshness: {reviewed_on: "2026-07-28", review_after_days: 180}

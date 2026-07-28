@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: financial-trading
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: TRADING.DATA.001, domain: market-data, invariant: "Every market datum carries source, instrument, event time, receipt time, quality, and staleness semantics.", evidence_requirements: ["Trace stale, corrected, duplicated, and conflicting feed data."], quality_attributes: [reliability, traceability]}
+  - {id: TRADING.RISK.001, domain: pre-trade-risk, invariant: "Position, exposure, price, quantity, credit, and kill-switch limits are deterministic and authoritative before order release.", evidence_requirements: ["Trace limit breach and stale-risk-state behavior."], quality_attributes: [safety, security]}
+  - {id: TRADING.ORDER.001, domain: order-lifecycle, invariant: "Order states and venue events are idempotent, monotonic where required, reconcilable, and auditable.", evidence_requirements: ["Exercise duplicate, late, reject, cancel-race, and partial-fill paths."], quality_attributes: [reliability, traceability]}
+  - {id: TRADING.STRATEGY.001, domain: strategy-isolation, invariant: "Strategies have isolated state, capital, credentials, limits, rollout, and failure containment.", evidence_requirements: ["Inspect cross-strategy blast radius and emergency disablement."], quality_attributes: [safety, reliability]}
+  - {id: TRADING.RECONCILE.001, domain: reconciliation, invariant: "Internal orders, fills, positions, cash, and venue statements reconcile with owned correction workflows.", evidence_requirements: ["Inspect mismatch detection, ownership, and repair audit."], quality_attributes: [reliability, recoverability]}

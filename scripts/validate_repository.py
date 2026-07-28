@@ -12,14 +12,16 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 import yaml
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import SchemaError
 
 EXPECTED_SKILLS = (
     "ai-agent-architecture-audit",
     "architecture-finding-verifier",
+    "architecture-knowledge-curator",
     "architecture-quality-gate",
     "architecture-remediation-planner",
+    "architecture-solution-advisor",
     "mobile-architecture-audit",
     "portfolio-architecture-audit",
     "project-architecture-audit",
@@ -30,6 +32,7 @@ REQUIRED_FILES = (
     ".architecture/baseline.yaml",
     ".architecture/constraints.md",
     ".architecture/critical-flows.md",
+    ".architecture/evidence-providers.yaml",
     ".architecture/gate-policy.yaml",
     ".architecture/profile.yaml",
     ".architecture/reviews/README.md",
@@ -47,11 +50,23 @@ REQUIRED_FILES = (
     "SECURITY.md",
     "SUPPORT.md",
     "docs/evaluation.md",
+    "docs/assurance-model.md",
+    "docs/compatibility.md",
+    "docs/comprehensive-review-implementation.md",
     "docs/releasing.md",
+    "docs/migrating-to-0.2.md",
     "evals/cases.yaml",
+    "benchmarks/ground-truth.yaml",
+    "benchmarks/run-template.yaml",
     "pyproject.toml",
     "requirements-dev.txt",
+    "requirements-dev.lock",
+    "requirements-runtime.lock",
     "requirements.txt",
+    "scripts/generate_sbom.py",
+    "scripts/audit_licenses.py",
+    "scripts/run_behavior_benchmark.py",
+    "scripts/verify_checksum.py",
     "third_party/PAAD-MIT.txt",
     ".github/dependabot.yml",
     ".github/ISSUE_TEMPLATE/bug_report.yml",
@@ -59,6 +74,7 @@ REQUIRED_FILES = (
     ".github/ISSUE_TEMPLATE/feature_request.yml",
     ".github/pull_request_template.md",
     ".github/workflows/ci.yml",
+    ".github/workflows/knowledge-freshness.yml",
     ".github/workflows/release.yml",
 )
 SEMVER_RE = re.compile(
@@ -79,6 +95,11 @@ RESOURCE_REF_RE = re.compile(r"`(?P<target>\.\./\.\./resources/[^`\s]+)`")
 REFERENCE_REF_RE = re.compile(
     r"`(?P<target>\.\./(?:schemas|scripts|templates)/[^`\s]+)`"
 )
+GITHUB_ACTION_USE_RE = re.compile(
+    r"^\s*(?:-\s*)?uses:\s*(?P<action>[^@\s#]+)@(?P<ref>[^\s#]+)",
+    re.MULTILINE,
+)
+COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 FORBIDDEN_MARKERS = (
     "[" + "TODO:",
     "OWNER" + "/REPOSITORY",
@@ -367,8 +388,12 @@ def validate_schemas_and_yaml(root: Path, errors: list[str]) -> None:
     yaml_roots = (
         root / ".architecture",
         root / "resources" / "templates",
+        root / "resources" / "knowledge",
+        root / "resources" / "rules",
+        root / "resources" / "evidence-providers",
         root / "skills",
         root / "evals",
+        root / "benchmarks",
         root / ".github",
     )
     for yaml_root in yaml_roots:
@@ -377,6 +402,94 @@ def validate_schemas_and_yaml(root: Path, errors: list[str]) -> None:
         for pattern in ("*.yaml", "*.yml"):
             for path in sorted(yaml_root.rglob(pattern)):
                 load_yaml(path, errors)
+
+    instance_groups = (
+        (
+            root / "resources" / "knowledge",
+            "*.yaml",
+            "knowledge-catalog.schema.json",
+        ),
+        (
+            root / "resources" / "rules",
+            "*.yaml",
+            "rule-pack.schema.json",
+        ),
+        (
+            root / "resources" / "evidence-providers",
+            "*.yaml",
+            "evidence-provider.schema.json",
+        ),
+        (
+            root / "benchmarks",
+            "*.yaml",
+            "benchmark.schema.json",
+        ),
+    )
+    for instance_root, pattern, schema_name in instance_groups:
+        schema = load_json(schemas_root / schema_name, errors)
+        if schema is None:
+            continue
+        validator = Draft202012Validator(
+            schema,
+            format_checker=FormatChecker(),
+        )
+        for path in sorted(instance_root.glob(pattern)):
+            payload = load_yaml(path, errors)
+            if payload is None:
+                continue
+            for error in sorted(
+                validator.iter_errors(payload),
+                key=lambda item: list(item.path),
+            ):
+                location = ".".join(str(part) for part in error.absolute_path)
+                errors.append(
+                    f"{path} does not match {schema_name}"
+                    f"{f' at {location}' if location else ''}: {error.message}"
+                )
+
+    template_schemas = {
+        "architecture-decision.yaml": "architecture-decision.schema.json",
+        "assetkeeper-profile.example.yaml": "project-profile.schema.json",
+        "baseline.yaml": "baseline.schema.json",
+        "cognera-profile.example.yaml": "project-profile.schema.json",
+        "dependency-map.yaml": "dependency-map.schema.json",
+        "evidence-providers.yaml": "evidence-provider-config.schema.json",
+        "gate-policy.yaml": "gate-policy.schema.json",
+        "portfolio-gate-policy.yaml": "gate-policy.schema.json",
+        "portfolio.yaml": "portfolio.schema.json",
+        "profile.yaml": "project-profile.schema.json",
+        "remediation-plan.yaml": "remediation-plan.schema.json",
+        "review.yaml": "review.schema.json",
+        "risk-acceptances.yaml": "risk-acceptance.schema.json",
+        "shared-capabilities.yaml": "shared-capabilities.schema.json",
+        "technology-catalog.yaml": "technology-catalog.schema.json",
+    }
+    for template_name, schema_name in template_schemas.items():
+        template_path = root / "resources" / "templates" / template_name
+        payload = load_yaml(template_path, errors)
+        schema = load_json(schemas_root / schema_name, errors)
+        if payload is None or schema is None:
+            continue
+        validator = Draft202012Validator(
+            schema,
+            format_checker=FormatChecker(),
+        )
+        for error in validator.iter_errors(payload):
+            errors.append(
+                f"{template_path} does not match {schema_name}: {error.message}"
+            )
+
+    benchmark = load_yaml(root / "benchmarks" / "ground-truth.yaml", errors)
+    if isinstance(benchmark, dict):
+        for case in benchmark.get("cases", []):
+            fixture = root / case.get("fixture", "")
+            try:
+                fixture.resolve().relative_to(root.resolve())
+            except ValueError:
+                errors.append(f"benchmark fixture escapes repository: {fixture}")
+                continue
+            if not fixture.is_dir():
+                errors.append(f"benchmark fixture is missing: {fixture}")
 
 
 def validate_evals(root: Path, errors: list[str]) -> None:
@@ -455,6 +568,52 @@ def validate_evals(root: Path, errors: list[str]) -> None:
             "eval coverage must have exactly one case per pair: "
             + ", ".join(f"{skill}/{kind}" for skill, kind in duplicates)
         )
+
+
+def validate_dependency_locks(root: Path, errors: list[str]) -> None:
+    for name in ("requirements-runtime.lock", "requirements-dev.lock"):
+        path = root / name
+        try:
+            text = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            continue
+        if "pypi.tuna.tsinghua.edu.cn" in text:
+            errors.append(f"{path} contains a maintainer-local package index")
+        for line in text.splitlines():
+            if line.startswith("--index-url") and "pypi.org/simple" not in line:
+                errors.append(f"{path} must use the public PyPI index")
+        package_lines = [
+            line
+            for line in text.splitlines()
+            if line and not line[0].isspace() and "==" in line
+        ]
+        if not package_lines:
+            errors.append(f"{path} contains no exact package pins")
+        if "--hash=sha256:" not in text:
+            errors.append(f"{path} contains no package hashes")
+        for line in package_lines:
+            if not re.fullmatch(r"[A-Za-z0-9_.-]+==[^\s\\]+(?: \\)?", line):
+                errors.append(f"{path} has a non-exact package line: {line}")
+
+
+def validate_github_action_pins(root: Path, errors: list[str]) -> None:
+    paths = sorted((root / ".github" / "workflows").glob("*.yml"))
+    paths.extend(sorted((root / ".github" / "workflows").glob("*.yaml")))
+    template = root / "resources" / "templates" / "github-architecture-gate.yml"
+    if template.is_file():
+        paths.append(template)
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        for match in GITHUB_ACTION_USE_RE.finditer(text):
+            action = match.group("action")
+            action_ref = match.group("ref")
+            if action.startswith("./") or action.startswith("docker://"):
+                continue
+            if COMMIT_SHA_RE.fullmatch(action_ref) is None:
+                errors.append(
+                    f"{path} must pin {action} to a 40-character commit SHA; "
+                    f"found {action_ref!r}"
+                )
 
 
 def validate_repository_hygiene(root: Path, errors: list[str]) -> None:
@@ -556,6 +715,8 @@ def validate_repository(root: Path) -> list[str]:
     validate_markdown_links(root, errors)
     validate_schemas_and_yaml(root, errors)
     validate_evals(root, errors)
+    validate_dependency_locks(root, errors)
+    validate_github_action_pins(root, errors)
     validate_changelog(root, manifest, errors)
     validate_tool_version(root, manifest, errors)
     return errors

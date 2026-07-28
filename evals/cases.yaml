@@ -251,3 +251,75 @@ cases:
     expected:
       activates: true
       outcome: "Refuses to mutate policy or create an invalid waiver."
+
+  - id: solution-direct
+    skill: architecture-solution-advisor
+    kind: direct
+    prompt: "Compare architecture options for these confirmed findings and create a decision."
+    expected:
+      activates: true
+      outcome: "Compares keep-current and viable alternatives against qualities and constraints."
+  - id: solution-indirect
+    skill: architecture-solution-advisor
+    kind: indirect
+    prompt: "Should this queue worker become Temporal or remain a simple asynchronous service?"
+    expected:
+      activates: true
+      outcome: "Uses workflow duration, recovery, team, cost, and complexity evidence."
+  - id: solution-incomplete
+    skill: architecture-solution-advisor
+    kind: incomplete
+    prompt: "Choose our target architecture, but no findings, quality targets, or constraints exist."
+    expected:
+      activates: true
+      outcome: "Stops before technology selection and requests decision-driving evidence."
+  - id: solution-negative
+    skill: architecture-solution-advisor
+    kind: negative
+    prompt: "Implement the already accepted modular-monolith migration plan in this repository."
+    expected:
+      activates: false
+      outcome: "Leaves implementation to an authorized engineering change workflow."
+  - id: solution-edge
+    skill: architecture-solution-advisor
+    kind: edge
+    prompt: "We use one agent today; prove whether a multi-agent framework adds real value."
+    expected:
+      activates: true
+      outcome: "Includes keep-current and rejects multi-agent complexity without evidence."
+
+  - id: curator-direct
+    skill: architecture-knowledge-curator
+    kind: direct
+    prompt: "Refresh the Temporal technology profile from current official documentation."
+    expected:
+      activates: true
+      outcome: "Updates sourced capabilities, limits, alternatives, lock-in, and freshness."
+  - id: curator-indirect
+    skill: architecture-knowledge-curator
+    kind: indirect
+    prompt: "Our framework guidance may be stale; verify the official sources before release."
+    expected:
+      activates: true
+      outcome: "Classifies volatile facts and refreshes only affected knowledge entries."
+  - id: curator-incomplete
+    skill: architecture-knowledge-curator
+    kind: incomplete
+    prompt: "Add this architecture best practice, but there is no decision it changes or source."
+    expected:
+      activates: true
+      outcome: "Rejects an ungrounded catalog entry and requests authoritative evidence."
+  - id: curator-negative
+    skill: architecture-knowledge-curator
+    kind: negative
+    prompt: "Audit this product repository and report its architecture risks."
+    expected:
+      activates: false
+      outcome: "Leaves product diagnosis to an architecture audit Skill."
+  - id: curator-edge
+    skill: architecture-knowledge-curator
+    kind: edge
+    prompt: "Record the current LangGraph version as a timeless architecture rule."
+    expected:
+      activates: true
+      outcome: "Keeps volatile versions out of stable rules and records freshness instead."

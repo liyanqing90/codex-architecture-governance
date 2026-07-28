@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/risk-acceptance.schema.json",
+  "title": "Architecture risk acceptance registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "acceptances"],
+  "properties": {
+    "schema_version": {
+      "enum": ["1.0", "1.1"]
+    },
+    "acceptances": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "finding_id",
+          "finding_fingerprint",
+          "accepted_by",
+          "approved_by",
+          "reason",
+          "compensating_controls",
+          "accepted_at",
+          "expires_on"
+        ],
+        "properties": {
+          "finding_id": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9._-]{2,63}$"
+          },
+          "finding_fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "accepted_by": {
+            "type": "string",
+            "minLength": 1
+          },
+          "approved_by": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 10
+          },
+          "compensating_controls": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 3
+            }
+          },
+          "accepted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "decision_reference": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

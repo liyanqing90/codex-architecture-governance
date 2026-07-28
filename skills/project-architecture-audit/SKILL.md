@@ -17,6 +17,7 @@ Read these files completely before auditing:
 
 - `../../resources/references/review-contract.md`
 - `../../resources/references/project-rules.md`
+- `../../resources/rules/project-core.yaml`
 
 Load `.architecture/profile.yaml`, `.architecture/constraints.md`, and `.architecture/critical-flows.md` when present. Treat them as declared intent, not proof. If they are missing, infer a provisional profile without writing configuration unless the user requested initialization.
 
@@ -59,7 +60,13 @@ Trace every declared critical flow end to end. Prefer ownership and runtime path
 
 ### 3. Assess the rule set
 
-Assess every applicable rule in `project-rules.md`. Load additional specialist audits named by `required_reviews`; do not silently substitute a generic rule for an AI, mobile, privacy, threat-model, or data-specific review.
+Assess every machine rule in each Profile `rule_packs` entry and use
+`project-rules.md` as investigation guidance. Load additional specialist audits
+named by `required_reviews`; do not silently substitute a generic rule for an
+AI, mobile, privacy, threat-model, or data-specific review.
+Load repository-local Rule Packs from `.architecture/rules/` when selected by
+the Profile. Treat them as project policy, validate their schema and review
+kind, and never allow them to shadow bundled IDs.
 
 For a large or cross-boundary repository, use up to four read-only specialists when subagent tools are available: boundaries, integration/data, runtime/reliability, and security/quality. Keep scopes non-overlapping and retain synthesis and verification in the main agent. If delegation is unavailable, run the same passes sequentially.
 
@@ -80,7 +87,8 @@ Do not infer an architecture flaw from file size, import count, a singleton, SQL
 
 Before handing candidates to the verifier:
 
-- ensure every candidate records direct evidence and the inspected commit;
+- ensure every candidate records repository identity, direct evidence path,
+  Git commit, blob SHA when available, and the inspected commit;
 - state the strongest known benign explanation as counter-evidence;
 - remove claims that do not meet the candidate evidence threshold;
 - keep category, provisional severity, confidence, scope, and possible

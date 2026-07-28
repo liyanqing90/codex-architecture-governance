@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: plugin-platform
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: PLUGIN.MANIFEST.001, domain: plugin-contract, invariant: "Manifest identity, capabilities, compatibility, dependencies, permissions, and entry points are schema-validated.", evidence_requirements: ["Inspect discovery and incompatible-plugin behavior."], quality_attributes: [compatibility, security]}
+  - {id: PLUGIN.AUTHORITY.001, domain: plugin-authority, invariant: "Plugins receive least authority through explicit capability grants and validated host-mediated operations.", evidence_requirements: ["Trace a plugin attempt to expand permissions."], quality_attributes: [security]}
+  - {id: PLUGIN.ISOLATION.001, domain: plugin-isolation, invariant: "Failure, resource use, secrets, state, and code execution are isolated to the declared trust tier.", evidence_requirements: ["Inspect crash, timeout, resource exhaustion, and malicious input."], quality_attributes: [security, reliability]}
+  - {id: PLUGIN.LIFECYCLE.001, domain: plugin-lifecycle, invariant: "Install, upgrade, disable, rollback, uninstall, and data migration preserve host and plugin integrity.", evidence_requirements: ["Exercise mixed versions and failed upgrades."], quality_attributes: [recoverability, compatibility]}
+  - {id: PLUGIN.SUPPLYCHAIN.001, domain: plugin-supply-chain, invariant: "Provenance, integrity, publisher trust, dependency inventory, and revocation are verifiable before loading.", evidence_requirements: ["Inspect artifact verification and compromised-version response."], quality_attributes: [security]}

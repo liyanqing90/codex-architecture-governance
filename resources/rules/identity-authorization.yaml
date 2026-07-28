@@ -1,0 +1,10 @@
+schema_version: "1.1"
+id: identity-authorization
+version: "1.0.0"
+review_kind: project
+rules:
+  - {id: IDENTITY.PRINCIPAL.001, domain: principals, invariant: "Human, workload, device, service, and delegated principals have unambiguous identities and trust issuers.", evidence_requirements: ["Map token claims and identities to protected operations."], quality_attributes: [security]}
+  - {id: IDENTITY.POLICY.001, domain: authorization-policy, invariant: "Authorization semantics are centralized enough to be consistent while decisions retain resource and tenant context.", evidence_requirements: ["Compare policy paths and deny-by-default behavior."], quality_attributes: [security, maintainability]}
+  - {id: IDENTITY.SESSION.001, domain: session-lifecycle, invariant: "Credential and session issuance, rotation, revocation, expiry, replay protection, and recovery are enforced.", evidence_requirements: ["Trace compromised credential and account recovery paths."], quality_attributes: [security, reliability]}
+  - {id: IDENTITY.DELEGATION.001, domain: delegation, invariant: "Delegated authority is explicit in actor, subject, audience, scope, duration, and downstream propagation.", evidence_requirements: ["Inspect on-behalf-of and service-to-service flows."], quality_attributes: [security]}
+  - {id: IDENTITY.AUDIT.001, domain: security-audit, invariant: "Security-sensitive decisions and changes produce tamper-evident, attributable, privacy-aware audit records.", evidence_requirements: ["Trace policy, admin, key, and recovery actions to audit evidence."], quality_attributes: [security, traceability]}

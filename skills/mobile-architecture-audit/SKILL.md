@@ -13,6 +13,8 @@ Read these files completely:
 
 - `../../resources/references/review-contract.md`
 - `../../resources/references/mobile-rules.md`
+- `../../resources/rules/mobile-core.yaml`
+- `../../resources/knowledge/domains/catalog.yaml`
 
 Load the project profile, constraints, and critical flows. Pair with `project-architecture-audit` for backend, shared contracts, or full-product scope.
 

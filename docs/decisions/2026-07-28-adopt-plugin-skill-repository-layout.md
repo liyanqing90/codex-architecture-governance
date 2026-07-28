@@ -1,11 +1,11 @@
 # Adopt a marketplace-ready Plugin → Skills repository layout
 
-- Status: accepted
+- Status: superseded
 - Date: 2026-07-28
 - Owners: repository maintainers
 - Scope: repository, distribution, and Skill ownership boundaries
 - Supersedes: none
-- Superseded by: none
+- Superseded by: `2026-07-28-adopt-trusted-governance-1.1.md`
 
 ## Context
 

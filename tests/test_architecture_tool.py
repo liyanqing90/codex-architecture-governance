@@ -1457,7 +1457,7 @@ class ArchitectureToolTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(process.returncode, 0, process.stderr)
-        self.assertEqual(process.stdout.strip(), "architecture_tool.py 0.3.0")
+        self.assertEqual(process.stdout.strip(), "architecture_tool.py 0.3.1")
 
 
 if __name__ == "__main__":

@@ -55,7 +55,7 @@ VERIFICATION_LEVEL_ORDER = {
     "V4": 4,
     "V5": 5,
 }
-TOOL_VERSION = "0.3.0"
+TOOL_VERSION = "0.3.1"
 REVIEW_KIND_CORE_PACK = {
     "project": "project-core",
     "ai-agent": "ai-agent-core",

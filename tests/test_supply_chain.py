@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -30,6 +31,36 @@ verify_checksum = load_script(
 
 
 class SupplyChainTests(unittest.TestCase):
+    def test_windows_pytest_dependency_is_explicitly_hash_locked(self) -> None:
+        requirements = (ROOT / "requirements-dev.txt").read_text(encoding="utf-8")
+        lock = (ROOT / "requirements-dev.lock").read_text(encoding="utf-8")
+        self.assertIn(
+            "colorama==0.4.6",
+            requirements,
+        )
+        self.assertRegex(
+            lock,
+            re.compile(r"colorama==0\.4\.6\s*\\"),
+        )
+        self.assertIn(
+            "typing-extensions==4.16.0",
+            requirements,
+        )
+        self.assertRegex(
+            lock,
+            re.compile(r"typing-extensions==4\.16\.0\s*\\"),
+        )
+
+    def test_release_attestation_uses_exact_sbom_path(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("SBOM_PATH=dist/codex-architecture-governance-", workflow)
+        self.assertIn('--output "${SBOM_PATH}"', workflow)
+        self.assertIn("sbom-path: ${{ env.SBOM_PATH }}", workflow)
+        self.assertIn('"${SBOM_PATH}"', workflow)
+        self.assertNotIn("sbom-path: dist/*.spdx.json", workflow)
+
     def test_checksum_and_sbom_cover_archive(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)

@@ -26,7 +26,7 @@ class BehaviorBenchmarkTests(unittest.TestCase):
                 output=output,
                 model="test-model",
                 surface="pytest",
-                skill_version="0.3.0",
+                skill_version="0.3.1",
                 timeout=10,
                 command=[
                     sys.executable,

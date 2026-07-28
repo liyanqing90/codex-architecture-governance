@@ -7,6 +7,15 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-29
+
+### Fixed
+
+- Added the Windows-only `colorama` dependency to the exact development lock
+  so hash-enforced CI installation works on every supported runner.
+- Bound SBOM generation, attestation, and release upload to one exact artifact
+  path instead of passing an unexpanded glob to `actions/attest`.
+
 ## [0.3.0] - 2026-07-29
 
 ### Added

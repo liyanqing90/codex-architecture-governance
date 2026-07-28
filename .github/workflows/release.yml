@@ -77,12 +77,18 @@ jobs:
       - name: Verify archive checksum
         run: python scripts/verify_checksum.py dist/*.zip.sha256
 
+      - name: Define release artifact paths
+        shell: bash
+        run: >-
+          echo
+          "SBOM_PATH=dist/codex-architecture-governance-${GITHUB_REF_NAME#v}.spdx.json"
+          >> "${GITHUB_ENV}"
+
       - name: Generate SPDX SBOM
         run: >-
           python scripts/generate_sbom.py
           --archive dist/*.zip
-          --output
-          dist/codex-architecture-governance-${GITHUB_REF_NAME#v}.spdx.json
+          --output "${SBOM_PATH}"
 
       - name: Attest build provenance
         uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
@@ -93,7 +99,7 @@ jobs:
         uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
         with:
           subject-path: dist/*.zip
-          sbom-path: dist/*.spdx.json
+          sbom-path: ${{ env.SBOM_PATH }}
 
       - name: Publish GitHub release
         env:
@@ -102,6 +108,6 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" \
             dist/*.zip \
             dist/*.zip.sha256 \
-            dist/*.spdx.json \
+            "${SBOM_PATH}" \
             --generate-notes \
             --title "Codex Architecture Governance ${GITHUB_REF_NAME}"

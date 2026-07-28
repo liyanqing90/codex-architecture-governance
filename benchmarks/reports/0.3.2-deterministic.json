@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "plugin_version": "0.3.2",
+  "report_kind": "deterministic-release-evidence",
+  "observed_on": "2026-07-29",
+  "results": {
+    "repository_contract": {
+      "status": "pass",
+      "public_skills": 8,
+      "routing_cases": 40,
+      "schemas": 22,
+      "templates": 17
+    },
+    "knowledge": {
+      "status": "pass",
+      "markdown_entries": 205,
+      "packs": 10,
+      "legacy_entries": 128,
+      "rule_packs": 19,
+      "evidence_providers": 11
+    },
+    "tests": {
+      "status": "pass",
+      "passed": 51,
+      "failed": 0
+    },
+    "lint_and_format": {
+      "status": "pass"
+    },
+    "dependency_audit": {
+      "status": "pass",
+      "known_vulnerabilities": 0
+    },
+    "license_audit": {
+      "status": "pass",
+      "packages": 7
+    },
+    "official_validators": {
+      "status": "pass",
+      "plugin": 1,
+      "public_skills": 8,
+      "maintainer_skills": 1
+    },
+    "release_archive": {
+      "status": "pass",
+      "path": "dist/codex-architecture-governance-0.3.2.zip",
+      "sha256": "9a00d994b7c7fcc1ccb5b9ae606b2cda95da78ad0c420c3c8985ea446cb6f6ea",
+      "files": 319,
+      "checksum_verified": true,
+      "spdx_sbom_generated": true,
+      "reproducible_builds_compared": 2
+    }
+  },
+  "model_behavior": {
+    "status": "not-run",
+    "reason": "No external model command and Codex surface were supplied. The repository does not fabricate behavioral scores."
+  }
+}

@@ -26,7 +26,7 @@ class BehaviorBenchmarkTests(unittest.TestCase):
                 output=output,
                 model="test-model",
                 surface="pytest",
-                skill_version="0.3.1",
+                skill_version="0.3.2",
                 timeout=10,
                 command=[
                     sys.executable,
@@ -49,14 +49,15 @@ class BehaviorBenchmarkTests(unittest.TestCase):
             )
 
     def test_command_placeholders_are_argument_safe(self) -> None:
+        fixture = Path("/tmp/fixture with spaces")
         rendered = run_behavior_benchmark.render_command(
             ["agent", "--prompt", "{prompt}", "--repo", "{fixture}"],
             skill="project-architecture-audit",
-            fixture=Path("/tmp/fixture with spaces"),
+            fixture=fixture,
             prompt="Audit; do not execute this punctuation.",
         )
         self.assertEqual(rendered[2], "Audit; do not execute this punctuation.")
-        self.assertEqual(rendered[4], "/tmp/fixture with spaces")
+        self.assertEqual(rendered[4], str(fixture))
 
     def test_fixture_evidence_is_resolved_not_self_asserted(self) -> None:
         fixture = ROOT / "benchmarks" / "fixtures" / "conflicting-writers"

@@ -7,6 +7,14 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-07-29
+
+### Fixed
+
+- Made the benchmark command-rendering assertion compare against the native
+  path representation so the cross-platform safety test passes on Windows
+  without weakening its argument-boundary guarantee.
+
 ## [0.3.1] - 2026-07-29
 
 ### Fixed

@@ -1,0 +1,261 @@
+schema_version: "1.2"
+review:
+  id: codex-architecture-governance-20260729-context-precision-verified
+  kind: project
+  workflow: project-architecture
+  subject:
+    id: codex-architecture-governance
+    name: Codex Architecture Governance
+    repository: .
+  performed_at: "2026-07-29T08:31:00+00:00"
+  commit: 3b7cc5c536b76a08c39fa79d69d77bc1ccf9b117
+  scope:
+    - .
+  verification_state: verified
+  reviewers:
+    - architecture-verifier
+  profile: .architecture/reviews/inputs/2026-07-29-context-precision-profile.yaml
+  repository_identity: codex-architecture-governance
+  profile_sha256: 5b99b21c0ead8c181babef60830cff49212679b6fc1de64b7d094d467eeccdb8
+  dirty_tree: false
+  rule_packs:
+    - {id: project-core, version: "1.0.0", sha256: b211d548ad5fe367b9dab8416051c43f3a206da81bd2a8e7596cd788ed3f100c}
+    - {id: plugin-platform, version: "1.0.0", sha256: 7ae17488df7a78ce1b857d3f842bd51b87de4ec30576fbe250cfa991472b3700}
+    - {id: test-automation-platform, version: "1.0.0", sha256: 23efb3c02cd9e4e2ec2cb83d1505b30dd780aff2a9ac7157506b361cb783c5aa}
+  scope_manifest:
+    - .
+  verification_run:
+    id: context-precision-verifier-20260729-082931
+    surface: codex-desktop
+    started_at: "2026-07-29T08:29:31+00:00"
+    completed_at: "2026-07-29T08:31:00+00:00"
+  source_candidate:
+    path: .architecture/reviews/2026-07-29-context-precision-candidates.yaml
+    review_id: codex-architecture-governance-20260729-context-precision-candidates
+    sha256: 8ca94d5e48773b86c0cc0b04e9c000bf532182803f92bfb83971f253b8dc8a68
+summary:
+  architecture: >-
+    A local-first Codex plugin with versioned Skills, Knowledge and Rule Packs,
+    strict artifact contracts, and a deterministic Python CLI for architecture
+    inspection, governance, behavior evaluation, and release packaging.
+  raw_findings: 1
+  confirmed: 1
+  rejected: 0
+  needs_evidence: 0
+coverage:
+  - {rule_id: PROJECT.BOUNDARY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPENDENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.COHESION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.FRONTEND.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DATA.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OWNERSHIP.001, status: assessed, finding_ids: []}
+  - rule_id: PROJECT.CONTRACT.001
+    status: assessed
+    finding_ids:
+      - CAG-CONTEXT-PRECISION-001
+  - {rule_id: PROJECT.TRANSACTION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.IDEMPOTENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.RELIABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.STATE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.SECURITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PRIVACY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OBSERVABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONFIG.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PERFORMANCE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.TEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPLOY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CHANGE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEBT.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DESIGN.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.MANIFEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.AUTHORITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.ISOLATION.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.LIFECYCLE.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.SUPPLYCHAIN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.RUN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.ISOLATION.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.EVIDENCE.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.SCHEDULE.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.FLAKE.001, status: assessed, finding_ids: []}
+findings:
+  - id: CAG-CONTEXT-PRECISION-001
+    fingerprint: e698f7821bb8a341e01f8c7ab0b240539054ec79edb3dfc4d4ebc320a18ae875
+    kind: strength
+    rule_id: PROJECT.CONTRACT.001
+    title: Runtime dependency and A/B/C treatment contracts reject ambiguous inputs
+    invariant: >-
+      Literal production dependency declarations and benchmark A/B/C treatments
+      have one unambiguous, reproducible interpretation before they influence a
+      project profile or a behavior-benchmark result.
+    severity: info
+    confidence: 0.98
+    verification:
+      status: confirmed
+      rationale: >-
+        The verifier resolved all Git-bound source and test excerpts at commit
+        3b7cc5c, reran the focused regressions and full suite, and confirmed
+        that the static parser and A/B/C contract reject the audited ambiguity
+        classes without claiming external-model outcome evidence.
+      verified_by: architecture-verifier
+      verified_at: "2026-07-29T08:30:30+00:00"
+      level: V2
+      verifier:
+        type: agent
+        identity: architecture-verifier
+        run_id: context-precision-verifier-20260729-082931
+      source_candidate:
+        review_id: codex-architecture-governance-20260729-context-precision-candidates
+        sha256: 8ca94d5e48773b86c0cc0b04e9c000bf532182803f92bfb83971f253b8dc8a68
+    status: open
+    evidence:
+      - type: source
+        location: resources/scripts/inspect_repository.py:255
+        repository: codex-architecture-governance
+        commit: 3b7cc5c536b76a08c39fa79d69d77bc1ccf9b117
+        path: resources/scripts/inspect_repository.py
+        line_start: 255
+        line_end: 295
+        blob_sha: 6e54d91c303b584fbc51da60c02cad7626333542
+        excerpt_sha256: 3ec2ce0806a9dd7f0b0f7a322954781f28ee6cb179e53108f9b841c0e81fa634
+        symbol: _setup_py_dependencies
+        observation: >-
+          Literal install_requires values are read from Python syntax without
+          executing setup.py, preserving shipped dependency facts while leaving
+          dynamic values unclassified.
+        excerpt: "def _setup_py_dependencies(text: str) -> set[str]:"
+        source_commit: 3b7cc5c536b76a08c39fa79d69d77bc1ccf9b117
+        freshness: current
+      - type: source
+        location: scripts/run_behavior_benchmark.py:137
+        repository: codex-architecture-governance
+        commit: 3b7cc5c536b76a08c39fa79d69d77bc1ccf9b117
+        path: scripts/run_behavior_benchmark.py
+        line_start: 137
+        line_end: 176
+        blob_sha: 971f4c1cbbeea26e7201249acdbb02a98da50c45
+        excerpt_sha256: fab54b1f7ec9fa106d3e49d8a6dffc4dcba07c7588c9822490164f2724f57672
+        symbol: validate_ablation_treatments
+        observation: >-
+          The runner rejects duplicate or incomplete Base/Full/Compressed
+          treatments and requires the Full and Compressed conditions to share
+          workflow-required Knowledge.
+        excerpt: "def validate_ablation_treatments("
+        source_commit: 3b7cc5c536b76a08c39fa79d69d77bc1ccf9b117
+        freshness: current
+      - type: test
+        location: tests/test_target_architecture.py:343
+        repository: codex-architecture-governance
+        commit: 3b7cc5c536b76a08c39fa79d69d77bc1ccf9b117
+        path: tests/test_target_architecture.py
+        line_start: 343
+        line_end: 372
+        blob_sha: fea76596cdb07f0932af59d29c02d8603a9db0eb
+        excerpt_sha256: 630ea88848514465faaf3455a1d951fea6c1298dba85e5ca2afe320aee17b559
+        symbol: test_static_setup_py_runtime_dependencies_remain_product_facts
+        observation: >-
+          The regression fixture proves FastAPI and PostgreSQL from a literal
+          setup.py install_requires declaration become production facts.
+        excerpt: "def test_static_setup_py_runtime_dependencies_remain_product_facts(self) -> None:"
+        source_commit: 3b7cc5c536b76a08c39fa79d69d77bc1ccf9b117
+        freshness: current
+      - type: test
+        location: tests/test_behavior_benchmark.py:66
+        repository: codex-architecture-governance
+        commit: 3b7cc5c536b76a08c39fa79d69d77bc1ccf9b117
+        path: tests/test_behavior_benchmark.py
+        line_start: 66
+        line_end: 91
+        blob_sha: 11da002687ec600231cc914d2a588f05acb63df4
+        excerpt_sha256: 8780b72aeb912487e3caea0bb8196d150e4f81c727db5292a06dc4d82cd510e9
+        symbol: test_ablation_manifest_requires_one_comparable_triplet_per_skill
+        observation: >-
+          The regression rejects duplicate treatments and a missing condition
+          before a benchmark can treat those manifests as comparable evidence.
+        excerpt: "def test_ablation_manifest_requires_one_comparable_triplet_per_skill(self) -> None:"
+        source_commit: 3b7cc5c536b76a08c39fa79d69d77bc1ccf9b117
+        freshness: current
+    impact:
+      affected_components:
+        - repository-inspection
+        - project-profile-routing
+        - behavior-benchmark
+        - release-evidence
+      failure_mode: >-
+        Dynamic or malformed inputs are not silently promoted into production
+        facts or comparable benchmark results.
+      blast_radius: >-
+        Project profiles and behavior-benchmark interpretations that consume
+        runtime dependency or context-treatment declarations.
+    counter_evidence:
+      - The parser intentionally does not execute or resolve dynamic setup.py requirements.
+      - The declared context metric is a character and byte proxy, not model token, cost, or outcome telemetry.
+    first_seen: "2026-07-29"
+    last_seen: "2026-07-29"
+    found_by:
+      - architecture-auditor
+    related_findings: []
+    quality_attribute_impacts:
+      - compatibility
+      - deterministic-enforcement
+      - traceability
+    evidence_level: E3
+    evidence_fingerprint: 274fa20e42bd01e1c81315b99b70b7e8f5fb1535320508860c67b3778c85388d
+    fact_inference_boundary:
+      facts:
+        - setup.py literals are parsed with ast and never executed.
+        - The benchmark runner requires one Base/Full/Compressed treatment for every corpus Skill.
+        - Focused negative tests reject duplicate or incomplete treatment declarations.
+      inferences:
+        - Static runtime facts and A/B/C benchmark inputs now fail closed at their owning contract boundaries.
+      unknowns:
+        - No new external-model A/B/C outcome is asserted by this source-level audit.
+    applicability:
+      profile_conditions:
+        - Compatibility, deterministic enforcement, and traceability are critical project qualities.
+        - The project publishes public schemas and behavior-benchmark evidence.
+    source_candidate_ids:
+      - codex-architecture-governance-20260729-context-precision-candidates
+    rule_pack_version: "1.0.0"
+    staleness_state: current
+    decision_references: []
+    tags:
+      - context-precision
+      - dependency-inspection
+      - benchmark
+      - contracts
+evidence_sources:
+  - resources/scripts/inspect_repository.py
+  - scripts/run_behavior_benchmark.py
+  - tests/test_target_architecture.py
+  - tests/test_behavior_benchmark.py
+limitations:
+  - No new external-model A/B/C outcome is asserted; this review validates the harness and its contracts.
+coverage_complete: true
+repository_facts:
+  path: .architecture/reviews/inputs/2026-07-29-context-precision-repository-facts.yaml
+  sha256: b47a515ed4b4abf1c930bed4713212d8e64d341d600b85bbff8ece7868f070e1
+knowledge_selection:
+  path: .architecture/reviews/inputs/2026-07-29-context-precision-knowledge-selection.yaml
+  sha256: 655297a16ce658cda099633ec13933a45e942e8f24c22fe38a29294821d942b6
+selected_knowledge:
+  - {id: foundation.system-boundaries, version: "1.0.0", sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db}
+  - {id: foundation.data-ownership, version: "1.0.0", sha256: 260f240ec9782f5a42a68481652912532cfcd6a0b07fdc5366d44388cc3d0204}
+  - {id: foundation.evidence-reasoning, version: "1.0.0", sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f}
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: domain.backend-api, version: "1.0.0", sha256: ea716865510106db441623d39045b2ca26f66c4424ed18fb15383938614ac4b4}
+  - {id: domain.cloud-native-platform, version: "1.0.0", sha256: 37ee84809a4162ff3e49a04a82433786efe762f7440dc5273232cb7b5b612c9c}
+  - {id: domain.data-platform, version: "1.0.0", sha256: 72dc109fdb28d74df5f947bf615017bd80d655a7e9c5b3fde7df53cff2fc6364}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+  - {id: migration.expand-contract-migration, version: "1.0.0", sha256: a8eb79105f44d4960dea1dad466ba84039611108586144c0c3d215ec73dd39d1}
+  - {id: pattern.expand-contract, version: "1.0.0", sha256: 6a076465719b5f0112c893537cbcc070f030fcb2e9a976689aff95711855d1a4}
+critical_flow_coverage:
+  - {id: plugin-discovery-and-skill-execution, status: assessed, reason: "Manifest, Skill routing, references, validators, and package inventory were traced and tested."}
+  - {id: finding-verification-and-policy-enforcement, status: assessed, reason: "Candidate-to-verified bindings, evidence resolution, decisions, plans, and gate states were traced and tested."}
+  - {id: architecture-knowledge-and-behavior-evaluation, status: assessed, reason: "Context treatment contracts, provenance, leakage controls, and scoring were traced and tested."}
+  - {id: greenfield-architecture-decision, status: assessed, reason: "Decision bindings and compatible-migration conditions were traced against the public contract changes."}
+  - {id: safe-project-initialization, status: assessed, reason: "Initialization and generated-profile boundaries remain covered by focused regressions."}
+  - {id: deterministic-release-packaging, status: assessed, reason: "Version, packaging, checksum, SPDX, dependency, and license validation were rerun for 0.4.2."}
+unknowns:
+  - GitHub-hosted CI and downstream migration experience for 0.4.2 remain unobserved at review time.

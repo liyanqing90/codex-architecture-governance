@@ -1,0 +1,207 @@
+schema_version: "1.2"
+decision:
+  id: ADR-CAG-006
+  decision_kind: remediation
+  source_review: codex-architecture-governance-20260729-context-precision-verified
+  source_review_sha256: c0fac2eb7e8af4eaa25e70440bddb95be11ff8f926ae3326af16690673590e1d
+  decided_at: "2026-07-29T08:32:00+00:00"
+  decision_makers:
+    - architecture-owner
+  status: accepted
+  knowledge_selection_path: .architecture/reviews/inputs/2026-07-29-context-precision-decision-knowledge-selection.yaml
+  knowledge_selection_sha256: e325a68444bf5171e39c8cf32526e48bd7d31dcdc7781bab09756cfc83a32246
+problem:
+  quality_attributes:
+    - compatibility
+    - deterministic-enforcement
+    - traceability
+  constraints:
+    - The eight public Skill identities and the local-first plugin runtime remain compatibility contracts.
+    - Legacy trusted artifacts remain readable; new contracts must fail closed without rewriting historical evidence.
+    - The project has no required hosted runtime, credentials, telemetry, or external service.
+  finding_ids: []
+  assumptions:
+    - The 0.4.2 context-precision work remains a compatible extension to the local deterministic runtime.
+    - A static, non-executing setup.py parser is sufficient for literal runtime dependency declarations.
+  known_facts:
+    - The verified review resolved source and test evidence for static setup.py parsing and comparable Base/Full/Compressed treatments.
+    - The migration introduces versioned schemas, explicit facts roles, and a declared context proxy without claiming new external-model results.
+    - Full and Compressed treatments share workflow-required Knowledge while Base loads none.
+  unknowns:
+    - Downstream adoption and real external-model A/B/C outcome differences are not yet observed.
+knowledge_snapshot:
+  - {id: foundation.technology-selection, version: "1.0.0", sha256: 183032d368331cd7a3c47988a8f042be627dd5fd1104596d76516951ea0f5948}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: foundation.evolutionary-architecture, version: "1.0.0", sha256: 6f04262de0936a1cffca25b6cadf5e2b0e4b8e7aa6724292ba1d9fd314413f3f}
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: foundation.tradeoff-analysis, version: "1.0.0", sha256: 058c9756ba4d9306f42e0fb49365aff3564f3545e103c05812040ce2c9f8b9d5}
+  - {id: domain.backend-api, version: "1.0.0", sha256: ea716865510106db441623d39045b2ca26f66c4424ed18fb15383938614ac4b4}
+  - {id: domain.cloud-native-platform, version: "1.0.0", sha256: 37ee84809a4162ff3e49a04a82433786efe762f7440dc5273232cb7b5b612c9c}
+  - {id: domain.data-platform, version: "1.0.0", sha256: 72dc109fdb28d74df5f947bf615017bd80d655a7e9c5b3fde7df53cff2fc6364}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+  - {id: decision.local-first-vs-server-first, version: "2.0.0", sha256: e240200929e13e48276dc33d036e5f2547c00911b712a9a45fe2f2a0012540c8}
+  - {id: decision.optimistic-vs-pessimistic-update, version: "2.0.0", sha256: 935e92047bb3a9ce3b4ba8484b5cecc28c5c981a1c61453aff31bb892854ff64}
+  - {id: decision.state-management, version: "2.0.0", sha256: 486710b4fc5f052821b04c3706c133dac7cd25f6965b8fcf23d9faf2764baa66}
+options:
+  - id: keep-current
+    title: Keep the local-first plugin topology and enforce compatible contracts
+    complexity_tier: keep-current
+    architecture_styles: []
+    patterns: []
+    technologies: []
+    benefits:
+      - Preserves the local Python CLI and existing public Skill boundaries.
+      - Makes facts roles, A/B/C treatments, and context accounting explicit and testable.
+    liabilities:
+      - Maintainers must continue to keep schema migrations and governance artifacts synchronized.
+    assumptions:
+      - The current repository-scale runtime remains suitable for the intended open-source workflow.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: improves, rationale: Legacy artifacts remain readable while new contracts are versioned and documented.}
+      - {attribute: deterministic-enforcement, effect: improves, rationale: Static parsing and exact treatment sets fail before they can create ambiguous results.}
+      - {attribute: traceability, effect: improves, rationale: Context inputs and review evidence bind to explicit paths and hashes.}
+    business_fit: Fits the installable open-source plugin and constrained operating model.
+    team_fit: Uses existing Python, schema, test, and release practices.
+    evolution_fit: Retains bounded internal seams without introducing a distributed runtime.
+    implementation_complexity: low
+    operational_complexity: low
+    migration_risk: low
+    reversibility: easy
+    cost: low
+    technical_maturity: mature
+    lock_in: none
+    tradeoff_scores:
+      business_fit: 2
+      quality_fit: 2
+      team_fit: 2
+      implementation: 2
+      operations: 2
+      migration: 2
+      reversibility: 2
+      cost: 2
+      maturity: 2
+      lock_in: 2
+      evolution: 1
+    rejected_reasons: []
+  - id: permissive-inputs
+    title: Accept dynamic dependency declarations and incomplete treatment manifests
+    complexity_tier: low
+    architecture_styles: []
+    patterns: []
+    technologies: []
+    benefits:
+      - Reduces up-front validation work for unusual repository layouts.
+    liabilities:
+      - Allows hidden execution behavior or incomparable benchmark treatments to influence governance output.
+    assumptions:
+      - Consumers can reliably interpret ambiguities without deterministic enforcement.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: degrades, rationale: Different callers may infer different facts or treatment meanings from the same input.}
+      - {attribute: deterministic-enforcement, effect: degrades, rationale: Validation no longer rejects duplicate or incomplete A/B/C declarations.}
+      - {attribute: traceability, effect: degrades, rationale: Dynamic behavior cannot be attributed to a bounded inspected input.}
+    business_fit: Conflicts with the project's evidence-first published governance contracts.
+    team_fit: Shifts ambiguity resolution to every maintainer and reviewer.
+    evolution_fit: Creates future compatibility debt at the schema boundary.
+    implementation_complexity: low
+    operational_complexity: low
+    migration_risk: high
+    reversibility: moderate
+    cost: low
+    technical_maturity: mature
+    lock_in: none
+    tradeoff_scores:
+      business_fit: -2
+      quality_fit: -2
+      team_fit: -1
+      implementation: 1
+      operations: 1
+      migration: -2
+      reversibility: 0
+      cost: 1
+      maturity: 1
+      lock_in: 2
+      evolution: -2
+    rejected_reasons:
+      - It violates deterministic-enforcement and traceability requirements.
+  - id: separate-governance-runtime
+    title: Extract inspection and benchmark governance into a hosted service
+    complexity_tier: high
+    architecture_styles: []
+    patterns: []
+    technologies: []
+    benefits:
+      - Could centralize execution for a future multi-user governance product.
+    liabilities:
+      - Adds identity, tenancy, availability, deployment, cost, and on-call responsibilities absent from the current product.
+    assumptions:
+      - A hosted product, operating team, and funded demand exist.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: degrades, rationale: A remote service changes the local plugin's public operating boundary.}
+      - {attribute: deterministic-enforcement, effect: unknown, rationale: Distributed execution adds environmental sources of variation without current evidence of benefit.}
+      - {attribute: traceability, effect: unknown, rationale: A new service could add central records but also adds remote identity and deployment provenance.}
+    business_fit: Does not fit the current installable, offline-capable plugin.
+    team_fit: Requires operating capabilities outside the declared maintainer model.
+    evolution_fit: Optimizes an unvalidated future instead of the current bounded contracts.
+    implementation_complexity: high
+    operational_complexity: high
+    migration_risk: high
+    reversibility: difficult
+    cost: high
+    technical_maturity: mature
+    lock_in: high
+    tradeoff_scores:
+      business_fit: -2
+      quality_fit: -1
+      team_fit: -2
+      implementation: -2
+      operations: -2
+      migration: -2
+      reversibility: -1
+      cost: -2
+      maturity: 2
+      lock_in: -2
+      evolution: -1
+    rejected_reasons:
+      - The Profile prohibits a required hosted runtime and no product demand justifies the operating cost.
+selected_option: keep-current
+rationale: >-
+  The verified review shows that the needed corrections belong at existing
+  parser and benchmark-contract boundaries. Keeping the local-first plugin
+  topology while versioning those contracts restores determinism and
+  traceability without inventing a hosted runtime or making unbounded dynamic
+  inputs authoritative.
+revisit_triggers:
+  - A verified downstream migration shows that a supported literal setup.py form is not represented by the static parser.
+  - An external-model A/B/C study exposes a context-boundary failure not covered by the declared treatment contract.
+  - A funded multi-user product has named security, tenancy, availability, and on-call owners.
+acceptance_evidence:
+  - The authorized architecture owner accepted the compatible local-first option for the 0.4.2 migration.
+  - The candidate and verified review bind source, test, facts, profile, Knowledge, and Rule Pack evidence to commit 3b7cc5c.
+hard_eliminations:
+  - option_id: separate-governance-runtime
+    rule: The project requires a local-first runtime and prohibits a required hosted service.
+    evidence:
+      - .architecture/profile.yaml declares full offline operation and a prohibited required hosted runtime.
+      - .architecture/constraints.md requires no network, credentials, telemetry, or external service for runtime behavior.
+migration:
+  affected_paths:
+    - docs/migrating-to-0.4.2.md
+    - resources/schemas/benchmark-context-manifest.schema.json
+    - resources/schemas/benchmark.schema.json
+    - resources/schemas/gate-policy.schema.json
+    - resources/schemas/governance-run-manifest.schema.json
+    - resources/schemas/knowledge-selection.schema.json
+    - resources/schemas/project-profile.schema.json
+    - resources/schemas/repository-facts.schema.json
+  slices:
+    - Preserve legacy artifact readers while making new facts, selection, policy, and benchmark contracts explicit.
+    - Reject ambiguous setup.py and A/B/C manifest inputs before they influence profiles or benchmark interpretation.
+    - Publish the migration guide and retain historical v0.4.0 evidence unchanged.
+  rollback: >-
+    Revert only the new routing and validation paths in a follow-up compatible
+    release; retain archived evidence and never rewrite trusted historical
+    artifacts.
+  validation:
+    - Validate repository contracts, project configuration, Knowledge selection, candidate and verified review bindings, and accepted decision links.
+    - Run focused regressions, the full test suite, lint, formatting, dependency and license audits, deterministic packaging, checksum verification, and SPDX generation.

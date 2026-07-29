@@ -312,17 +312,19 @@ and migration actionability.
 The bundled Codex adapter limits outputs to machine Rule IDs and canonical
 atomic trade-offs. It allows one disclosed evidence-only correction when an
 initial path/line/excerpt citation is not verbatim; it never sends benchmark
-ground truth to the model. Schema 1.3 run artifacts also bind the source
+ground truth to the model. Schema 1.4 run artifacts also bind the source
 commit, relevant dirty state, execution environment, dependency lock,
-configuration schemas, fixture tree hashes, runner and adapter hashes, command
-template, and a hash-verified JSONL execution log. Interrupted trials leave a
+configuration schemas, plugin manifest and Skill version, fixture tree hashes,
+runner and adapter hashes, the reconstructible command template, exact
+per-trial argument vectors, command/model executable fingerprints and version
+outputs, and a hash-verified JSONL execution log. Interrupted trials leave a
 failure log instead of disappearing.
 
 The forward-test runner accepts a caller-supplied agent command:
 
 ```bash
 python3 scripts/run_behavior_benchmark.py \
-  --model MODEL --surface SURFACE --repetitions 3 \
+  --model MODEL --surface SURFACE --runtime-executable codex --repetitions 3 \
   --output benchmark-run.yaml -- \
   python3 scripts/codex_benchmark_adapter.py --model MODEL \
     --skill '{skill}' --fixture '{fixture}' --prompt '{prompt}'

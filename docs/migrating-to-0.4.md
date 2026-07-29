@@ -67,3 +67,10 @@ commands to emit `observed_decision` for cases with `expected_decision`. The
 bundled `codex_benchmark_adapter.py` provides a read-only structured Codex
 surface. Empty and legacy run files remain useful schema fixtures but are not
 model-quality evidence.
+
+Schema `1.4` release runs additionally require a reconstructible command
+template, exact per-trial argument vectors, the plugin manifest, and command
+and model-runtime executable/version fingerprints. Supply the external runtime
+explicitly, for example `--runtime-executable codex`. Schema `1.3` remains
+readable for prior evidence but does not satisfy the stronger v0.4 provenance
+claim.

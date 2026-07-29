@@ -3383,18 +3383,39 @@ def gate_from_config(
         freshness_sensitive = sorted(
             set(change_impacts["critical"]) | set(change_impacts["security"])
         )
-        stale_freshness_sensitive = sorted(
-            path for path in freshness_sensitive if path in set(changed_paths)
-        )
         if (
-            stale_freshness_sensitive
+            freshness_sensitive
             and change_policy["require_fresh_review_on_critical_change"]
             and commit_root is not None
         ):
-            policy_failures.append(
-                "Critical or security-sensitive paths changed after the selected "
-                "review: " + ", ".join(stale_freshness_sensitive)
-            )
+            if not reviewed_commit:
+                policy_failures.append(
+                    "Critical or security-sensitive changes require review.commit"
+                )
+            elif not git_is_ancestor(
+                commit_root,
+                reviewed_commit,
+                head or current_git_commit(commit_root),
+            ):
+                policy_failures.append(
+                    f"Review commit {reviewed_commit} is not an ancestor of HEAD"
+                )
+            else:
+                sensitive_review_delta = git_changed_paths(
+                    commit_root,
+                    reviewed_commit,
+                    head or current_git_commit(commit_root),
+                )
+                stale_freshness_sensitive = sorted(
+                    path
+                    for path in freshness_sensitive
+                    if path in sensitive_review_delta
+                )
+                if stale_freshness_sensitive:
+                    policy_failures.append(
+                        "Critical or security-sensitive paths changed after the "
+                        "selected review: " + ", ".join(stale_freshness_sensitive)
+                    )
 
     decisions: list[tuple[Path, dict[str, Any]]] = []
     plans: list[tuple[Path, dict[str, Any]]] = []
@@ -3425,6 +3446,9 @@ def gate_from_config(
         for path, decision in accepted_decisions
         if decision["selected_option"] == "keep-current"
         and decision.get("migration")
+        and set(change_impacts["migration"]).issubset(
+            set(decision["migration"].get("affected_paths", []))
+        )
         and decision["migration"].get("slices")
         and decision["migration"].get("validation")
         and decision["migration"].get("rollback")
@@ -4100,8 +4124,9 @@ def validate_benchmark_provenance(
     run_path: Path,
     observed: dict[str, Any],
 ) -> dict[str, Any] | None:
-    if observed["schema_version"] != "1.3":
+    if observed["schema_version"] not in {"1.3", "1.4"}:
         return None
+    extended_provenance = observed["schema_version"] == "1.4"
     provenance = observed["benchmark"]["provenance"]
     source = provenance["source"]
     commit = source["commit"]
@@ -4118,6 +4143,8 @@ def validate_benchmark_provenance(
         "dependency-lock",
         "knowledge-manifest",
     }
+    if extended_provenance:
+        required_roles.add("plugin-manifest")
     inputs = provenance["inputs"]
     roles = [item["role"] for item in inputs]
     if len(roles) != len(set(roles)):
@@ -4130,6 +4157,85 @@ def validate_benchmark_provenance(
         if actual != item["sha256"]:
             raise ArchitectureError(
                 f"Benchmark provenance input hash mismatch: {item['path']}"
+            )
+    if extended_provenance:
+        manifest_item = next(
+            item for item in inputs if item["role"] == "plugin-manifest"
+        )
+        try:
+            manifest = json.loads(
+                git_blob_bytes(root, commit, manifest_item["path"]).decode("utf-8")
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ArchitectureError(
+                "Benchmark provenance plugin manifest is invalid"
+            ) from exc
+        if manifest.get("version") != observed["benchmark"]["skill_version"]:
+            raise ArchitectureError(
+                "Benchmark Skill version does not match the source plugin manifest"
+            )
+        if provenance["model_request"] != observed["benchmark"]["model"]:
+            raise ArchitectureError(
+                "Benchmark model request does not match benchmark.model"
+            )
+        command_template = provenance["command_template"]
+        if canonical_sha256(command_template) != provenance["command_template_sha256"]:
+            raise ArchitectureError("Benchmark command template hash mismatch")
+
+        runtimes = provenance["runtime_executables"]
+        runtime_ids = [item["id"] for item in runtimes]
+        if len(runtime_ids) != len(set(runtime_ids)):
+            raise ArchitectureError("Benchmark provenance has duplicate runtime IDs")
+        runtime_roles = {item["role"] for item in runtimes}
+        if runtime_roles != {"command", "model"}:
+            raise ArchitectureError(
+                "Benchmark provenance requires command and model runtimes"
+            )
+        for runtime in runtimes:
+            resolved_value = shutil.which(runtime["requested"])
+            if resolved_value is None:
+                raise ArchitectureError(
+                    "Benchmark runtime executable is unavailable: "
+                    + runtime["requested"]
+                )
+            resolved = Path(resolved_value).resolve()
+            if (
+                resolved.name != runtime["resolved_name"]
+                or sha256_bytes(str(resolved).encode("utf-8"))
+                != runtime["resolved_path_sha256"]
+                or file_sha256(resolved) != runtime["executable_sha256"]
+            ):
+                raise ArchitectureError(
+                    f"Benchmark runtime executable mismatch: {runtime['id']}"
+                )
+            process = subprocess.run(
+                [str(resolved), *runtime["version_arguments"]],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            version_output = "\n".join(
+                part
+                for part in (process.stdout.strip(), process.stderr.strip())
+                if part
+            )
+            if process.returncode != 0 or version_output != runtime["version_output"]:
+                raise ArchitectureError(
+                    f"Benchmark runtime version mismatch: {runtime['id']}"
+                )
+            if (
+                sha256_bytes(version_output.encode("utf-8"))
+                != runtime["version_output_sha256"]
+            ):
+                raise ArchitectureError(
+                    f"Benchmark runtime version hash mismatch: {runtime['id']}"
+                )
+        model_versions = {
+            item["version_output"] for item in runtimes if item["role"] == "model"
+        }
+        if observed["benchmark"]["surface"] not in model_versions:
+            raise ArchitectureError(
+                "Benchmark surface does not match a model runtime version"
             )
 
     tools = provenance["tools"]
@@ -4224,6 +4330,18 @@ def validate_benchmark_provenance(
                         f"Benchmark execution {field} mismatch: {case['id']} "
                         f"trial {trial['index']}"
                     )
+            if extended_provenance:
+                command = record.get("command")
+                if command != execution["command"]:
+                    raise ArchitectureError(
+                        f"Benchmark execution command mismatch: {case['id']} "
+                        f"trial {trial['index']}"
+                    )
+                if canonical_sha256(command) != execution["command_sha256"]:
+                    raise ArchitectureError(
+                        f"Benchmark execution command hash mismatch: {case['id']} "
+                        f"trial {trial['index']}"
+                    )
             observation = record.get("observation")
             if not isinstance(observation, dict):
                 raise ArchitectureError(
@@ -4266,6 +4384,9 @@ def validate_benchmark_provenance(
         "execution_log_sha256": log["sha256"],
         "execution_log_records": log["records"],
         "environment": provenance["environment"],
+        "runtime_executables": (
+            provenance.get("runtime_executables") if extended_provenance else None
+        ),
     }
 
 

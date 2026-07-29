@@ -7,8 +7,9 @@ golden answers.
   version, duration, Finding, evidence reference, recommendation, and solution
   decision emitted by the benchmark runner.
 - `*.log.jsonl` files preserve the hash-bound execution record for every trial;
-  schema 1.3 runs bind these logs plus source, tools, dependencies,
-  configuration, fixtures, and environment.
+  schema 1.4 runs bind these logs plus source, tools, dependencies,
+  configuration, fixtures, environment, command templates, exact per-trial
+  argument vectors, and external runtime executable/version fingerprints.
 - `*-score.json` files are deterministic projections produced by
   `architecture_tool.py benchmark-score` against
   `benchmarks/ground-truth.yaml`.

@@ -1199,6 +1199,28 @@ class ArchitectureToolTests(unittest.TestCase):
                 for failure in result["policy_failures"]
             )
         )
+        (self.root / "critical.py").write_text("VALUE = 2\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", "critical.py"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Change after review"],
+            check=True,
+        )
+        stale_result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="change",
+            base_commit=base_commit,
+        )
+        self.assertTrue(
+            any(
+                "changed after the selected review" in failure
+                for failure in stale_result["policy_failures"]
+            )
+        )
 
     def test_keep_current_decision_covers_compatible_migration(self) -> None:
         config_root = self.init_project()
@@ -1255,6 +1277,7 @@ class ArchitectureToolTests(unittest.TestCase):
         )
         decision["problem"]["quality_attributes"] = ["recoverability"]
         decision["problem"]["finding_ids"] = []
+        decision["migration"]["affected_paths"] = ["migration.yaml"]
         decision["knowledge_snapshot"] = architecture_tool.decision_knowledge_snapshot()
         for option in decision["options"]:
             option["architecture_styles"] = [
@@ -1294,6 +1317,42 @@ class ArchitectureToolTests(unittest.TestCase):
             any(
                 "Migration changes require" in failure
                 for failure in result["policy_failures"]
+            )
+        )
+        decision["migration"]["affected_paths"] = ["another-migration.yaml"]
+        self.write_yaml(decision_path, decision)
+        uncovered = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="change",
+            base_commit=base_commit,
+        )
+        self.assertTrue(
+            any(
+                "Migration changes require" in failure
+                for failure in uncovered["policy_failures"]
+            )
+        )
+
+        decision["migration"]["affected_paths"] = ["migration.yaml"]
+        decision["selected_option"] = "low-complexity-option"
+        decision["options"][0]["rejected_reasons"] = [
+            "The bounded structural option is now selected."
+        ]
+        decision["options"][1]["rejected_reasons"] = []
+        self.write_yaml(decision_path, decision)
+        non_keep_current = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="change",
+            base_commit=base_commit,
+        )
+        self.assertTrue(
+            any(
+                "Migration changes require" in failure
+                for failure in non_keep_current["policy_failures"]
             )
         )
 

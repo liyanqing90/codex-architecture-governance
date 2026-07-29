@@ -25,13 +25,23 @@ class BehaviorBenchmarkTests(unittest.TestCase):
     def test_runner_executes_every_fixture_without_ground_truth_leakage(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "run.yaml"
+            python_version = subprocess.run(
+                [sys.executable, "--version"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            python_surface = (
+                python_version.stdout.strip() or python_version.stderr.strip()
+            )
             args = Namespace(
                 root=ROOT,
                 ground_truth=ROOT / "benchmarks" / "ground-truth.yaml",
                 output=output,
                 model="test-model",
-                surface="pytest",
+                surface=python_surface,
                 skill_version="0.4.0",
+                runtime_executables=[sys.executable],
                 timeout=10,
                 command=[
                     sys.executable,
@@ -56,9 +66,19 @@ class BehaviorBenchmarkTests(unittest.TestCase):
             result = run_behavior_benchmark.run_benchmark(args)
             log_path = output.with_suffix(".log.jsonl")
             self.assertEqual(len(result["cases"]), 10)
-            self.assertEqual(result["schema_version"], "1.3")
+            self.assertEqual(result["schema_version"], "1.4")
             self.assertEqual(result["benchmark"]["model"], "test-model")
             provenance = result["benchmark"]["provenance"]
+            self.assertEqual(provenance["command_template"], args.command)
+            self.assertEqual(provenance["model_request"], "test-model")
+            self.assertEqual(
+                {item["role"] for item in provenance["runtime_executables"]},
+                {"command", "model"},
+            )
+            self.assertIn(
+                "plugin-manifest",
+                {item["role"] for item in provenance["inputs"]},
+            )
             self.assertEqual(provenance["execution_log"]["records"], 10)
             self.assertEqual(
                 provenance["execution_log"]["sha256"],
@@ -71,7 +91,7 @@ class BehaviorBenchmarkTests(unittest.TestCase):
             self.assertEqual(len(log_records), 10)
             self.assertTrue(
                 all(
-                    "execution" in trial
+                    "execution" in trial and trial["execution"]["command"]
                     for case in result["cases"]
                     for trial in case["trials"]
                 )
@@ -100,6 +120,34 @@ class BehaviorBenchmarkTests(unittest.TestCase):
             self.assertEqual(score.returncode, 0, score.stderr)
             self.assertTrue(json.loads(score.stdout)["provenance"]["valid"])
 
+            original_version = provenance["runtime_executables"][0]["version_output"]
+            provenance["runtime_executables"][0]["version_output"] = "tampered"
+            output.write_text(
+                yaml.safe_dump(result, sort_keys=False, allow_unicode=True),
+                encoding="utf-8",
+            )
+            runtime_tampered = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "resources" / "scripts" / "architecture_tool.py"),
+                    "benchmark-score",
+                    "--ground-truth",
+                    str(ROOT / "benchmarks" / "ground-truth.yaml"),
+                    "--run",
+                    str(output),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(runtime_tampered.returncode, 2)
+            self.assertIn("runtime version mismatch", runtime_tampered.stderr)
+            provenance["runtime_executables"][0]["version_output"] = original_version
+            output.write_text(
+                yaml.safe_dump(result, sort_keys=False, allow_unicode=True),
+                encoding="utf-8",
+            )
+
             log_path.write_text(
                 log_path.read_text(encoding="utf-8") + "{}\n",
                 encoding="utf-8",
@@ -124,13 +172,22 @@ class BehaviorBenchmarkTests(unittest.TestCase):
     def test_failed_trial_preserves_a_hash_only_execution_log(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "failed.yaml"
+            python_version = subprocess.run(
+                [sys.executable, "--version"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
             args = Namespace(
                 root=ROOT,
                 ground_truth=ROOT / "benchmarks" / "ground-truth.yaml",
                 output=output,
                 model="test-model",
-                surface="pytest",
+                surface=(
+                    python_version.stdout.strip() or python_version.stderr.strip()
+                ),
                 skill_version="0.4.0",
+                runtime_executables=[sys.executable],
                 timeout=10,
                 repetitions=1,
                 command=[sys.executable, "-c", "raise SystemExit(7)"],
@@ -150,6 +207,7 @@ class BehaviorBenchmarkTests(unittest.TestCase):
                     "trial_index",
                     "duration_seconds",
                     "exit_code",
+                    "command",
                     "command_sha256",
                     "stdout_sha256",
                     "stderr_sha256",

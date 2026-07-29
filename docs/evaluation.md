@@ -116,7 +116,7 @@ read-only fixture with a strict observation schema:
 
 ```bash
 python3 scripts/run_behavior_benchmark.py \
-  --model MODEL --surface SURFACE --repetitions 3 \
+  --model MODEL --surface SURFACE --runtime-executable codex --repetitions 3 \
   --output benchmark-run.yaml -- \
   python3 scripts/codex_benchmark_adapter.py \
     --model MODEL --skill '{skill}' \
@@ -131,12 +131,14 @@ scorer independently resolve these references inside the fixture; a
 caller-supplied validity assertion is not trusted. Use a clean task per case
 and never include the ground-truth expectations in the model prompt. Each
 repetition launches a new command process; the harness records every trial
-rather than averaging model output before scoring. For schema 1.3 runs it also
+rather than averaging model output before scoring. For schema 1.4 runs it also
 writes a sibling JSONL execution log and binds its hash to the result. Each
-trial records hashes of the rendered command, stdout, stderr, normalized
-observation, and exact log record. Run-level provenance binds the clean source
-commit, execution environment, dependency lock, schemas, Ground Truth,
-Knowledge manifest, fixture trees, and runner/adapter bytes.
+trial records the exact rendered argument vector plus hashes of the command,
+stdout, stderr, normalized observation, and exact log record. Run-level
+provenance binds the clean source commit, execution environment, dependency
+lock, schemas, Ground Truth, Knowledge manifest, plugin manifest and Skill
+version, fixture trees, runner/adapter bytes, reconstructible command template,
+and command/model runtime executable and version fingerprints.
 
 The bundled Codex adapter constrains Finding IDs to the bundled machine Rule
 Packs and solution trade-offs to a documented atomic vocabulary. It performs
@@ -149,9 +151,10 @@ trial instead of being repaired or scored as valid.
 For release evidence, run at least two identified models with three fresh
 trials per case. Preserve each run YAML, sibling `*.log.jsonl`, and score JSON.
 The scorer resolves every provenance hash against the recorded source commit
-and rejects dirty relevant inputs. A failed or interrupted run leaves a
-hash-only execution-log record and must not be rewritten as a passing model
-result.
+and rejects dirty relevant inputs. It also re-resolves the recorded runtime
+executables and version commands on the scoring host. A failed or interrupted
+run leaves a hash-only execution-log record and must not be rewritten as a
+passing model result.
 
 ## Release evidence
 

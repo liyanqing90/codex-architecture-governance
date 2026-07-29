@@ -23,9 +23,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - A read-only Codex benchmark adapter with machine Rule IDs, canonical
   decision vocabulary, structured-output validation, and one bounded
   evidence-only correction that never receives ground truth.
-- Benchmark schema `1.3` provenance that binds source, environment,
-  dependencies, configuration, fixtures, runner and adapter bytes, and
-  hash-verified per-trial execution logs.
+- Benchmark schema `1.4` provenance that binds source, environment,
+  dependencies, configuration, plugin manifest and Skill version, fixtures,
+  runner and adapter bytes, reconstructible command templates, exact trial
+  commands, external runtime fingerprints, and hash-verified execution logs.
 - Severity- and stage-aware verification policy: critical V3, high V2,
   medium/low V1, and V4 for risk acceptance and release.
 
@@ -48,8 +49,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   security path changed after the reviewed commit; later governance-only
   records no longer create an impossible review/HEAD self-reference.
 - An accepted `keep-current` decision with explicit migration slices,
-  rollback, and validation now satisfies compatible migration governance
-  without manufacturing a remediation plan for a non-risk Finding.
+  rollback, validation, and exact affected-path coverage now satisfies
+  compatible migration governance without manufacturing a remediation plan
+  for a non-risk Finding.
 
 ### Security
 

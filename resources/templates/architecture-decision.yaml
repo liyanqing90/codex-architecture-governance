@@ -157,6 +157,8 @@ acceptance_evidence:
   - Replace with observable decision acceptance evidence.
 hard_eliminations: []
 migration:
+  affected_paths:
+    - Replace with the exact project-relative contract, schema, data, or code path.
   slices:
     - Introduce the selected behavior behind a compatible boundary.
     - Verify acceptance evidence before contracting the old path.

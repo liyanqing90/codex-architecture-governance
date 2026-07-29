@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import platform
+import shutil
 import subprocess
 import time
 from datetime import UTC, datetime
@@ -65,20 +66,101 @@ def git_output(root: Path, *args: str) -> str:
     return process.stdout.strip()
 
 
+def executable_provenance(
+    *,
+    runtime_id: str,
+    role: str,
+    requested: str,
+) -> dict:
+    resolved_value = shutil.which(requested)
+    if resolved_value is None:
+        raise ValueError(f"Benchmark runtime executable is unavailable: {requested}")
+    resolved = Path(resolved_value).resolve()
+    if not resolved.is_file():
+        raise ValueError(f"Benchmark runtime is not a file: {resolved}")
+    version_arguments = ["--version"]
+    process = subprocess.run(
+        [str(resolved), *version_arguments],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if process.returncode != 0:
+        detail = process.stderr.strip() or process.stdout.strip()
+        raise ValueError(
+            f"Benchmark runtime version command failed for {requested}: {detail}"
+        )
+    version_output = "\n".join(
+        part for part in (process.stdout.strip(), process.stderr.strip()) if part
+    )
+    if not version_output:
+        raise ValueError(
+            f"Benchmark runtime version command returned no output: {requested}"
+        )
+    return {
+        "id": runtime_id,
+        "role": role,
+        "requested": requested,
+        "resolved_name": resolved.name,
+        "resolved_path_sha256": sha256_bytes(str(resolved).encode("utf-8")),
+        "executable_sha256": file_sha256(resolved),
+        "version_arguments": version_arguments,
+        "version_output": version_output,
+        "version_output_sha256": sha256_bytes(version_output.encode("utf-8")),
+    }
+
+
+def collect_runtime_provenance(
+    command: list[str],
+    declared_runtimes: list[str],
+) -> list[dict]:
+    requested = [("command-executable", "command", command[0])]
+    requested.extend(
+        (f"model-runtime-{index}", "model", executable)
+        for index, executable in enumerate(declared_runtimes, start=1)
+    )
+    records = []
+    seen: set[tuple[str, str]] = set()
+    for runtime_id, role, executable in requested:
+        key = (role, executable)
+        if key in seen:
+            continue
+        seen.add(key)
+        records.append(
+            executable_provenance(
+                runtime_id=runtime_id,
+                role=role,
+                requested=executable,
+            )
+        )
+    return records
+
+
 def collect_provenance(
     *,
     root: Path,
     corpus_path: Path,
     corpus: dict,
     command: list[str],
+    skill_version: str,
+    model: str,
+    surface: str,
+    declared_runtimes: list[str],
 ) -> dict:
     schema_root = root / "resources" / "schemas"
+    manifest_path = root / ".codex-plugin" / "plugin.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("version") != skill_version:
+        raise ValueError(
+            "Declared benchmark Skill version does not match plugin manifest"
+        )
     input_specs = (
         ("ground-truth", corpus_path),
         ("benchmark-schema", schema_root / "benchmark.schema.json"),
         ("observation-schema", schema_root / "benchmark-observation.schema.json"),
         ("dependency-lock", root / "requirements-runtime.lock"),
         ("knowledge-manifest", root / "resources" / "knowledge" / "manifest.yaml"),
+        ("plugin-manifest", manifest_path),
     )
     inputs = [
         {
@@ -147,6 +229,14 @@ def collect_provenance(
             *tracked_paths,
         )
     )
+    runtime_executables = collect_runtime_provenance(command, declared_runtimes)
+    model_runtimes = [item for item in runtime_executables if item["role"] == "model"]
+    if model_runtimes and not any(
+        item["version_output"] == surface for item in model_runtimes
+    ):
+        raise ValueError(
+            "Declared benchmark surface does not match a model runtime version"
+        )
     return {
         "source": {
             "repository": ".",
@@ -160,9 +250,10 @@ def collect_provenance(
             "python_implementation": platform.python_implementation(),
             "python_version": platform.python_version(),
         },
-        "command_template_sha256": sha256_bytes(
-            canonical_json(command).encode("utf-8")
-        ),
+        "model_request": model,
+        "command_template": command,
+        "command_template_sha256": sha256_bytes(canonical_json(command).encode()),
+        "runtime_executables": runtime_executables,
         "inputs": inputs,
         "fixtures": fixtures,
         "tools": tools,
@@ -271,13 +362,17 @@ def run_benchmark(args: argparse.Namespace) -> dict:
         corpus_path=corpus_path,
         corpus=corpus,
         command=args.command,
+        skill_version=args.skill_version,
+        model=args.model,
+        surface=args.surface,
+        declared_runtimes=getattr(args, "runtime_executables", []),
     )
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_path.write_text("", encoding="utf-8")
     log_records = 0
 
     result = {
-        "schema_version": "1.3",
+        "schema_version": "1.4",
         "benchmark": {
             "id": corpus["benchmark"]["id"],
             "version": corpus["benchmark"]["version"],
@@ -324,11 +419,12 @@ def run_benchmark(args: argparse.Namespace) -> dict:
             stderr_sha256 = sha256_bytes(process.stderr.encode("utf-8"))
             if process.returncode != 0:
                 failed_record = {
-                    "schema_version": "1.0",
+                    "schema_version": "1.1",
                     "case_id": case["id"],
                     "trial_index": trial_index,
                     "duration_seconds": duration_seconds,
                     "exit_code": process.returncode,
+                    "command": command,
                     "command_sha256": command_sha256,
                     "stdout_sha256": stdout_sha256,
                     "stderr_sha256": stderr_sha256,
@@ -353,11 +449,12 @@ def run_benchmark(args: argparse.Namespace) -> dict:
                 )
             validate(observed, observation_schema, observation_schema_path)
             log_record = {
-                "schema_version": "1.0",
+                "schema_version": "1.1",
                 "case_id": case["id"],
                 "trial_index": trial_index,
                 "duration_seconds": duration_seconds,
                 "exit_code": process.returncode,
+                "command": command,
                 "command_sha256": command_sha256,
                 "stdout_sha256": stdout_sha256,
                 "stderr_sha256": stderr_sha256,
@@ -402,6 +499,7 @@ def run_benchmark(args: argparse.Namespace) -> dict:
                 "observed_recommendations": observed_recommendations,
                 "execution": {
                     "exit_code": process.returncode,
+                    "command": command,
                     "command_sha256": command_sha256,
                     "stdout_sha256": stdout_sha256,
                     "stderr_sha256": stderr_sha256,
@@ -466,6 +564,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model", required=True)
     parser.add_argument("--surface", required=True)
     parser.add_argument("--skill-version", default="0.4.0")
+    parser.add_argument(
+        "--runtime-executable",
+        action="append",
+        default=[],
+        dest="runtime_executables",
+        help=(
+            "External model/runtime executable to fingerprint. Repeat for "
+            "multiple runtime boundaries."
+        ),
+    )
     parser.add_argument("--timeout", type=int, default=600)
     parser.add_argument("--repetitions", type=int, default=1, choices=range(1, 21))
     parser.add_argument(

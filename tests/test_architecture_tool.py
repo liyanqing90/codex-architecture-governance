@@ -645,8 +645,27 @@ class ArchitectureToolTests(unittest.TestCase):
         )
 
     def test_repository_dogfood_configuration_is_valid(self) -> None:
-        validated = architecture_tool.validate_project(ROOT)
-        self.assertEqual(len(validated), 12)
+        validated = {
+            path.relative_to(ROOT).as_posix()
+            for path in architecture_tool.validate_project(ROOT)
+        }
+        required = {
+            ".architecture/profile.yaml",
+            ".architecture/gate-policy.yaml",
+            ".architecture/baseline.yaml",
+            ".architecture/repository-facts.yaml",
+            ".architecture/risk-acceptances.yaml",
+            ".architecture/evidence-providers.yaml",
+            ".architecture/constraints.md",
+            ".architecture/critical-flows.md",
+        }
+        self.assertLessEqual(required, validated)
+        self.assertTrue(
+            any(path.endswith("-verified.yaml") for path in validated),
+        )
+        self.assertTrue(
+            any(path.endswith("-architecture-decision.yaml") for path in validated),
+        )
 
     def test_evidence_provider_run_binds_and_revalidates_output(self) -> None:
         self.init_project()

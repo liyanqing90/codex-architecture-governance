@@ -1,0 +1,22 @@
+schema_version: "1.0"
+run:
+  id: GOV-RUN-EXAMPLE-001
+  product_mode: governed
+  workflow: architecture-solution-advisor
+  model:
+    id: identified-model
+    surface: identified-codex-surface
+  started_at: "1970-01-01T00:00:00+00:00"
+  completed_at: "1970-01-01T00:00:00+00:00"
+  source:
+    repository: "."
+    commit: "0000000000000000000000000000000000000000"
+    scope: ["."]
+  selected_knowledge: []
+  tools_used: []
+  artifacts_written: []
+  stop_reason: completed
+  authorization_boundary:
+    kind: user-request
+    reference: tracked-user-request
+  trust: informational-only

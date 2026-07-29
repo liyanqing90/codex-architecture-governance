@@ -11,6 +11,15 @@ candidates, change production code, or recommend fixes. Use
 `architecture-finding-verifier` for confirmation and
 `architecture-remediation-planner` only after findings are confirmed.
 
+## Choose the persistence level
+
+When the user asks for a read-only assessment, or `.architecture/` is absent
+and initialization was not requested, operate in Advisory mode: inspect only,
+write no repository artifacts, do not run a Gate, and label conclusions as
+observations or candidates in the response. For Governed or Enforced work,
+follow the persistent candidate/verification workflow below. Do not create
+configuration merely to make an Advisory assessment look governed.
+
 ## Load the contract
 
 Read these files completely before auditing:

@@ -95,8 +95,8 @@ python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/codex-architecture-governance-0.4.0.zip \
-  --output dist/codex-architecture-governance-0.4.0.spdx.json
+  --archive dist/codex-architecture-governance-0.4.2.zip \
+  --output dist/codex-architecture-governance-0.4.2.spdx.json
 ```
 
 The pull request should explain what each new test proves. A generated archive

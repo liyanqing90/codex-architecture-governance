@@ -55,6 +55,64 @@ method, reviewer, and date. In addition to the common body contract:
 The validator compares golden entries for high template similarity. Shared
 headings are expected; repeated generic mechanism prose is not.
 
+## Selection budgets and maturity
+
+New selection artifacts use schema `1.3`. They bind each selected entry's
+`kind` and `maturity`, retain a total entry cap, and account for all ten kinds
+individually. They also bind the Selector implementation, Knowledge manifest
+and tree, selection-policy version, source commit, and canonical result hash.
+Use `--kind-budget KIND=LIMIT` to tighten a kind without letting another kind
+silently consume the freed context budget. Mandatory Skill and decision-intent
+contracts must fit both caps; the selector fails rather than silently dropping
+one.
+
+Validation uses creation-time locking. If every Selector, Knowledge, and policy
+binding still matches the installed runtime, validation deterministically
+replays the selection. If any runtime binding has evolved, validation preserves
+the historical artifact and checks its schema, result hash, facts/Profile
+bindings, selected-entry hashes recorded at creation, and budgets without
+running a future algorithm against old inputs.
+
+The Solution Advisor is Golden-only for discretionary context. A standard entry
+may appear only when its recorded reason is one of:
+
+- a required Skill contract dependency;
+- an explicit caller include;
+- maintainer mode;
+- an exact profile-required domain with no declared Golden replacement; or
+- an exact detected technology with no declared Golden replacement; or
+- an exact, caller-declared decision-intent match.
+
+A broad domain or task-token overlap is not a Golden replacement match.
+`--maintainer` is deliberately visible in the selection inputs and is reserved
+for curation or maintenance work; it should not be the default for an ordinary
+architecture decision.
+
+Use `--decision-intent plugin-runtime-topology` when deciding hosted versus
+locally installed plugin execution. Use
+`--decision-intent data-authority-topology` only for client replicas, offline
+writes, synchronization, and conflict ownership. Ambiguous text such as
+`local-first` does not activate the data-authority guide without that semantic
+namespace.
+
+## Failure-driven expansion
+
+Do not grow the Knowledge library as a framework catalogue. A proposed new
+Golden entry, or a material expansion of one, must begin with a concrete
+decision-quality gap: a benchmark false negative or false positive, unstable
+recommendation, missing trade-off, verified project finding, user rejection or
+correction, or a documented incident/rollback.
+
+For each promotion, preserve the source of that gap in the curation change and
+add the smallest representative regression: an evaluation case, benchmark
+fixture/ground-truth update, or deterministic validator test. State why an
+existing Golden entry cannot cover the gap. Popularity, broad topic overlap,
+or a desire for a complete technology inventory is not sufficient evidence.
+
+Historical entries are not retroactively relabelled to meet this rule. Apply it
+to new curation work and use fresh evidence when replacing a stale or
+insufficient recommendation.
+
 ## Required body
 
 Use one level-one title and all fourteen level-two sections:

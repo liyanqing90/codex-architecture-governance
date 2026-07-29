@@ -3,13 +3,13 @@
 ## Outcome
 
 The architecture of Codex Architecture Governance at commit
-`676ff9daa6931ed87ce8bf2da4f0222f47da14ee` is suitable for the v0.4.0
-release scope. The review confirmed one evidence-system strength and found no
-verified architecture risk that requires remediation.
+`a290c4632a0974c087fd2dd578238e38a5004e13` is suitable for the v0.4.0
+release scope. Independent verification confirmed two V2 architecture
+strengths and found no verified architecture risk that requires remediation.
 
-This conclusion is intentionally bounded. It does not claim that the evaluated
-models are universally reliable, that token or cost telemetry exists, or that
-GitHub-hosted CI and a clean-machine installation have already passed.
+This conclusion is deliberately bounded. It does not claim visibility into a
+remote model build, deterministic reproduction of model responses, token or
+cost telemetry, or completion of the GitHub-hosted release workflow.
 
 ## Scope and inputs
 
@@ -21,89 +21,107 @@ GitHub-hosted CI and a clean-machine installation have already passed.
   `test-automation-platform`
 - Coverage: 31 rules, 6 critical flows, and 15 selected Knowledge entries
 - Candidate artifact:
-  `.architecture/reviews/2026-07-29-project-candidates-v2.yaml`
+  `.architecture/reviews/2026-07-29-project-candidates-v4.yaml`
 - Trusted artifact:
   `.architecture/reviews/2026-07-29-project-verified.yaml`
 - Independent verification:
-  `.architecture/reviews/2026-07-29-project-verification-v3.md`
+  `.architecture/reviews/2026-07-29-project-verification-v5.md`
 
-The review inspected public Skills, plugin metadata, knowledge catalogs and
-selection, artifact schemas, the deterministic CLI, benchmark fixtures and
-results, tests, CI/release definitions, dependency locks, and packaging
-controls.
+The review inspected public Skills, plugin metadata, Knowledge catalogs and
+selection, artifact schemas, deterministic CLI behavior, benchmark fixtures
+and results, tests, CI and release definitions, dependency locks, migration
+guidance, and packaging controls.
 
 ## Architecture summary
 
 The repository is a local-first Codex plugin with eight public workflow Skills.
-Workflow instructions remain in Skills, curated architecture knowledge and
+Workflow instructions remain in Skills, curated architecture Knowledge and
 machine Rule Packs remain versioned data, and deterministic inspection,
-validation, evidence resolution, decision validation, gating, benchmark
-scoring, and release packaging remain in Python tooling. Project-specific
-context is kept under `.architecture/`.
+validation, evidence resolution, decision validation, quality gating,
+benchmark scoring, and release packaging remain in Python tooling.
+Project-specific context remains under `.architecture/`.
 
-The main boundaries are coherent for a single-maintainer open-source tool:
+The principal boundaries are coherent for a small-team open-source project:
 
 - candidate analysis is separated from independent verification;
 - probabilistic model output cannot directly block a build;
-- verified artifacts bind repository identity, commit, profile, Rule Packs,
-  selected knowledge, evidence, and verifier identity;
-- architecture decisions and remediation plans are distinct from findings;
-- runtime packaging uses an explicit allowlist and has no required hosted
-  service, credential, network, or telemetry dependency.
+- verified artifacts bind repository identity, commit, Profile, Rule Packs,
+  selected Knowledge, evidence, and verifier identity;
+- architecture decisions and remediation plans remain separate from findings;
+- runtime packaging uses an explicit allowlist and requires no hosted service,
+  credential, network access, or telemetry.
 
-## Confirmed strength
+## Confirmed strengths
 
-`CAG-EVIDENCE-001` was independently confirmed at V2. Behavior benchmark
-schema 1.3, the runner, the scorer, the tamper tests, and both preserved model
-runs form a complete bounded provenance chain:
+### CAG-EVIDENCE-001 — provenance-bound behavior evidence
+
+The schema 1.4 benchmark contract, runner, scorer, preserved runs, and tamper
+tests bind all locally controllable execution evidence:
 
 - source commit and relevant dirty state;
-- operating environment and locked dependencies;
-- Ground Truth, schemas, Knowledge manifest, fixture trees, runner, adapter,
-  and command-template hashes;
-- per-trial command, output, observation, and log-record hashes;
-- a canonical JSONL log whose count and digest are bound to the run;
-- fail-closed scoring for missing, dirty, stale, changed, or inconsistent
-  evidence.
+- dependency lock, schemas, Ground Truth, Knowledge and plugin manifests,
+  fixture trees, runner, adapter, and literal command template;
+- requested and resolved command/model runtimes, executable hashes, version
+  arguments, version output, and per-trial exact argv;
+- exit status, stdout, stderr, structured observation, and canonical JSONL
+  record hashes.
 
-The audit trail also records why this matters. The first candidate at commit
-`4099c61` was rejected because the then-current result files did not bind code,
-environment, configuration, runner, or execution logs. The missing capability
-was implemented and tested; the replacement candidate at `676ff9d` was then
-independently confirmed. This is evidence of a corrected control, not a
-rewritten finding.
+Strict verification re-resolves the current host runtimes and fails on a
+mismatch. Git-bound archived verification instead proves the exact run and log
+bytes existed at the named artifact commit, preserves every source, command,
+log, and observation check, and explicitly reports a current-host mismatch.
+Archived verification without a commit also fails closed.
+
+The independent verifier rescored both 30-trial runs at artifact commit
+`b6d406a324f294bf29deaf7b3280e8ae7ab22e4c`. Both passed archived
+verification while correctly reporting that its current Codex runtime differed
+from the recorded runtime. Default strict verification rejected that mismatch.
+
+### CAG-GATE-001 — review freshness and migration authorization
+
+The architecture gate independently checks paths changed after the reviewed
+commit, so a historical base range cannot conceal a later change to a critical
+or security-sensitive path. A compatible migration exception is accepted only
+for an authorized `keep-current` decision whose `migration.affected_paths`
+exactly cover all classified migration paths and whose slices, validation, and
+rollback are nonempty. Other selected options require an active remediation
+plan.
+
+Regression cases cover a governance-only post-review change passing, a
+post-review sensitive-path change failing, an incorrect migration path failing,
+and a non-`keep-current` decision without a plan failing.
 
 ## Model-behavior evidence
 
-Two real model runs executed 10 cases three times each, for 60 accepted trials.
-Both provenance chains passed. Evidence validity and Knowledge citation
-validity were 1.000 for both models, forbidden recommendation hits and
-over-design rate were zero, and decision stability was 0.833.
+Two real Codex model runs executed ten cases three times each, for 60 accepted
+trials. Both provenance chains passed. Evidence validity and Knowledge
+citation validity were 1.000 for both models; forbidden recommendation hits
+and over-design rate were zero.
 
-Measured limitations remain part of the release evidence:
+- Terra precision/recall: 0.943/0.846; required-Knowledge coverage: 0.792;
+  recommendation quality: 0.917; decision stability: 0.833.
+- Sol precision/recall: 0.868/0.846; required-Knowledge coverage: 0.625;
+  recommendation quality: 1.000; decision stability: 1.000.
 
-- Terra precision/recall were 0.944/0.872; Sol were 0.889/0.821.
-- Required-Knowledge coverage was 0.750 for Terra and 0.625 for Sol.
-- Both models missed some durable-recovery and tool-authority rules.
-- SQLite transaction false positives, severity variance, and an extra AI
-  boundary finding occurred in specific trials.
-- Some mobile recommendations or required trade-offs were incomplete.
-- The Codex surface exposed no token or cost telemetry; null is not zero.
-
-The full metrics, environment, logs, and interpretation are preserved in
-`benchmarks/reports/0.4.0-model-behavior.md` and the corresponding result,
-score, and JSONL files.
+These measurements are evidence, not a claim of universal model reliability.
+The full metrics, environment, logs, and limitations are preserved in
+`benchmarks/reports/0.4.0-model-behavior.md` and the corresponding run, score,
+and JSONL artifacts.
 
 ## Decision and residual risk
 
 No confirmed defect justifies introducing a hosted service, distributed
-runtime, or broad internal-module migration for v0.4.0. The accepted decision
-therefore keeps the current local-first plugin architecture and retains
-modular-monolith enforcement or service extraction as measured future options.
+runtime, or broad internal-module migration for v0.4.0. ADR-CAG-004 therefore
+keeps the current local-first plugin architecture. Machine-enforced internal
+module boundaries remain a measured future option if change-coupling or
+ownership pressure reaches an explicit revisit trigger.
 
-Residual evidence still required after publication:
+Remaining evidence to obtain during publication:
 
 - GitHub-hosted CI and release workflow results for the final release commit;
-- a current installation smoke test outside this working tree;
-- GitHub artifact provenance/SBOM attestations for the published ZIP.
+- an installation smoke test from the packaged ZIP outside this working tree;
+- GitHub artifact provenance and SBOM attestations for the published ZIP.
 
+The accepted decision, exact alternatives, migration compatibility paths,
+revisit triggers, and validation requirements are recorded in
+`.architecture/reviews/2026-07-29-architecture-decision.yaml`.

@@ -2,13 +2,13 @@ schema_version: "1.2"
 decision:
   id: ADR-CAG-004
   source_review: codex-architecture-governance-20260729-project-verified
-  source_review_sha256: 454a0e8a9c53a5471baf599c191039bda00cad6ecfa5362268948984141843ca
-  decided_at: "2026-07-29T02:30:00+00:00"
+  source_review_sha256: 83bdf7b96c91a8510908c610f52cee9c4204db3717e5f8e8ee3b30d174d3c491
+  decided_at: "2026-07-29T03:40:00+00:00"
   decision_makers:
     - architecture-owner
   status: accepted
   knowledge_selection_path: .architecture/decision-knowledge-selection.yaml
-  knowledge_selection_sha256: 838ee06f3293b9619d27b2ed6a9c5d8117c57c86ce651d1c5f7fce839c2f258d
+  knowledge_selection_sha256: 6f80b46ed1217314a18181f1d1ae5375c6f9c962496fbc2dee3821ce0f714961
 problem:
   quality_attributes:
     - maintainability
@@ -24,7 +24,7 @@ problem:
   known_facts:
     - The verified review assessed 31 rules, 6 critical flows, and 15 selected Knowledge entries without confirming an architecture risk.
     - Eight public Skills, versioned Knowledge and Rule Packs, strict schemas, and deterministic Python tooling already form distinct change boundaries.
-    - Both preserved 30-trial model runs passed the provenance validator at commit 676ff9d.
+    - Both preserved 30-trial model runs passed strict validation on the recorded host and Git-bound archived validation in an independent mismatched runtime.
     - The project Profile explicitly prohibits a required hosted runtime.
   unknowns:
     - External adoption and migration behavior after the v0.4.0 release are not yet observed.
@@ -199,6 +199,15 @@ hard_eliminations:
       - .architecture/profile.yaml declares full offline operation and a prohibited required hosted runtime.
       - .architecture/constraints.md requires no network, credentials, telemetry, or external service for runtime behavior.
 migration:
+  affected_paths:
+    - docs/migrating-to-0.4.md
+    - resources/schemas/architecture-decision.schema.json
+    - resources/schemas/architecture-design-brief.schema.json
+    - resources/schemas/benchmark-observation.schema.json
+    - resources/schemas/benchmark.schema.json
+    - resources/schemas/gate-policy.schema.json
+    - resources/schemas/knowledge-entry.schema.json
+    - resources/schemas/knowledge-selection.schema.json
   slices:
     - Preserve the current eight-Skill public surface and local deterministic runtime for v0.4.0.
     - Monitor review findings, dependency direction, contributor ownership, and CI duration against the revisit triggers.

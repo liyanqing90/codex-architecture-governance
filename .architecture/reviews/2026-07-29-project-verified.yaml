@@ -7,16 +7,16 @@ review:
     id: codex-architecture-governance
     name: Codex Architecture Governance
     repository: .
-  performed_at: "2026-07-29T02:26:22+00:00"
-  commit: 676ff9daa6931ed87ce8bf2da4f0222f47da14ee
+  performed_at: "2026-07-29T03:38:37+00:00"
+  commit: a290c4632a0974c087fd2dd578238e38a5004e13
   scope:
     - .
   verification_state: verified
   reviewers:
-    - gpt-5.6-terra-codex-cli-0.146.0-alpha.3.1
+    - gpt-5.6-sol-codex-cli-0.146.0-alpha.3.1
   profile: .architecture/profile.yaml
   repository_identity: codex-architecture-governance
-  profile_sha256: de02338fd5830a8a9cf537adf1ec1343a59fd0474d02fa574631e11978e094ad
+  profile_sha256: 5c066c97ed692f48e1aa0170dd21e901ee8158af8ccb2e7c211804ea048ec192
   dirty_tree: false
   rule_packs:
     - {id: project-core, version: "1.0.0", sha256: b211d548ad5fe367b9dab8416051c43f3a206da81bd2a8e7596cd788ed3f100c}
@@ -25,23 +25,23 @@ review:
   scope_manifest:
     - .
   verification_run:
-    id: codex-verifier-20260729-022437-terra
-    model: gpt-5.6-terra
+    id: codex-verifier-20260729-033616-sol
+    model: gpt-5.6-sol
     surface: codex-cli-0.146.0-alpha.3.1
-    started_at: "2026-07-29T02:24:37+00:00"
-    completed_at: "2026-07-29T02:26:22+00:00"
+    started_at: "2026-07-29T03:36:16+00:00"
+    completed_at: "2026-07-29T03:38:37+00:00"
   source_candidate:
-    path: .architecture/reviews/2026-07-29-project-candidates-v2.yaml
-    review_id: codex-architecture-governance-20260729-project-candidates-v2
-    sha256: 3f53e3d1d6283c0da7bdd6c4f0a162f1db6d4624c0468cfae2c0b1a6ef093365
+    path: .architecture/reviews/2026-07-29-project-candidates-v4.yaml
+    review_id: codex-architecture-governance-20260729-project-candidates-v4
+    sha256: 1df40ae7669d74e89af54348ef0122da2001e09618d5e761efeeb411d167560f
 summary:
   architecture: >-
     A local-first Codex plugin composed of eight workflow Skills, versioned
     knowledge and Rule Packs, strict artifact contracts, and a deterministic
     Python CLI for inspection, verification, decisions, gates, behavior
     evaluation, and release packaging.
-  raw_findings: 1
-  confirmed: 1
+  raw_findings: 2
+  confirmed: 2
   rejected: 0
   needs_evidence: 0
 coverage:
@@ -63,7 +63,10 @@ coverage:
   - {rule_id: PROJECT.PERFORMANCE.001, status: assessed, finding_ids: []}
   - {rule_id: PROJECT.TEST.001, status: assessed, finding_ids: []}
   - {rule_id: PROJECT.DEPLOY.001, status: assessed, finding_ids: []}
-  - {rule_id: PROJECT.CHANGE.001, status: assessed, finding_ids: []}
+  - rule_id: PROJECT.CHANGE.001
+    status: assessed
+    finding_ids:
+      - CAG-GATE-001
   - {rule_id: PROJECT.DEBT.001, status: assessed, finding_ids: []}
   - {rule_id: PROJECT.DESIGN.001, status: assessed, finding_ids: []}
   - {rule_id: PLUGIN.MANIFEST.001, status: assessed, finding_ids: []}
@@ -81,102 +84,106 @@ coverage:
   - {rule_id: TESTPLATFORM.FLAKE.001, status: assessed, finding_ids: []}
 findings:
   - id: CAG-EVIDENCE-001
-    fingerprint: 0ff733e2b72eab939d629e81c15e8c2ec2871b0d1f849165b1c07cf92946b229
+    fingerprint: b55d14d7a797cdd84c493d7fe02c55e086148b25996db36ab1e289ad095b3bd4
     kind: strength
     rule_id: TESTPLATFORM.EVIDENCE.001
-    title: Behavior benchmark results carry a complete verifiable provenance chain
+    title: Behavior benchmarks bind all locally controllable execution evidence
     invariant: >-
-      Results bind code, environment, dependencies, configuration, artifacts,
-      logs, and runner version.
+      Preserved runs bind source, configuration, artifacts, exact commands,
+      local runtimes, and execution logs without claiming remote-model
+      reproducibility.
     severity: info
     confidence: 0.99
     verification:
       status: confirmed
       rationale: >-
-        Independent read-only verification confirmed that schema 1.3 requires
-        provenance and execution bindings; the runner records them; the scorer
-        resolves source, input, tool, fixture, log, and observation hashes; the
-        tamper test fails closed; and both preserved 30-trial runs validate.
-      verified_by: gpt-5.6-terra-codex-cli-0.146.0-alpha.3.1
-      verified_at: "2026-07-29T02:26:22+00:00"
+        A fresh different-model verifier resolved every source and artifact
+        binding, rescored both 30-trial runs through Git-bound archived mode,
+        observed explicit current-host runtime mismatch, and confirmed that
+        strict mode and missing archive bindings fail closed.
+      verified_by: gpt-5.6-sol-codex-cli-0.146.0-alpha.3.1
+      verified_at: "2026-07-29T03:38:37+00:00"
       level: V2
       verifier:
         type: agent
-        identity: gpt-5.6-terra-codex-cli-0.146.0-alpha.3.1
-        run_id: codex-verifier-20260729-022437-terra
+        identity: gpt-5.6-sol-codex-cli-0.146.0-alpha.3.1
+        run_id: codex-verifier-20260729-033616-sol
       source_candidate:
-        review_id: codex-architecture-governance-20260729-project-candidates-v2
-        sha256: 3f53e3d1d6283c0da7bdd6c4f0a162f1db6d4624c0468cfae2c0b1a6ef093365
+        review_id: codex-architecture-governance-20260729-project-candidates-v4
+        sha256: 1df40ae7669d74e89af54348ef0122da2001e09618d5e761efeeb411d167560f
     status: open
     evidence:
       - type: source
         location: scripts/run_behavior_benchmark.py:68
         repository: codex-architecture-governance
-        commit: 676ff9daa6931ed87ce8bf2da4f0222f47da14ee
+        commit: a290c4632a0974c087fd2dd578238e38a5004e13
         path: scripts/run_behavior_benchmark.py
-        line_start: 68
-        line_end: 169
-        blob_sha: e978d4d422dd18c7b88d66e9e986ae3ed598ddc1
+        line_start: 69
+        line_end: 262
+        blob_sha: d057c317d419a78bbb14ad8664b23d0d2f2efd63
         excerpt_sha256: 5a4dc4d86da494aac9cb97e2eb108eb443d9c4dfb19456c5eb6644c5dbc672b0
         symbol: collect_provenance
         observation: >-
-          The runner hashes Ground Truth, schemas, dependency lock, Knowledge
-          manifest, every fixture tree, the command template, runner and
-          adapter bytes, source commit and relevant dirty state, and a
-          privacy-bounded execution environment.
+          The runner binds Ground Truth, schemas, dependency lock, Knowledge
+          and plugin manifests, every fixture tree, the literal command
+          template, model request, Skill version, runner/adapter bytes, source
+          commit, relevant dirty state, and command/model executable plus
+          version fingerprints.
         excerpt: "def collect_provenance("
-        source_commit: 676ff9daa6931ed87ce8bf2da4f0222f47da14ee
+        source_commit: a290c4632a0974c087fd2dd578238e38a5004e13
         freshness: current
       - type: source
-        location: resources/scripts/architecture_tool.py:4085
+        location: resources/scripts/architecture_tool.py:4121
         repository: codex-architecture-governance
-        commit: 676ff9daa6931ed87ce8bf2da4f0222f47da14ee
+        commit: a290c4632a0974c087fd2dd578238e38a5004e13
         path: resources/scripts/architecture_tool.py
-        line_start: 4085
-        line_end: 4257
-        blob_sha: 04cd518d30af388f3341ca101f5f0563f93100dc
+        line_start: 4121
+        line_end: 4484
+        blob_sha: 3087267c423973f61011c4cf0c1791546f322da4
         excerpt_sha256: e4687fc425188c7933d60ed09b8cf786f5cc3c57e27142cd5b4773222810c296
         symbol: validate_benchmark_provenance
         observation: >-
-          The scorer resolves inputs, tools, and fixture manifests from the
-          recorded Git commit, rejects dirty release evidence, verifies the
-          whole JSONL hash and every trial record, and compares logged
-          observations with scored YAML.
+          The scorer resolves inputs, plugin version, tools, fixture manifests,
+          command templates and runtimes; strict mode requires a current-host
+          runtime match, while archived mode binds run/log bytes to a named Git
+          commit and reports host mismatch. Both modes verify the JSONL hash,
+          exact argv, and every trial observation.
         excerpt: "def validate_benchmark_provenance("
-        source_commit: 676ff9daa6931ed87ce8bf2da4f0222f47da14ee
+        source_commit: a290c4632a0974c087fd2dd578238e38a5004e13
         freshness: current
       - type: test
-        location: tests/test_behavior_benchmark.py:86
+        location: tests/test_behavior_benchmark.py:24
         repository: codex-architecture-governance
-        commit: 676ff9daa6931ed87ce8bf2da4f0222f47da14ee
+        commit: a290c4632a0974c087fd2dd578238e38a5004e13
         path: tests/test_behavior_benchmark.py
-        line_start: 86
-        line_end: 122
-        blob_sha: e547748a151dc5a0a643dbc053bcee3b54a5a6ea
-        excerpt_sha256: a6bb6d3bcf688037358056788eb90ca782c2118b283ee534b6c115601354b6a4
-        symbol: test_runner_executes_every_fixture_without_ground_truth_leakage
+        line_start: 24
+        line_end: 245
+        blob_sha: 56b82fe9b5ea18f09312ea387d1ebf354a30e960
+        excerpt_sha256: 1ac24159882a19e2d8f0b5a9b01f2a1bd0caff956eb32331945fac101f788f25
+        symbol: BehaviorBenchmarkTests
         observation: >-
-          The integration test accepts a complete provenance chain, then
-          modifies the JSONL log and requires the scorer to fail with exit code
-          2 and an execution-log hash mismatch.
-        excerpt: "            self.assertTrue(json.loads(score.stdout)[\"provenance\"][\"valid\"])"
-        source_commit: 676ff9daa6931ed87ce8bf2da4f0222f47da14ee
+          Integration tests check exact templates, runtime roles and per-trial
+          commands; reject runtime and JSONL tampering; accept Git-bound
+          archived verification; and reject an unbound run outside the
+          repository.
+        excerpt: "class BehaviorBenchmarkTests(unittest.TestCase):"
+        source_commit: a290c4632a0974c087fd2dd578238e38a5004e13
         freshness: current
       - type: test
-        location: benchmarks/results/gpt-5.6-terra-score.json:28
+        location: benchmarks/results/gpt-5.6-terra-score.json:29
         repository: codex-architecture-governance
-        commit: 676ff9daa6931ed87ce8bf2da4f0222f47da14ee
+        commit: a290c4632a0974c087fd2dd578238e38a5004e13
         path: benchmarks/results/gpt-5.6-terra-score.json
-        line_start: 28
-        line_end: 41
-        blob_sha: cb37267aec528b5314e14cbe8db600283d08ec47
+        line_start: 29
+        line_end: 70
+        blob_sha: d11c615a7ed94a9ffce10f9f7071bba36dd8fab3
         excerpt_sha256: 0c2322a5a7b4469d5fce0ada492fe6dfdf431d3ac3e620bc1f8644ca8be0a11d
         observation: >-
-          The independently recomputed score records provenance valid, clean
-          source inputs, commit f06af37, thirty log records, and the captured
-          Darwin arm64 CPython 3.13.0 environment.
+          The independently recomputed score records valid provenance, clean
+          source inputs at ca63aa6, thirty log records, Darwin arm64 CPython
+          3.13.0, and both command and model-runtime fingerprints.
         excerpt: "    \"valid\": true,"
-        source_commit: 676ff9daa6931ed87ce8bf2da4f0222f47da14ee
+        source_commit: a290c4632a0974c087fd2dd578238e38a5004e13
         freshness: current
     impact:
       affected_components:
@@ -184,15 +191,17 @@ findings:
         - architecture-knowledge
         - release-evidence
       failure_mode: >-
-        Any modification, omission, source mismatch, dirty relevant input, or
-        trial/log inconsistency is rejected before scoring.
+        A modification, omission, source mismatch, dirty relevant input,
+        runtime mismatch, or trial/log inconsistency is rejected before
+        scoring.
       blast_radius: >-
         Architecture behavior claims and release decisions that consume a
         provenance-bound benchmark run.
     counter_evidence:
       - The Codex surface still exposes no token or cost telemetry, so usage remains null rather than zero.
-      - Required-knowledge coverage is 0.750 for Terra and 0.625 for Sol; provenance does not turn imperfect model behavior into a pass.
-      - GitHub-hosted CI and external clean-machine installation are not yet available for commit 676ff9d.
+      - Required-knowledge coverage is 0.792 for Terra and 0.625 for Sol; provenance does not turn imperfect model behavior into a pass.
+      - The remote model implementation and nondeterministic response cannot be reconstructed from local executable provenance.
+      - GitHub-hosted CI and external clean-machine installation are not yet available for commit a290c46.
     first_seen: "2026-07-29"
     last_seen: "2026-07-29"
     found_by:
@@ -203,21 +212,21 @@ findings:
       - reliability
       - reproducibility
     evidence_level: E4
-    evidence_fingerprint: 2062dbee280f2ad48c89c4a66714614760dff82bdcb54730d141d58958e8e3e6
+    evidence_fingerprint: a3511ea60dc883dc57f3910041fa69cf4917b05965df1e2e54573451cdc6516d
     fact_inference_boundary:
       facts:
-        - Schema 1.3 requires provenance and per-trial execution bindings for benchmark runs.
-        - The scorer resolves source-bound hashes and every preserved log record before producing metrics.
-        - Two clean-source model runs with thirty trials each passed provenance validation.
+        - Schema 1.4 requires literal command, runtime, plugin-version, and per-trial execution bindings for benchmark runs.
+        - Strict scoring re-resolves local runtimes; archived scoring instead binds run/log bytes to Git and exposes current-host mismatches.
+        - Two clean-source model runs with thirty trials each passed the strengthened provenance validator.
       inferences:
-        - These controls make the named behavior results reproducible and tamper-evident within the recorded environment and source commit.
+        - These controls make locally controllable inputs and preserved results reconstructible and tamper-evident within the recorded source and runtime boundary.
       unknowns:
-        - Cross-platform reproduction of the same nondeterministic model outputs is neither expected nor claimed.
+        - The remote model build and cross-platform reproduction of the same nondeterministic outputs are neither observable nor claimed.
     applicability:
       profile_conditions:
         - The project is a test-automation and architecture-governance plugin with traceability and reproducibility as critical qualities.
     source_candidate_ids:
-      - codex-architecture-governance-20260729-project-candidates-v2
+      - codex-architecture-governance-20260729-project-candidates-v4
     rule_pack_version: "1.0.0"
     staleness_state: current
     decision_references: []
@@ -225,6 +234,136 @@ findings:
       - benchmark
       - evidence
       - provenance
+  - id: CAG-GATE-001
+    fingerprint: 9917015857172644741bd8fdfaf7cbc700e49e41d96fd9991ca7348fe8b88b44
+    kind: strength
+    rule_id: PROJECT.CHANGE.001
+    title: Base-commit governance remains fresh without requiring a self-referential review
+    invariant: >-
+      Critical and security changes are reviewed after their last modification,
+      while later governance-only commits and compatible keep-current migrations
+      remain representable.
+    severity: info
+    confidence: 0.98
+    verification:
+      status: confirmed
+      rationale: >-
+        A fresh different-model verifier inspected the owning predicates and
+        direct negative tests for post-review sensitive changes, wrong
+        migration path coverage, and non-keep-current decisions without an
+        active plan.
+      verified_by: gpt-5.6-sol-codex-cli-0.146.0-alpha.3.1
+      verified_at: "2026-07-29T03:38:37+00:00"
+      level: V2
+      verifier:
+        type: agent
+        identity: gpt-5.6-sol-codex-cli-0.146.0-alpha.3.1
+        run_id: codex-verifier-20260729-033616-sol
+      source_candidate:
+        review_id: codex-architecture-governance-20260729-project-candidates-v4
+        sha256: 1df40ae7669d74e89af54348ef0122da2001e09618d5e761efeeb411d167560f
+    status: open
+    evidence:
+      - type: source
+        location: resources/scripts/architecture_tool.py:3038
+        repository: codex-architecture-governance
+        commit: a290c4632a0974c087fd2dd578238e38a5004e13
+        path: resources/scripts/architecture_tool.py
+        line_start: 3038
+        line_end: 3458
+        blob_sha: 3087267c423973f61011c4cf0c1791546f322da4
+        excerpt_sha256: 3227953d82370c96089df4f5d4402347df59a5af52c930e35d6c8a7f7d3ce0a1
+        symbol: gate_from_config
+        observation: >-
+          The gate classifies the requested base range but independently checks
+          sensitive changes after the reviewed commit; compatible keep-current
+          migration also requires explicit coverage of every classified
+          migration path.
+        excerpt: "def gate_from_config("
+        source_commit: a290c4632a0974c087fd2dd578238e38a5004e13
+        freshness: current
+      - type: test
+        location: tests/test_architecture_tool.py:1139
+        repository: codex-architecture-governance
+        commit: a290c4632a0974c087fd2dd578238e38a5004e13
+        path: tests/test_architecture_tool.py
+        line_start: 1139
+        line_end: 1223
+        blob_sha: 82ddc91f31fb8326059d62cea5fbb1001592fec3
+        excerpt_sha256: e34e130d73e61c233ba250528681a3b7cd63e6cba43f2cf3e4bb4290dd9f52a9
+        symbol: test_base_change_accepts_review_before_governance_only_commits
+        observation: >-
+          The regression test proves governance-only follow-up commits pass,
+          then changes the critical path after review and requires a freshness
+          failure.
+        excerpt: "def test_base_change_accepts_review_before_governance_only_commits(self) -> None:"
+        source_commit: a290c4632a0974c087fd2dd578238e38a5004e13
+        freshness: current
+      - type: test
+        location: tests/test_architecture_tool.py:1225
+        repository: codex-architecture-governance
+        commit: a290c4632a0974c087fd2dd578238e38a5004e13
+        path: tests/test_architecture_tool.py
+        line_start: 1225
+        line_end: 1360
+        blob_sha: 82ddc91f31fb8326059d62cea5fbb1001592fec3
+        excerpt_sha256: cf47e60ddba651b9561bf18f2ae9293844bef7f2d7b1fab920f599c913af78ff
+        symbol: test_keep_current_decision_covers_compatible_migration
+        observation: >-
+          The regression test accepts exact keep-current migration coverage,
+          then proves a wrong affected path and a non-keep-current decision
+          without an active plan both fail.
+        excerpt: "def test_keep_current_decision_covers_compatible_migration(self) -> None:"
+        source_commit: a290c4632a0974c087fd2dd578238e38a5004e13
+        freshness: current
+    impact:
+      affected_components:
+        - architecture-quality-gate
+        - release-governance
+        - migration-governance
+      failure_mode: >-
+        A critical path changed after review still fails; governance-only
+        follow-up commits do not invalidate the review; and migration remains
+        gated by either compatible accepted intent or an active remediation plan.
+      blast_radius: >-
+        Change and release decisions that classify a historical base commit
+        through the selected verified review.
+    counter_evidence:
+      - Correct enforcement still depends on repository policy classifying every critical, security, and migration path.
+      - The compatible-migration exception applies only to an authorized accepted keep-current decision with exact affected-path coverage, nonempty slices, validation, and rollback.
+      - A non-keep-current target still requires an active remediation plan and complete release evidence.
+    first_seen: "2026-07-29"
+    last_seen: "2026-07-29"
+    found_by:
+      - architecture-auditor
+    related_findings: []
+    quality_attribute_impacts:
+      - deterministic-enforcement
+      - traceability
+      - maintainability
+    evidence_level: E3
+    evidence_fingerprint: 4bbb37de54c2a8058e2f870d0d2e2429c7e5e1de0138903f31836ff5ea797a7e
+    fact_inference_boundary:
+      facts:
+        - The gate compares classified sensitive paths with the Git diff after the reviewed commit.
+        - Regression tests directly cover governance-only follow-up, post-review critical changes, exact migration path coverage, and non-keep-current plans.
+        - Non-keep-current decisions are not eligible for the compatible-migration exception.
+      inferences:
+        - The policy now represents a committed review artifact without weakening freshness for source or security changes.
+      unknowns:
+        - Repository-specific path patterns can still be incomplete and require owner review.
+    applicability:
+      profile_conditions:
+        - The project uses base-commit classification with diff-aware review freshness and migration governance.
+    source_candidate_ids:
+      - codex-architecture-governance-20260729-project-candidates-v4
+    rule_pack_version: "1.0.0"
+    staleness_state: current
+    decision_references: []
+    tags:
+      - quality-gate
+      - freshness
+      - migration
 evidence_sources:
   - scripts/run_behavior_benchmark.py
   - resources/scripts/architecture_tool.py
@@ -237,15 +376,15 @@ evidence_sources:
   - benchmarks/results/gpt-5.6-sol-score.json
   - benchmarks/reports/0.4.0-model-behavior.md
 limitations:
-  - GitHub-hosted CI and the release workflow have not yet run for commit 676ff9d.
+  - GitHub-hosted CI and the release workflow have not yet run for commit a290c46.
   - No independent clean-machine installation has yet been recorded for v0.4.0.
 coverage_complete: true
 repository_facts:
   path: .architecture/repository-facts.yaml
-  sha256: 3a6e183e289d081f6f64ec722babe7339b44ca38f0f2fbaf5c563a352d2a2015
+  sha256: bc5c2f3503938438a1ca81ae285142b1a444552b979af472028f17ebc6a12547
 knowledge_selection:
   path: .architecture/knowledge-selection.yaml
-  sha256: 0c6f66da28a6a98c4021b3ea3d29bf0204c5ab4881aecc9fb7c153c36abbaac8
+  sha256: 6fed3a8a173d44ed0127736c34e628c0e1d562217e7b5dfd32478a7836f9fb4a
 selected_knowledge:
   - {id: foundation.evidence-reasoning, version: "1.0.0", sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f}
   - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}

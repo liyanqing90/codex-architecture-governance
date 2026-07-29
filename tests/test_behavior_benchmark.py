@@ -3,11 +3,14 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
 from argparse import Namespace
 from pathlib import Path
+
+import yaml
 
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parent.parent
@@ -44,6 +47,7 @@ class BehaviorBenchmarkTests(unittest.TestCase):
                         "'rejected_options': [], "
                         "'migration_slices': []}}))"
                     ),
+                    str(ROOT / "scripts" / "codex_benchmark_adapter.py"),
                     "{skill}",
                     "{fixture}",
                     "{prompt}",
@@ -75,6 +79,47 @@ class BehaviorBenchmarkTests(unittest.TestCase):
             self.assertTrue(
                 all(case["observed_findings"] == [] for case in result["cases"])
             )
+            output.write_text(
+                yaml.safe_dump(result, sort_keys=False, allow_unicode=True),
+                encoding="utf-8",
+            )
+            score = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "resources" / "scripts" / "architecture_tool.py"),
+                    "benchmark-score",
+                    "--ground-truth",
+                    str(ROOT / "benchmarks" / "ground-truth.yaml"),
+                    "--run",
+                    str(output),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(score.returncode, 0, score.stderr)
+            self.assertTrue(json.loads(score.stdout)["provenance"]["valid"])
+
+            log_path.write_text(
+                log_path.read_text(encoding="utf-8") + "{}\n",
+                encoding="utf-8",
+            )
+            tampered = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "resources" / "scripts" / "architecture_tool.py"),
+                    "benchmark-score",
+                    "--ground-truth",
+                    str(ROOT / "benchmarks" / "ground-truth.yaml"),
+                    "--run",
+                    str(output),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(tampered.returncode, 2)
+            self.assertIn("execution log hash mismatch", tampered.stderr)
 
     def test_failed_trial_preserves_a_hash_only_execution_log(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

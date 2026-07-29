@@ -1,113 +1,122 @@
-# Codex Architecture Governance
+<p align="center">
+  <img src="docs/assets/brand/qingye-wordmark.svg" width="132" alt="青野">
+</p>
 
-An installable Codex plugin for evidence-backed architecture audits, solution
-decisions, remediation, and deterministic governance across repositories,
-specialized AI/mobile systems, and project portfolios.
+<h1 align="center">衡木 · Hengmu</h1>
 
-The plugin treats missing architecture capability as part of the review:
-confirmed gaps are diagnosed, compared against viable solutions, planned, and
-gated. It also prevents an unverified model opinion from becoming policy.
+<p align="center">
+  <strong>让每一个架构判断，都有证据、有权衡、有去路。</strong>
+  <br>
+  Evidence-backed architecture decisions for repositories, specialized
+  systems, and project portfolios.
+</p>
 
-```text
-candidate audit
-→ independent verification
-→ trusted review
-→ architecture solution decision
-→ remediation plan
-→ layered quality gate
-```
+<p align="center">
+  <a href="https://github.com/liyanqing90/codex-architecture-governance/actions/workflows/ci.yml">
+    <img alt="CI" src="https://github.com/liyanqing90/codex-architecture-governance/actions/workflows/ci.yml/badge.svg?branch=main">
+  </a>
+  <a href="https://github.com/liyanqing90/codex-architecture-governance/releases">
+    <img alt="Version 0.4.2" src="https://img.shields.io/badge/version-0.4.2-173FBE">
+  </a>
+  <img alt="Python 3.11–3.13" src="https://img.shields.io/badge/python-3.11%E2%80%933.13-161719">
+  <a href="LICENSE">
+    <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-173FBE">
+  </a>
+</p>
 
-Knowledge curation is a maintainer-only workflow that supplies sourced, fresh
-decision knowledge without expanding the public end-user Skill surface.
+<p align="center">
+  <a href="#why-hengmu">Why Hengmu</a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#workflows">Workflows</a> ·
+  <a href="#trust-model">Trust model</a> ·
+  <a href="#documentation">Documentation</a>
+</p>
 
-## Included Skills
+---
 
-| Skill | Responsibility |
+Hengmu is a local-first Codex plugin for architecture work that continues
+after the first review. It audits what exists, treats missing capability as a
+real finding, verifies every claim against evidence, compares viable
+solutions, plans remediation, and applies deterministic policy when a project
+needs a gate.
+
+It works at two levels:
+
+- one repository, using a project-specific Profile, constraints, critical
+  flows, rules, and review history;
+- a portfolio of repositories, looking for duplication, stack sprawl, shared
+  capability, ownership conflicts, data flows, and hidden coupling.
+
+> [!IMPORTANT]
+> **Hengmu** is the public project name. The installable plugin ID, repository
+> slug, release archive prefix, and historical provenance remain
+> `codex-architecture-governance` during the `0.x` series. Keeping the machine
+> identity stable avoids breaking existing installations, Git history anchors,
+> and trusted review chains.
+
+## Why Hengmu
+
+Most architecture review tools stop too early: they produce observations.
+Hengmu is designed around a longer, evidence-bound chain.
+
+| Typical review failure | Hengmu's response |
 | --- | --- |
-| `project-architecture-audit` | Audit one repository's boundaries, data, contracts, reliability, security, operations, tests, deployment, debt, and proportionality. |
-| `ai-agent-architecture-audit` | Audit model, context, Memory, retrieval, tools, injection, approval, recovery, evaluation, cost, latency, and evidence boundaries. |
-| `mobile-architecture-audit` | Audit local state, sync, migrations, background work, notifications, privacy, caching, and lifecycle behavior. |
-| `portfolio-architecture-audit` | Audit duplication, stack sprawl, shared capabilities, dependencies, data flows, ownership, and hidden coupling across registered projects. |
-| `architecture-finding-verifier` | Challenge candidates, resolve evidence, assign V0–V5 verification, and produce a provenance-bound trusted review. |
-| `architecture-solution-advisor` | Compare keep-current and structural options against quality scenarios, constraints, team capability, migration risk, cost, and lock-in. |
-| `architecture-remediation-planner` | Convert an accepted solution decision into ordered migration slices, protections, stop conditions, rollback, and acceptance criteria. |
-| `architecture-quality-gate` | Apply deterministic contract, finding, change, and release policy to trusted artifacts. |
+| A model sees a large file or a singleton and declares an architecture problem. | Candidate findings must survive independent verification and evidence resolution before they become trusted. |
+| A missing capability is mentioned as criticism but never designed. | Confirmed gaps flow into solution comparison, remediation slices, rollback, tests, and acceptance criteria. |
+| Every project copies the same architecture prompt and slowly diverges. | One global method reads a repository-local Profile and real constraints. |
+| Each repository looks reasonable in isolation while the portfolio duplicates infrastructure. | Portfolio review models shared capabilities, dependencies, data flow, ownership, and coupling. |
+| A prose policy says “must” but automation cannot prove it. | JSON Schemas, hashes, Git evidence, role policy, fingerprints, signatures, and stable exit codes make enforcement reproducible. |
 
-The source-only curator lives at
-`maintainer/skills/architecture-knowledge-curator/`; the installable plugin
-exposes exactly the eight workflows above.
+<p align="center">
+  <img
+    src="assets/hengmu-readme-illustrations/01-from-critique-to-closure.png"
+    alt="小黑先用代码证据量出真实缺口，再为承重结构装上改造楔块"
+    width="100%">
+</p>
 
-## What is executable
+Hengmu is intentionally not a generic “best practices” checklist. A rule is
+useful only when it protects a declared quality or critical flow, and a
+recommendation is useful only when the project can understand its cost,
+dependencies, migration order, and stopping conditions.
 
-`resources/` contains the shared runtime:
+## Quick start
 
-- JSON Schemas for profiles, reviews, Findings, decisions, plans, policy,
-  baselines, risk acceptance, knowledge, providers, rules, behavior
-  benchmarks, context manifests, and informational governance runs;
-- nineteen machine-readable core and domain Rule Packs, plus repository-local
-  organization packs, with complete-coverage enforcement;
-- ten Markdown/frontmatter Knowledge Packs containing 205 sourced entries,
-  plus 128 read-only 0.2 compatibility entries;
-- eleven executable Evidence Provider contracts with safe project-local
-  configuration, structured-output validation, and tamper-evident run records;
-- a portable Python CLI for initialization, validation, provenance binding,
-  Git evidence resolution, review diffing, provider execution, signature
-  verification, repository-facts inspection, Profile construction, task-scoped
-  knowledge selection, coverage validation, safe artifact migration,
-  benchmark scoring, SARIF, and gates.
+### 1. Prepare the runtime
 
-The repository itself owns CI, tests, behavior benchmarks, contribution policy,
-dependency locks, deterministic packaging, SBOM generation, and release
-attestation. The accepted boundaries are recorded in
-[the 1.1 governance decision](docs/decisions/2026-07-28-adopt-trusted-governance-1.1.md).
-The [comprehensive review implementation matrix](docs/comprehensive-review-implementation.md)
-maps every material recommendation to executable capability and evidence.
-The [target architecture](docs/target-architecture.md) and
-[0.3 implementation matrix](docs/target-architecture-implementation.md)
-describe the facts, knowledge, workflow, and trust boundaries.
-See [governance modes](docs/governance-modes.md) for the lightweight Advisory,
-Governed, and Enforced operating tiers.
-The accepted [context-precision decision](docs/decisions/2026-07-29-adopt-context-precision-and-tiered-governance.md)
-records why historical artifacts are preserved and why run records remain
-non-authoritative.
-
-## Requirements and installation
-
-The Skill instructions are Markdown. The deterministic runtime supports Python
-3.11–3.13 and requires PyYAML and jsonschema. Install the fully hashed runtime
-lock for reproducibility:
+Hengmu supports Python 3.11–3.13. The runtime is local: it requires no hosted
+service, telemetry, credentials, network access, or MCP server.
 
 ```bash
-python3 -m pip install --require-hashes \
-  -r /path/to/plugin/requirements-runtime.lock
-```
+git clone https://github.com/liyanqing90/codex-architecture-governance.git
+cd codex-architecture-governance
 
-`requirements.txt` keeps the supported version ranges for downstream
-resolvers. Runtime execution uses no network, credentials, telemetry, hosted
-service, or MCP server.
-
-For repository development:
-
-```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install --require-hashes -r requirements-dev.lock
+python3 -m pip install --require-hashes -r requirements-runtime.lock
+python3 scripts/validate_repository.py
 ```
 
-Windows PowerShell uses `.venv\Scripts\Activate.ps1`.
+On Windows PowerShell, activate the environment with:
 
-## Initialize project governance
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+### 2. Initialize a repository Profile
 
 ```bash
-python3 resources/scripts/architecture_tool.py init-project \
-  --repo /path/to/repository \
+HENGMU_ROOT=/path/to/codex-architecture-governance
+
+python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" init-project \
+  --repo /path/to/your-project \
   --name "Example Project" \
   --type service \
   --quality recoverability \
   --review project-architecture
 ```
 
-The command refuses an existing destination and creates:
+This creates a repository-local control plane:
 
 ```text
 .architecture/
@@ -125,301 +134,253 @@ The command refuses an existing destination and creates:
 └── reviews/
 ```
 
-`profile.yaml` selects project qualities, reviews, and Rule Packs.
-`repository-facts.yaml` contains deterministic observations; it never contains
-a recommendation. Fact roles distinguish runtime/production evidence from
-tests, benchmark fixtures, examples, documentation, generated code, and
-vendor trees; only runtime and production facts infer product architecture.
-Before each audit or decision, `select-knowledge` creates a task-scoped
-`knowledge-selection.yaml` containing exact entry hashes, kind/maturity,
-reasons, exclusions, total/per-kind context budgets, and creation-time
-Selector/Knowledge/policy provenance. Schema 1.4 separates the reviewed
-project commit from the plugin source commit and binds the complete Selector
-Runtime Input Manifest. It replays an exact current runtime, verifies archived
-Git blobs without executing historical code, and keeps those archived locks
-readable without allowing them to create a new trusted Review, Decision, Plan,
-or Gate chain. `knowledge-context.yaml` contains only selected entries for
-model context; `validate-knowledge-context` proves its lock hash, result hash,
-and exact ordered projection before consumption. The full exclusion ledger
-remains a machine-facing lock.
-`constraints.md` records real limits. `critical-flows.md` defines protected
-runtime behavior. Findings, decisions, and plans are stored under `reviews/`.
-Organization rules can be versioned as Rule Packs under
-`.architecture/rules/`; duplicate IDs cannot shadow bundled packs.
+### 3. Run the audit in Codex
 
-Validate a configuration:
-
-```bash
-python3 resources/scripts/architecture_tool.py validate-project /path/to/repository
-python3 resources/scripts/validate_knowledge.py
+```text
+Use $project-architecture-audit to audit this repository.
+Read .architecture/profile.yaml, constraints.md, and critical-flows.md.
+Treat missing capabilities as findings, but verify evidence before
+recommending a structural change.
 ```
 
-## Trusted reviews and evidence
+The project Profile decides which qualities and specialist reviews matter.
+The global Skill provides the method; the repository provides the truth.
 
-Schema `1.0` remains readable for migration and historical records. Only schema
-`1.1` or `1.2` can enter deterministic enforcement. New project, AI-agent, and
-mobile audits use `1.2`. A trusted verified Review binds:
+```yaml
+project:
+  name: example-service
+  type:
+    - ai-agent-platform
+  critical_qualities:
+    - traceability
+    - recoverability
+    - privacy
+  required_reviews:
+    - project-architecture
+    - ai-agent-architecture
+```
 
-- repository identity, Git commit, dirty-tree state, profile hash, and explicit
-  scope manifest;
-- exact repository-facts and task-scoped knowledge-selection bytes;
-- exact Rule Pack versions and SHA-256 hashes;
-- a source candidate review and its SHA-256;
-- complete coverage for every loaded rule;
-- explicit coverage for every declared critical flow;
-- an authorized verifier, verification run, V0–V5 level, and semantic Finding
-  fingerprint;
-- resolvable Git paths, commits, blobs, symbols, line ranges, or declared
-  provider-owned evidence;
-- role separation required by policy and, for V5, a detached SSH signature
-  verified against the repository's allowed-signers file.
+### 4. Validate the result
 
-Generate deterministic bindings before independent verification:
+```bash
+python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
+  validate-project /path/to/your-project
+
+python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
+  gate --project /path/to/your-project --stage change
+```
+
+The gate returns `0` for pass, `1` for policy failure, and `2` for invalid
+input or configuration.
+
+## How it works
+
+Hengmu separates model judgment from deterministic trust. A candidate audit is
+useful input, not policy.
+
+<p align="center">
+  <img
+    src="diagrams/hengmu-governance-loop.svg"
+    alt="Repository evidence, Profile, constraints, rules, and selected knowledge flow through candidate audit, independent verification, trusted review, solution decision, remediation plan, and deterministic quality gate"
+    width="100%">
+</p>
+
+The diagram is maintained as
+[Mermaid source](diagrams/hengmu-governance-loop.mmd) and an
+[editable Excalidraw scene](diagrams/hengmu-governance-loop.excalidraw).
+
+1. **Establish facts.** Inspect the repository without turning detected
+   technologies or filenames into recommendations.
+2. **Load context.** Bind the Profile, constraints, critical flows, selected
+   Rule Packs, and task-scoped Knowledge.
+3. **Audit.** Produce candidate findings, including material missing
+   capability and plausible impact.
+4. **Verify.** Challenge each candidate, resolve evidence, and preserve
+   rejected hypotheses and limitations.
+5. **Decide.** Compare keep-current and structural options against quality,
+   business, team, evolution, lock-in, migration risk, and cost.
+6. **Remediate.** Turn the accepted option into ordered slices, protections,
+   rollback, stop conditions, and acceptance evidence.
+7. **Gate.** Apply deterministic contract, finding, change, or release policy
+   to provenance-bound artifacts.
+
+## One method, many projects
+
+A repository should not carry a private copy of the architecture method.
+Instead, it carries only the context that makes its decisions different:
+
+- `profile.yaml` — project type, critical qualities, and required reviews;
+- `constraints.md` — real technical, product, regulatory, and team limits;
+- `critical-flows.md` — business and runtime paths that must not regress;
+- `reviews/` — candidate, verified, decision, plan, and evidence history.
+
+<p align="center">
+  <img
+    src="assets/hengmu-readme-illustrations/02-one-method-many-projects.png"
+    alt="一套共享方法横跨不同项目，小黑按项目画像和真实约束调整支点，并发现隐性耦合"
+    width="100%">
+</p>
+
+Portfolio review adds the missing system-of-systems view: which capabilities
+should be shared, which boundaries must remain independent, where data moves,
+and where one repository can unexpectedly affect another.
+
+## Workflows
+
+The installable plugin exposes eight focused Skills.
+
+| Phase | Skill | Responsibility |
+| --- | --- | --- |
+| Audit | `project-architecture-audit` | Boundaries, data ownership, contracts, reliability, security, operations, tests, deployment, debt, and proportionality in one repository. |
+| Audit | `ai-agent-architecture-audit` | Models, context, Memory, retrieval, tools, injection, approval, recovery, evaluation, cost, latency, and evidence boundaries. |
+| Audit | `mobile-architecture-audit` | Local state, sync, migrations, background work, notifications, privacy, caching, and lifecycle behavior. |
+| Audit | `portfolio-architecture-audit` | Duplication, stack sprawl, shared capabilities, dependencies, data flow, ownership, and hidden coupling across projects. |
+| Verify | `architecture-finding-verifier` | Challenge candidates, resolve evidence, assign V0–V5 verification, and produce a provenance-bound trusted Review. |
+| Decide | `architecture-solution-advisor` | Compare keep-current and structural options against qualities, constraints, team capability, risk, cost, and lock-in. |
+| Change | `architecture-remediation-planner` | Convert an accepted decision into migration slices, protections, stop conditions, rollback, and acceptance criteria. |
+| Enforce | `architecture-quality-gate` | Apply deterministic contract, finding, change, and release policy to trusted artifacts. |
+
+Knowledge curation is deliberately maintainer-only. Its source workflow lives
+under `maintainer/skills/architecture-knowledge-curator/` and does not expand
+the public end-user Skill surface.
+
+## Trust model
+
+Hengmu's trust boundary is simple:
+
+> A model may propose. Evidence, authority, provenance, and policy decide what
+> can become trusted or blocking.
+
+A trusted Review binds the reviewed repository identity and Git state, exact
+scope, Profile, repository facts, selected Knowledge, Rule Packs, candidate
+review, verifier authority, semantic Finding fingerprints, critical-flow
+coverage, and resolvable evidence.
+
+The deterministic runtime provides:
+
+- JSON Schemas for project, review, decision, plan, policy, baseline, risk
+  acceptance, Knowledge, provider, benchmark, and governance artifacts;
+- machine-readable core and domain Rule Packs with complete-coverage checks;
+- sourced Knowledge Packs selected under explicit context budgets;
+- opt-in Evidence Providers with no-shell execution, safe environment
+  allowlists, timeouts, structured-output validation, and tamper-evident run
+  records;
+- Git evidence resolution, exact hashes, signature verification, SARIF, review
+  diffing, artifact migration, benchmark scoring, and layered gates.
+
+Gate stages are cumulative:
+
+| Stage | Proves |
+| --- | --- |
+| `contract` | Schemas, provenance, identity, hashes, roles, and coverage are valid. |
+| `finding` | Severity, confidence, verification, status, baseline, waiver, and risk acceptance satisfy policy. |
+| `change` | Review freshness, changed contracts, required decisions, migration compatibility, signatures, and evidence resolution are acceptable. |
+| `release` | Required evidence, decision authority, and complete remediation acceptance are present. |
+
+Read the [assurance model](docs/assurance-model.md) for threats, controls, and
+residual risk. A passing gate proves policy evaluation of supplied artifacts;
+it does not prove that the audited product is correct, secure, compliant, or
+well designed.
+
+<details>
+<summary>Trusted review and evidence commands</summary>
 
 ```bash
 python3 resources/scripts/architecture_tool.py review-bindings \
-  --project /path/to/repository \
+  --project /path/to/project \
   --candidate .architecture/reviews/example-candidates.yaml
+
+python3 resources/scripts/architecture_tool.py validate-review \
+  /path/to/verified.yaml --project /path/to/project
+
+python3 resources/scripts/architecture_tool.py verify-evidence \
+  --repo /path/to/project --review /path/to/verified.yaml
+
+python3 resources/scripts/architecture_tool.py verify-review-signature \
+  --project /path/to/project --review /path/to/verified.yaml
 ```
 
-For a new audit, establish inputs first:
+</details>
+
+<details>
+<summary>Task-scoped Knowledge selection</summary>
 
 ```bash
 python3 resources/scripts/architecture_tool.py inspect-repository \
-  --repo /path/to/repository \
-  --output /path/to/repository/.architecture/repository-facts.yaml
+  --repo /path/to/project \
+  --output /path/to/project/.architecture/repository-facts.yaml
+
 python3 resources/scripts/architecture_tool.py select-knowledge \
-  --facts /path/to/repository/.architecture/repository-facts.yaml \
-  --profile /path/to/repository/.architecture/profile.yaml \
+  --facts /path/to/project/.architecture/repository-facts.yaml \
+  --profile /path/to/project/.architecture/profile.yaml \
   --task "Current architecture audit" \
   --skill project-architecture-audit \
-  --output /path/to/repository/.architecture/knowledge-selection.yaml \
-  --context-output /path/to/repository/.architecture/knowledge-context.yaml
+  --output /path/to/project/.architecture/knowledge-selection.yaml \
+  --context-output /path/to/project/.architecture/knowledge-context.yaml
+
 python3 resources/scripts/architecture_tool.py validate-knowledge-context \
-  /path/to/repository/.architecture/knowledge-context.yaml \
-  --selection /path/to/repository/.architecture/knowledge-selection.yaml \
-  --facts /path/to/repository/.architecture/repository-facts.yaml \
-  --profile /path/to/repository/.architecture/profile.yaml
+  /path/to/project/.architecture/knowledge-context.yaml \
+  --selection /path/to/project/.architecture/knowledge-selection.yaml \
+  --facts /path/to/project/.architecture/repository-facts.yaml \
+  --profile /path/to/project/.architecture/profile.yaml
 ```
 
-For an architecture decision whose wording could cross semantic domains, bind
-the decision namespace explicitly. For example, a locally installed plugin
-runtime is not local-first client data authority:
+</details>
+
+## Governance modes
+
+Not every project needs the same ceremony.
+
+| Mode | Use when | Behavior |
+| --- | --- | --- |
+| Advisory | The project needs structured architecture help without a blocking gate. | Skills produce evidence-backed artifacts; maintainers retain full judgment. |
+| Governed | Important changes need trusted review, explicit decisions, and change policy. | Provenance, authority, freshness, and Finding policy are enforced. |
+| Enforced | Releases require deterministic architecture evidence and completed remediation. | Change and release gates become required delivery controls. |
+
+See [governance modes](docs/governance-modes.md) for adoption guidance.
+`product_mode` is a declared operating tier, not a bypass: an explicitly
+invoked gate always evaluates its policy.
+
+## Documentation
+
+| Read this | When you need |
+| --- | --- |
+| [Target architecture](docs/target-architecture.md) | Facts, Knowledge, workflow, trust boundaries, and runtime components. |
+| [Assurance model](docs/assurance-model.md) | Threats, guarantees, non-guarantees, and residual risk. |
+| [Governance modes](docs/governance-modes.md) | Advisory, Governed, and Enforced adoption. |
+| [Evaluation guide](docs/evaluation.md) | Behavior benchmarks, ablation, scoring, and interpretation limits. |
+| [Knowledge authoring](docs/knowledge-authoring.md) | Source quality, freshness, frontmatter, and curation rules. |
+| [Compatibility](docs/compatibility.md) | Supported Python, schemas, artifacts, and version boundaries. |
+| [0.4.2 migration](docs/migrating-to-0.4.2.md) | Context precision, historical artifacts, and current-runtime requirements. |
+| [Release verification](docs/releasing.md) | Deterministic ZIPs, checksums, SBOMs, and attestations. |
+| [Implementation matrix](docs/comprehensive-review-implementation.md) | How review recommendations map to executable capability and evidence. |
+| [Dogfood review history](.architecture/reviews/README.md) | How Hengmu governs its own repository. |
+
+Accepted architecture decisions live in [docs/decisions](docs/decisions/).
+The repository's implemented target state is tracked in the
+[target architecture implementation matrix](docs/target-architecture-implementation.md).
+
+## Development
 
 ```bash
-python3 resources/scripts/architecture_tool.py select-knowledge \
-  --facts .architecture/repository-facts.yaml \
-  --profile .architecture/profile.yaml \
-  --task "Preserve the local-first plugin runtime" \
-  --skill architecture-solution-advisor \
-  --decision-intent plugin-runtime-topology \
-  --output .architecture/decision-knowledge-selection.yaml \
-  --context-output .architecture/decision-knowledge-context.yaml
-```
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --require-hashes -r requirements-dev.lock
 
-Then validate and resolve evidence:
-
-```bash
-python3 resources/scripts/architecture_tool.py validate-review \
-  /path/to/verified.yaml --project /path/to/repository
-python3 resources/scripts/architecture_tool.py verify-evidence \
-  --repo /path/to/repository --review /path/to/verified.yaml
-python3 resources/scripts/architecture_tool.py verify-review-signature \
-  --project /path/to/repository --review /path/to/verified.yaml
-```
-
-Add `--historical` only to inspect an existing archived Review, Decision, Plan,
-or compact context. New bindings, coverage checks, and Gates require a
-Selection that replays with the current Selector Runtime.
-
-Finding IDs remain readable identifiers. Fingerprints bind baselines, waivers,
-and risk acceptance to finding semantics and evidence identity, preventing an
-old approval from silently suppressing a changed risk.
-
-Evidence Providers are opt-in and never invoke a shell. The runner resolves
-and hashes the actual executable, uses a safe environment allowlist, enforces a
-timeout, captures stdout/stderr, validates JSON, SARIF, or JUnit structure, and
-binds every output to the project, commit, provider definition, and
-configuration:
-
-```bash
-python3 resources/scripts/architecture_tool.py evidence-providers --project .
-python3 resources/scripts/architecture_tool.py run-evidence-provider \
-  --project . --provider test-results
-python3 resources/scripts/architecture_tool.py validate-evidence-run \
-  .architecture/evidence/<run>.yaml --project . --require-passed
-```
-
-Compare two valid review snapshots without treating narrative changes as a new
-audit:
-
-```bash
-python3 resources/scripts/architecture_tool.py review-diff \
-  --before previous.yaml --after current.yaml --project .
-```
-
-## Decisions, plans, and risk acceptance
-
-Remediation decisions reference a trusted Review by ID and SHA-256. Greenfield
-decisions instead bind a validated `architecture-design-brief.yaml`; they
-never require or manufacture an empty review. Schema `1.2` remediation and
-schema `1.3` Greenfield Decisions compare at least three options, including keep-current, bind
-the exact task selection and per-entry Markdown versions and hashes, and score
-quality, business, team, evolution, maturity, lock-in, and complexity
-trade-offs. Generate their hashes first:
-
-```bash
-python3 resources/scripts/architecture_tool.py decision-bindings \
-  --project . --review verified.yaml \
-  --knowledge-selection .architecture/knowledge-selection.yaml
-python3 resources/scripts/architecture_tool.py validate-decision \
-  decision.yaml --review verified.yaml --project . --require-accepted
-```
-
-For a new system:
-
-```bash
-python3 resources/scripts/architecture_tool.py validate-design-brief \
-  .architecture/architecture-design-brief.yaml
-python3 resources/scripts/architecture_tool.py decision-bindings \
-  --project . \
-  --design-brief .architecture/architecture-design-brief.yaml \
-  --knowledge-selection .architecture/decision-knowledge-selection.yaml
-python3 resources/scripts/architecture_tool.py validate-decision \
-  decision.yaml \
-  --design-brief .architecture/architecture-design-brief.yaml \
-  --project .
-```
-
-Plans bind the accepted decision and source review. A plan marked complete must
-provide repository-relative, SHA-256-bound acceptance evidence for every
-declared evidence type. Schema `1.2` items also bind Finding fingerprints,
-selected knowledge IDs, assumptions, migration slices, rollback, and stop
-conditions:
-
-```bash
-python3 resources/scripts/architecture_tool.py validate-plan \
-  plan.yaml --review verified.yaml --decision decision.yaml --project .
-```
-
-Risk acceptance is not a status-only shortcut. It lives in the separate
-`risk-acceptances.yaml` registry and requires:
-
-- a matching Finding fingerprint;
-- different accepter and approver identities;
-- identities authorized by policy roles;
-- rationale, compensating controls, acceptance time, and expiry.
-
-Baselines and waivers are also fingerprint-bound and expiring.
-
-## Layered deterministic gate
-
-```bash
-python3 resources/scripts/architecture_tool.py gate \
-  --project /path/to/repository \
-  --review .architecture/reviews/example-verified.yaml \
-  --stage change \
-  --sarif-output architecture-results.sarif
-```
-
-Stages are cumulative:
-
-1. `contract`: schemas, provenance, identity, hashes, roles, and coverage;
-2. `finding`: severity, confidence, verification level, status, baseline,
-   waiver, and risk acceptance;
-3. `change`: required review workflows, review age,
-   exact/ancestor/diff-aware Git freshness, changed public contracts, required
-   decisions, compatible migration or active remediation planning, dirty tree,
-   signature policy, and evidence resolution. Governance-only commits may
-   follow a review, but classified critical or security paths may not;
-4. `release`: required evidence, accepted decisions, decision authority, and
-   complete remediation with hashed acceptance evidence.
-
-Exit codes are stable: `0` passes, `1` is a policy failure, and `2` is invalid
-input or configuration. SARIF 2.1.0 output can be uploaded with GitHub's
-`github/codeql-action/upload-sarif`. The bundled GitHub workflow template also
-publishes the Check summary and updates a pull-request comment.
-
-`product_mode` is a declared operating tier, not a bypass. A project using
-Advisory mode does not initialize or invoke the gate; an explicitly invoked
-gate evaluates its deterministic policy regardless of that label. High-risk
-Governed/Enforced work may add a validated but non-authoritative trajectory
-record under `.architecture/runs/`; it never substitutes for a Review,
-Evidence Provider run, approval, or gate evidence.
-
-## Behavior evaluation
-
-`evals/cases.yaml` contains one direct, indirect, incomplete, negative, and
-edge activation case for each of the eight public Skills: 40 cases total.
-Separate corpora cover routing, knowledge selection, decision quality,
-false-positive resistance, and artifact tampering. `benchmarks/` adds ten
-adversarial code fixtures with ground truth, forbidden over-design
-recommendations, and metrics for precision, recall, severity agreement,
-evidence validity, prohibited recommendations, repeated-trial stability,
-duration, optional token/cost usage, recommendation accuracy, over-design,
-trade-off coverage, knowledge citation validity, rejected-option explanations,
-and migration actionability.
-
-The bundled Codex adapter limits outputs to machine Rule IDs and canonical
-atomic trade-offs. It allows one disclosed evidence-only correction when an
-initial path/line/excerpt citation is not verbatim; it never sends benchmark
-ground truth to the model. Schema 1.4 run artifacts also bind the source
-commit, relevant dirty state, execution environment, dependency lock,
-configuration schemas, plugin manifest and Skill version, fixture tree hashes,
-runner and adapter hashes, the reconstructible command template, exact
-per-trial argument vectors, command/model executable fingerprints and version
-outputs, and a hash-verified JSONL execution log. Interrupted trials leave a
-failure log instead of disappearing.
-
-Schema 1.5 adds a declared `base` / `full` / `compressed` context ablation.
-Base has no Skill, Reference, or Knowledge content. Full uses the public Skill;
-Compressed uses a compact workflow instruction; both share the same
-workflow-required Knowledge per Skill. Each run records a corpus-level
-declared-input character/byte proxy, not tokens or cost. Token, cost, and
-tool-call totals remain `null` unless the executed surface reports them. See
-[evaluation guidance](docs/evaluation.md) before interpreting or publishing an
-A/B/C comparison.
-
-The forward-test runner accepts a caller-supplied agent command:
-
-```bash
-python3 scripts/run_behavior_benchmark.py \
-  --model MODEL --surface SURFACE --runtime-executable codex --repetitions 3 \
-  --output benchmark-run.yaml -- \
-  python3 scripts/codex_benchmark_adapter.py --model MODEL \
-    --skill '{skill}' --fixture '{fixture}' --prompt '{prompt}'
-python3 resources/scripts/architecture_tool.py benchmark-score \
-  --ground-truth benchmarks/ground-truth.yaml --run benchmark-run.yaml \
-  --output benchmark-score.json
-```
-
-The default score mode strictly replays runtime identity checks. For portable
-review of a committed run on a different host, add
-`--runtime-verification archived --artifact-commit COMMIT`; this binds the run
-and JSONL bytes to Git and reports, rather than conceals, host-runtime mismatch.
-
-The runner writes `benchmark-run.log.jsonl` beside the YAML result. Preserve
-both files; the scorer rejects a missing, modified, incomplete, or
-source-inconsistent provenance chain.
-
-Version 0.4.0 preserves 60 real trials from two identified models on
-`codex-cli 0.146.0-alpha.3.1`, including non-perfect results and limitations.
-See the [model behavior evidence](benchmarks/reports/0.4.0-model-behavior.md)
-and [evaluation guidance](docs/evaluation.md). The planned context-precision
-migration is documented in [the 0.4.2 guide](docs/migrating-to-0.4.2.md).
-
-## Open-source verification
-
-Run the local gate:
-
-```bash
 python3 scripts/validate_repository.py
 python3 resources/scripts/architecture_tool.py validate-project .
+python3 resources/scripts/architecture_tool.py validate-history-anchors .
 python3 resources/scripts/validate_knowledge.py
 python3 -m pytest
+python3 resources/scripts/architecture_tool.py gate --project . --stage change
 python3 -m ruff check .
 python3 -m ruff format --check .
 python3 scripts/audit_licenses.py
+```
+
+Build and verify the deterministic plugin archive:
+
+```bash
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
@@ -428,24 +389,49 @@ python3 scripts/generate_sbom.py \
 ```
 
 CI runs the supported Python boundary on Linux, macOS, and Windows. Tagged
-releases rebuild the deterministic ZIP, attach its checksum and SPDX SBOM, and
-create GitHub provenance plus SBOM attestations. See
-[release verification](docs/releasing.md), [compatibility](docs/compatibility.md),
-the [0.3 migration guide](docs/migrating-to-0.3.md), and the
-[assurance model](docs/assurance-model.md). A scheduled workflow checks
-knowledge freshness and opens or updates an issue; it never silently rewrites
-sourced decision knowledge.
+releases publish a deterministic ZIP, SHA-256 checksum, SPDX SBOM, and GitHub
+provenance/SBOM attestations.
 
 ## Non-goals
 
-The plugin does not prove that a system is secure or correct, autonomously
-approve decisions or risk, discover unrelated repositories, implement audited
-product code, operate a hosted dashboard, or replace specialist security,
-privacy, performance, or compliance assessment.
+Hengmu does not:
 
-## Contributing and license
+- autonomously approve architecture decisions, risk, or releases;
+- turn every detected technology, pattern, or large file into a Finding;
+- discover unrelated repositories without an explicit portfolio registry;
+- implement the audited product's remediation by itself;
+- replace dedicated security, privacy, performance, legal, or compliance
+  assessment;
+- prove that a system is secure or correct.
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md),
-[SECURITY.md](SECURITY.md), and [SUPPORT.md](SUPPORT.md). The project is
-licensed under [MIT](LICENSE). PAAD-derived concepts retain attribution in
-[NOTICE](NOTICE) and [third_party/PAAD-MIT.txt](third_party/PAAD-MIT.txt).
+## Contributing
+
+Focused issues and pull requests are welcome. Start with
+[CONTRIBUTING.md](CONTRIBUTING.md), then read
+[GOVERNANCE.md](GOVERNANCE.md), [SECURITY.md](SECURITY.md), and
+[SUPPORT.md](SUPPORT.md).
+
+Changes to public schemas, CLI behavior, policy, trust boundaries, or persisted
+artifacts require compatibility analysis, tests, migration notes, and an
+updated architecture decision when authority changes.
+
+When a Review or Selector Runtime binds source commits, preserve those commits
+with a Merge Commit. Squash or rebase merging can invalidate source ancestry
+and is rejected by `validate-history-anchors`.
+
+## Credits and license
+
+Hengmu is a [Qingye](https://github.com/liyanqing90) open-source project:
+**理性结构中的持续进化，在不确定中，持续构建。**
+
+The README's editorial illustrations were created with
+[Ian Xiaohei Illustrations](https://github.com/helloianneo/ian-xiaohei-illustrations)
+and adapted to the Qingye ink and brand-blue palette. The technical flow is
+available as Mermaid, Excalidraw, SVG, and PNG so documentation remains
+editable.
+
+PAAD-derived concepts retain attribution in [NOTICE](NOTICE) and
+[third_party/PAAD-MIT.txt](third_party/PAAD-MIT.txt).
+
+The software is licensed under the [MIT License](LICENSE). The Qingye wordmark
+identifies the originating project and is not a grant to imply endorsement.

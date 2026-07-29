@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for improving Codex Architecture Governance.
+Thank you for improving Hengmu.
 
 ## Before opening a change
 

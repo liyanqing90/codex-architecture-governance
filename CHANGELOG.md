@@ -9,6 +9,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Qingye brand assets, two Xiaohei editorial illustrations, and an editable
+  Mermaid/Excalidraw/SVG/PNG governance flow for the public README.
 - Consumption-time `validate-knowledge-context` checks for the Selection lock,
   result hash, and exact ordered selected-entry projection.
 - CI and release ancestry checks for the Selector source and latest reviewed
@@ -16,6 +18,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- The public project name is now **Hengmu** and the README follows a
+  reader-first open-source structure. The plugin ID, repository slug, release
+  archive prefix, schemas, CLI contracts, and historical provenance remain
+  `codex-architecture-governance` for `0.x` compatibility.
 - Git-verified archived Selection locks remain historically readable but can no
   longer create new trusted Review, Decision, Plan, coverage, or Gate chains;
   current deterministic replay is required.

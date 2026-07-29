@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/governance-run-manifest.schema.json",
+  "title": "Informational run record for high-risk architecture governance work",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "product_mode",
+        "workflow",
+        "model",
+        "started_at",
+        "completed_at",
+        "source",
+        "selected_knowledge",
+        "tools_used",
+        "artifacts_written",
+        "stop_reason",
+        "authorization_boundary",
+        "trust"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^GOV-RUN-[A-Z0-9-]{3,64}$"
+        },
+        "product_mode": {"enum": ["governed", "enforced"]},
+        "workflow": {
+          "enum": [
+            "project-architecture-audit",
+            "ai-agent-architecture-audit",
+            "mobile-architecture-audit",
+            "portfolio-architecture-audit",
+            "architecture-finding-verifier",
+            "architecture-solution-advisor",
+            "architecture-remediation-planner",
+            "architecture-quality-gate"
+          ]
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "surface"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "surface": {"type": "string", "minLength": 1}
+          }
+        },
+        "started_at": {"type": "string", "format": "date-time"},
+        "completed_at": {"type": "string", "format": "date-time"},
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repository", "commit", "scope"],
+          "properties": {
+            "repository": {"const": "."},
+            "commit": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"},
+            "scope": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"$ref": "#/$defs/relativePath"}
+            }
+          }
+        },
+        "selected_knowledge": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/knowledgeBinding"}
+        },
+        "tools_used": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/hashedPath"}
+        },
+        "artifacts_written": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "path", "sha256"],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "review",
+                  "architecture-decision",
+                  "remediation-plan",
+                  "risk-acceptance",
+                  "gate-result"
+                ]
+              },
+              "path": {"$ref": "#/$defs/relativePath"},
+              "sha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        },
+        "stop_reason": {
+          "enum": [
+            "completed",
+            "user-stop",
+            "policy-stop",
+            "insufficient-evidence",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "authorization_boundary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "reference"],
+          "properties": {
+            "kind": {
+              "enum": [
+                "user-request",
+                "maintainer-authorized",
+                "ci",
+                "unknown"
+              ]
+            },
+            "reference": {"type": "string", "minLength": 3}
+          }
+        },
+        "trust": {"const": "informational-only"}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$"
+    },
+    "hashedPath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "sha256"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "path": {"$ref": "#/$defs/relativePath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "knowledgeBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "path", "sha256"],
+      "properties": {
+        "id": {"type": "string", "minLength": 3},
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "path": {"$ref": "#/$defs/relativePath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

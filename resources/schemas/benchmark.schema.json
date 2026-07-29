@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "benchmark", "cases"],
   "properties": {
-    "schema_version": {"enum": ["1.1", "1.2", "1.3", "1.4"]},
+    "schema_version": {"enum": ["1.1", "1.2", "1.3", "1.4", "1.5"]},
     "benchmark": {
       "type": "object",
       "additionalProperties": false,
@@ -18,6 +18,8 @@
         "model": {"type": "string"},
         "surface": {"type": "string"},
         "skill_version": {"type": "string"},
+        "condition": {"enum": ["base", "full", "compressed"]},
+        "context_budget": {"$ref": "#/$defs/contextBudget"},
         "run_at": {"type": "string", "format": "date-time"},
         "repetitions": {"type": "integer", "minimum": 1, "maximum": 20},
         "provenance": {"$ref": "#/$defs/provenance"}
@@ -273,7 +275,8 @@
           "properties": {
             "input_tokens": {"type": "integer", "minimum": 0},
             "output_tokens": {"type": "integer", "minimum": 0},
-            "cost_usd": {"type": "number", "minimum": 0}
+            "cost_usd": {"type": "number", "minimum": 0},
+            "tool_calls": {"type": "integer", "minimum": 0}
           }
         }
       }
@@ -460,13 +463,79 @@
           "pattern": "^[a-f0-9]{64}$"
         }
       }
+    },
+    "contextBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condition",
+        "metric_kind",
+        "scope",
+        "character_unit",
+        "manifest_path",
+        "manifest_sha256",
+        "skill_metadata_chars",
+        "skill_body_chars",
+        "reference_chars",
+        "knowledge_chars",
+        "tool_description_chars",
+        "artifact_input_bytes",
+        "inputs"
+      ],
+      "properties": {
+        "condition": {"enum": ["base", "full", "compressed"]},
+        "metric_kind": {"const": "declared-context-proxy-v1"},
+        "scope": {"const": "corpus"},
+        "character_unit": {"const": "unicode_code_points"},
+        "manifest_path": {"type": "string", "minLength": 1},
+        "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "skill_metadata_chars": {"type": "integer", "minimum": 0},
+        "skill_body_chars": {"type": "integer", "minimum": 0},
+        "reference_chars": {"type": "integer", "minimum": 0},
+        "knowledge_chars": {"type": "integer", "minimum": 0},
+        "tool_description_chars": {"type": "integer", "minimum": 0},
+        "artifact_input_bytes": {"type": "integer", "minimum": 0},
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role", "path", "sha256"],
+            "properties": {
+              "role": {
+                "enum": [
+                  "skill-metadata",
+                  "skill-body",
+                  "references",
+                  "knowledge",
+                  "tool-descriptions",
+                  "artifact-input"
+                ]
+              },
+              "path": {"type": "string", "minLength": 1},
+              "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "characters": {"type": "integer", "minimum": 0},
+              "bytes": {"type": "integer", "minimum": 0},
+              "file_count": {"type": "integer", "minimum": 1}
+            },
+            "allOf": [
+              {
+                "if": {"properties": {"role": {"const": "artifact-input"}}, "required": ["role"]},
+                "then": {"required": ["bytes", "file_count"]},
+                "else": {"required": ["characters"]}
+              }
+            ]
+          }
+        }
+      }
     }
   },
   "allOf": [
     {
       "if": {
         "properties": {
-          "schema_version": {"enum": ["1.3", "1.4"]},
+          "schema_version": {"enum": ["1.3", "1.4", "1.5"]},
           "benchmark": {
             "properties": {"kind": {"const": "run"}},
             "required": ["kind"]
@@ -527,6 +596,25 @@
               }
             }
           }
+        }
+      }
+    }
+    ,
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.5"},
+          "benchmark": {
+            "properties": {"kind": {"const": "run"}},
+            "required": ["kind"]
+          }
+        },
+        "required": ["schema_version", "benchmark"]
+      },
+      "then": {
+        "properties": {
+          "benchmark": {"required": ["condition", "context_budget"]},
+          "cases": {"items": {"required": ["skill"]}}
         }
       }
     }

@@ -7,6 +7,36 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-07-29
+
+### Added
+
+- Repository-facts schema `1.1` roles, role-aware Profile/Knowledge routing,
+  and regression coverage so tests, examples, documentation, generated code,
+  vendor trees, and benchmark fixtures cannot infer product architecture.
+- Knowledge-selection schema `1.2` kind/maturity bindings, per-kind budgets,
+  deterministic input replay, and a Golden-first Solution Advisor policy with
+  narrowly recorded standard-entry exceptions.
+- A schema `1.5` Base/Full/Compressed behavior-benchmark treatment manifest,
+  compact Skill assets, corpus-level declared-context proxy, and condition/
+  manifest-bound execution provenance.
+- Optional informational governance-run manifests and validation for high-risk
+  Governed/Enforced trajectory records. They are deliberately excluded from
+  the trusted Gate evidence chain.
+- Advisory, Governed, and Enforced operating-mode guidance, plus a 0.4.2
+  migration guide.
+- A failure-driven Knowledge curation policy: new Golden knowledge must trace
+  to a concrete decision-quality gap and add a representative regression.
+
+### Changed
+
+- The Solution Advisor Skill now keeps behavioral rules in its lean entry point
+  and moves artifact-command detail into a focused reference.
+- Gate policy schema `1.2` declares `product_mode`; its label cannot weaken or
+  bypass deterministic Gate outcomes.
+- Benchmark scoring reports tool-call telemetry when an invoked surface emits
+  it, and distinguishes missing field-level usage telemetry from zero.
+
 ## [0.4.0] - 2026-07-29
 
 ### Added

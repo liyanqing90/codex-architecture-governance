@@ -13,7 +13,7 @@
   ],
   "properties": {
     "schema_version": {
-      "enum": ["1.0", "1.1"]
+      "enum": ["1.0", "1.1", "1.2"]
     },
     "selection": {
       "type": "array",
@@ -39,6 +39,23 @@
           "sha256": {
             "type": "string",
             "pattern": "^[a-f0-9]{64}$"
+          },
+          "kind": {
+            "enum": [
+              "foundation",
+              "domain",
+              "decision-guide",
+              "architecture-style",
+              "pattern",
+              "technology-profile",
+              "reference-architecture",
+              "migration-guide",
+              "anti-pattern",
+              "case-study"
+            ]
+          },
+          "maturity": {
+            "enum": ["standard", "golden"]
           },
           "priority": {
             "enum": ["required", "recommended", "optional"]
@@ -94,6 +111,19 @@
         "profile_sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "maintainer_mode": {
+          "type": "boolean"
+        },
+        "includes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 3}
+        },
+        "excludes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 3}
         }
       }
     },
@@ -109,6 +139,71 @@
         "selected_entries": {
           "type": "integer",
           "minimum": 1
+        },
+        "per_kind": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "foundation",
+            "domain",
+            "decision-guide",
+            "architecture-style",
+            "pattern",
+            "technology-profile",
+            "reference-architecture",
+            "migration-guide",
+            "anti-pattern",
+            "case-study"
+          ],
+          "properties": {
+            "foundation": {
+              "$ref": "#/$defs/kind_budget"
+            },
+            "domain": {
+              "$ref": "#/$defs/kind_budget"
+            },
+            "decision-guide": {
+              "$ref": "#/$defs/kind_budget"
+            },
+            "architecture-style": {
+              "$ref": "#/$defs/kind_budget"
+            },
+            "pattern": {
+              "$ref": "#/$defs/kind_budget"
+            },
+            "technology-profile": {
+              "$ref": "#/$defs/kind_budget"
+            },
+            "reference-architecture": {
+              "$ref": "#/$defs/kind_budget"
+            },
+            "migration-guide": {
+              "$ref": "#/$defs/kind_budget"
+            },
+            "anti-pattern": {
+              "$ref": "#/$defs/kind_budget"
+            },
+            "case-study": {
+              "$ref": "#/$defs/kind_budget"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "kind_budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maximum_entries", "selected_entries"],
+      "properties": {
+        "maximum_entries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selected_entries": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     }
@@ -136,6 +231,44 @@
                 "reasons"
               ]
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": "1.2"
+          }
+        },
+        "required": ["schema_version"]
+      },
+      "then": {
+        "properties": {
+          "selection": {
+            "items": {
+              "required": [
+                "id",
+                "version",
+                "path",
+                "sha256",
+                "kind",
+                "maturity",
+                "priority",
+                "reasons"
+              ]
+            }
+          },
+          "budget": {
+            "required": [
+              "maximum_entries",
+              "selected_entries",
+              "per_kind"
+            ]
+          },
+          "inputs": {
+            "required": ["maintainer_mode"]
           }
         }
       }

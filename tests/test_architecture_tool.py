@@ -369,6 +369,7 @@ class ArchitectureToolTests(unittest.TestCase):
     def test_init_and_validate_project(self) -> None:
         target = self.init_project()
         self.assertEqual(target, self.root / ".architecture")
+        self.assertTrue((target / "runs").is_dir())
         validated = architecture_tool.validate_project(self.root)
         self.assertEqual(len(validated), 8)
         with self.assertRaises(architecture_tool.ArchitectureError):
@@ -586,6 +587,169 @@ class ArchitectureToolTests(unittest.TestCase):
                 review_path=verified_path,
                 decision_path=decision_path,
             )
+
+    def test_selection_v12_binds_kind_maturity_budget_and_deterministic_inputs(
+        self,
+    ) -> None:
+        config_root = self.init_project()
+        facts_path = config_root / "repository-facts.yaml"
+        profile_path = config_root / "profile.yaml"
+        selection = architecture_tool.select_knowledge(
+            facts_path,
+            profile_path=profile_path,
+            task="Review a bounded project architecture.",
+            skill="project-architecture-audit",
+            maximum_entries=16,
+            kind_budgets={"foundation": 6, "domain": 2},
+        )
+        selection_path = config_root / "selection-v12.yaml"
+        self.write_yaml(selection_path, selection)
+        architecture_tool.validate_knowledge_selection_artifact(
+            selection_path,
+            facts_path=facts_path,
+            profile_path=profile_path,
+        )
+
+        maturity_tampered = copy.deepcopy(selection)
+        maturity_tampered["selection"][0]["maturity"] = "golden"
+        maturity_path = config_root / "selection-maturity-tampered.yaml"
+        self.write_yaml(maturity_path, maturity_tampered)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "maturity does not match bundled source",
+        ):
+            architecture_tool.validate_knowledge_selection_artifact(
+                maturity_path,
+                facts_path=facts_path,
+                profile_path=profile_path,
+            )
+
+        count_tampered = copy.deepcopy(selection)
+        count_tampered["budget"]["selected_entries"] += 1
+        count_path = config_root / "selection-count-tampered.yaml"
+        self.write_yaml(count_path, count_tampered)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "selected_entries does not match selection",
+        ):
+            architecture_tool.validate_knowledge_selection_artifact(
+                count_path,
+                facts_path=facts_path,
+                profile_path=profile_path,
+            )
+
+        legacy = copy.deepcopy(selection)
+        legacy["schema_version"] = "1.1"
+        legacy_path = config_root / "selection-legacy.yaml"
+        self.write_yaml(legacy_path, legacy)
+        self.assertEqual(
+            architecture_tool.validate_knowledge_selection_artifact(legacy_path)[
+                "schema_version"
+            ],
+            "1.1",
+        )
+
+    def test_governance_run_is_informational_and_path_contained(self) -> None:
+        config_root = self.init_project()
+        run = architecture_tool.load_yaml(
+            ROOT / "resources" / "templates" / "governance-run-manifest.yaml"
+        )
+        run["run"].update(
+            {
+                "id": "GOV-RUN-TEST-001",
+                "source": {
+                    "repository": ".",
+                    "commit": architecture_tool.current_git_commit(self.root),
+                    "scope": ["."],
+                },
+                "tools_used": [
+                    {
+                        "id": "architecture-tool",
+                        "path": "resources/scripts/architecture_tool.py",
+                        "sha256": "a" * 64,
+                    }
+                ],
+            }
+        )
+        runs = config_root / "runs"
+        run_path = runs / "governance-run.yaml"
+        self.write_yaml(run_path, run)
+        validated = architecture_tool.validate_governance_run(
+            run_path,
+            project_root=self.root,
+        )
+        self.assertEqual(validated["run"]["trust"], "informational-only")
+
+        backwards = copy.deepcopy(run)
+        backwards["run"]["completed_at"] = "1969-12-31T23:59:59+00:00"
+        backwards_path = runs / "backwards.yaml"
+        self.write_yaml(backwards_path, backwards)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "completes before it starts",
+        ):
+            architecture_tool.validate_governance_run(
+                backwards_path,
+                project_root=self.root,
+            )
+
+        escaped = copy.deepcopy(run)
+        escaped["run"]["tools_used"][0]["path"] = "../outside.py"
+        escaped_path = runs / "escaped.yaml"
+        self.write_yaml(escaped_path, escaped)
+        with self.assertRaises(architecture_tool.ArchitectureError):
+            architecture_tool.validate_governance_run(
+                escaped_path,
+                project_root=self.root,
+            )
+
+        # A run record has no Review envelope, so it cannot be smuggled into
+        # the deterministic evidence chain by placing it among reviews.
+        review_path = config_root / "reviews" / "governance-run.yaml"
+        self.write_yaml(review_path, run)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "Unknown YAML artifact",
+        ):
+            architecture_tool.validate_project(self.root)
+
+    def test_product_mode_is_descriptive_and_cannot_bypass_a_gate(self) -> None:
+        config_root = self.init_project()
+        review_path = self.write_review()
+        policy_path = config_root / "gate-policy.yaml"
+        policy = architecture_tool.load_yaml(policy_path)
+
+        governed = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+        )
+        policy["product_mode"] = "advisory"
+        self.write_yaml(policy_path, policy)
+        advisory_label = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+        )
+        self.assertEqual(advisory_label["status"], governed["status"])
+        self.assertEqual(advisory_label["blocking"], governed["blocking"])
+        self.assertEqual(
+            advisory_label["policy_failures"],
+            governed["policy_failures"],
+        )
+
+        legacy_policy = copy.deepcopy(policy)
+        legacy_policy["schema_version"] = "1.1"
+        legacy_policy.pop("product_mode")
+        self.write_yaml(policy_path, legacy_policy)
+        legacy = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+        )
+        self.assertEqual(legacy["status"], governed["status"])
+        self.assertEqual(legacy["blocking"], governed["blocking"])
+        self.assertEqual(legacy["policy_failures"], governed["policy_failures"])
 
     def test_project_can_load_a_repository_local_rule_pack(self) -> None:
         config_root = architecture_tool.init_project(self.project_args())
@@ -1777,6 +1941,37 @@ class ArchitectureToolTests(unittest.TestCase):
         self.assertEqual(result["usage_trials"], 0)
         self.assertIsNone(result["input_tokens"])
         self.assertIsNone(result["cost_usd"])
+        self.assertEqual(result["tool_call_trials"], 0)
+        self.assertIsNone(result["tool_calls"])
+
+    def test_benchmark_ablation_contract_rejects_ambiguous_treatments(self) -> None:
+        manifest = architecture_tool.load_yaml(
+            ROOT / "benchmarks" / "ablation" / "context-manifest.yaml"
+        )
+        truth = architecture_tool.load_yaml(ROOT / "benchmarks" / "ground-truth.yaml")
+        skills = {case["skill"] for case in truth["cases"]}
+
+        duplicate = copy.deepcopy(manifest)
+        duplicate["treatments"].append(copy.deepcopy(duplicate["treatments"][0]))
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "repeats treatment",
+        ):
+            architecture_tool.validate_benchmark_ablation_contract(
+                duplicate,
+                skills=skills,
+            )
+
+        incomplete = copy.deepcopy(manifest)
+        incomplete["treatments"] = incomplete["treatments"][1:]
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "exactly one Base/Full/Compressed",
+        ):
+            architecture_tool.validate_benchmark_ablation_contract(
+                incomplete,
+                skills=skills,
+            )
 
     def test_benchmark_scores_repeated_trial_stability(self) -> None:
         run = architecture_tool.load_yaml(ROOT / "benchmarks" / "run-template.yaml")
@@ -1791,6 +1986,7 @@ class ArchitectureToolTests(unittest.TestCase):
                 }
                 for index in (1, 2)
             ]
+        run["cases"][0]["trials"][0]["usage"] = {"tool_calls": 2}
         run_path = self.root / "benchmark-run.yaml"
         self.write_yaml(run_path, run)
         result = architecture_tool.score_benchmark(
@@ -1807,6 +2003,9 @@ class ArchitectureToolTests(unittest.TestCase):
         self.assertEqual(result["false_negative"], expected_positive * 2)
         self.assertEqual(result["finding_stability"], 1.0)
         self.assertAlmostEqual(result["mean_duration_seconds"], 0.1)
+        self.assertEqual(result["tool_calls"], 2)
+        self.assertEqual(result["tool_call_trials"], 1)
+        self.assertIsNone(result["input_tokens"])
 
     def test_benchmark_scores_solution_decision_quality(self) -> None:
         truth = architecture_tool.load_yaml(ROOT / "benchmarks" / "ground-truth.yaml")
@@ -1889,7 +2088,7 @@ class ArchitectureToolTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(process.returncode, 0, process.stderr)
-        self.assertEqual(process.stdout.strip(), "architecture_tool.py 0.4.0")
+        self.assertEqual(process.stdout.strip(), "architecture_tool.py 0.4.2")
 
     def test_benchmark_score_cli_can_preserve_json_output(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

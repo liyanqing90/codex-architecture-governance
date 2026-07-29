@@ -101,11 +101,12 @@ Metrics are:
 - over-design rate and required trade-off coverage;
 - validity and relevance of cited knowledge IDs;
 - rejected-option explanation coverage and migration actionability;
-- mean duration and optional token/cost usage.
+- mean duration and optional token/cost/tool-call usage.
 
-The score reports `usage_trials` and uses JSON `null` for token and cost totals
-when the model surface supplied no usage metadata; missing telemetry is never
-represented as zero consumption.
+The score reports `usage_trials` plus separate field-observation counts, and
+uses JSON `null` for token, cost, or tool-call totals when the model surface
+did not supply that field. Missing telemetry is never represented as zero
+consumption.
 
 An empty run has zero precision when expected positives exist. It is not a
 successful baseline. `benchmarks/run-template.yaml` only proves schema and
@@ -120,7 +121,9 @@ python3 scripts/run_behavior_benchmark.py \
   --output benchmark-run.yaml -- \
   python3 scripts/codex_benchmark_adapter.py \
     --model MODEL --skill '{skill}' \
-    --fixture '{fixture}' --prompt '{prompt}'
+    --fixture '{fixture}' --prompt '{prompt}' \
+    --condition '{condition}' \
+    --context-manifest '{context_manifest}'
 ```
 
 The command must emit JSON with `observed_findings` and
@@ -131,7 +134,7 @@ scorer independently resolve these references inside the fixture; a
 caller-supplied validity assertion is not trusted. Use a clean task per case
 and never include the ground-truth expectations in the model prompt. Each
 repetition launches a new command process; the harness records every trial
-rather than averaging model output before scoring. For schema 1.4 runs it also
+rather than averaging model output before scoring. For schema 1.4+ runs it also
 writes a sibling JSONL execution log and binds its hash to the result. Each
 trial records the exact rendered argument vector plus hashes of the command,
 stdout, stderr, normalized observation, and exact log record. Run-level
@@ -139,6 +142,46 @@ provenance binds the clean source commit, execution environment, dependency
 lock, schemas, Ground Truth, Knowledge manifest, plugin manifest and Skill
 version, fixture trees, runner/adapter bytes, reconstructible command template,
 and command/model runtime executable and version fingerprints.
+
+## Context ablation
+
+Schema `1.5` adds a controlled three-treatment benchmark configured by
+`benchmarks/ablation/context-manifest.yaml`:
+
+| Condition | Model-visible architecture context |
+| --- | --- |
+| `base` | No Skill, Reference, or Knowledge content; only the shared tool description and fixture. |
+| `full` | The public Skill, its manifest-declared References, and workflow-required Knowledge. |
+| `compressed` | A compact workflow-specific instruction and the same workflow-required Knowledge as `full`. |
+
+This is an end-to-end package ablation, not a claim that only prompt wording
+changed. Full and Compressed share their Knowledge inputs per Skill; the
+manifest must never choose those inputs from fixture outcomes or hidden Ground
+Truth. Run each condition separately from the same clean commit and preserve
+three YAML/JSONL/score artifact sets:
+
+```bash
+python3 scripts/run_behavior_benchmark.py \
+  --model MODEL --surface SURFACE --runtime-executable codex --repetitions 3 \
+  --condition full \
+  --context-manifest benchmarks/ablation/context-manifest.yaml \
+  --output benchmarks/results/full-run.yaml -- \
+  python3 scripts/codex_benchmark_adapter.py \
+    --model MODEL --skill '{skill}' --fixture '{fixture}' --prompt '{prompt}' \
+    --condition '{condition}' --context-manifest '{context_manifest}'
+```
+
+Replace `full` in the condition and output path with `base` and `compressed`,
+then score each run independently. Compare precision, recall, evidence
+validity, recommendation accuracy, over-design, trade-off and Knowledge
+coverage, duration, stability, and any telemetry the surface actually emits.
+
+Every 1.5 run also contains `context_budget`, a reproducible **declared-input
+proxy**. It records corpus-union Unicode code points for Skill metadata/body,
+References, Knowledge, and tool descriptions, plus fixture-tree bytes and
+source hashes. It is not real token usage, a cost estimate, a per-trial value,
+or proof that the model consumed all listed context. Do not state a context or
+cost improvement until an actual A/B/C run has been preserved and scored.
 
 The bundled Codex adapter constrains Finding IDs to the bundled machine Rule
 Packs and solution trade-offs to a documented atomic vocabulary. It performs

@@ -79,6 +79,95 @@ class CodexBenchmarkAdapterTests(unittest.TestCase):
         self.assertIn("delivery-semantics", prompt)
         self.assertIn("never combine dimensions", prompt)
 
+    def test_base_prompt_does_not_disclose_skill_or_knowledge_locations(self) -> None:
+        skill_path = ROOT / "skills" / "project-architecture-audit" / "SKILL.md"
+        knowledge_root = ROOT / "resources" / "knowledge"
+        prompt = codex_benchmark_adapter.build_prompt(
+            skill_path=skill_path,
+            knowledge_root=knowledge_root,
+            fixture=ROOT / "benchmarks" / "fixtures" / "desktop-sqlite-catalog",
+            task="Audit only directly proved risks.",
+            condition="base",
+        )
+        self.assertNotIn(str(skill_path), prompt)
+        self.assertNotIn(str(knowledge_root), prompt)
+        self.assertNotIn("Read and follow the Skill", prompt)
+
+    def test_compressed_treatment_uses_only_manifest_declared_inputs(self) -> None:
+        manifest = codex_benchmark_adapter.load_context_manifest(
+            ROOT,
+            ROOT / "benchmarks" / "ablation" / "context-manifest.yaml",
+        )
+        treatment = codex_benchmark_adapter.treatment_for(
+            manifest,
+            condition="compressed",
+            skill="architecture-solution-advisor",
+        )
+        compact = codex_benchmark_adapter.resolve_treatment_paths(
+            ROOT,
+            treatment,
+            "skill_body",
+        )
+        knowledge = codex_benchmark_adapter.resolve_treatment_paths(
+            ROOT,
+            treatment,
+            "knowledge",
+        )
+        prompt = codex_benchmark_adapter.build_prompt(
+            skill_path=ROOT / "skills" / "architecture-solution-advisor" / "SKILL.md",
+            knowledge_root=ROOT / "resources" / "knowledge",
+            fixture=ROOT / "benchmarks" / "fixtures" / "render-job-processing",
+            task="Select a proportional architecture.",
+            condition="compressed",
+            compact_skill_paths=compact,
+            knowledge_paths=knowledge,
+        )
+        self.assertIn(str(compact[0]), prompt)
+        self.assertIn(str(knowledge[0]), prompt)
+        self.assertNotIn(
+            str(ROOT / "skills" / "architecture-solution-advisor" / "SKILL.md"),
+            prompt,
+        )
+
+    def test_full_treatment_uses_declared_references_and_shared_knowledge(self) -> None:
+        manifest = codex_benchmark_adapter.load_context_manifest(
+            ROOT,
+            ROOT / "benchmarks" / "ablation" / "context-manifest.yaml",
+        )
+        full = codex_benchmark_adapter.treatment_for(
+            manifest,
+            condition="full",
+            skill="architecture-solution-advisor",
+        )
+        compressed = codex_benchmark_adapter.treatment_for(
+            manifest,
+            condition="compressed",
+            skill="architecture-solution-advisor",
+        )
+        references = codex_benchmark_adapter.resolve_treatment_paths(
+            ROOT,
+            full,
+            "references",
+        )
+        knowledge = codex_benchmark_adapter.resolve_treatment_paths(
+            ROOT,
+            full,
+            "knowledge",
+        )
+        prompt = codex_benchmark_adapter.build_prompt(
+            skill_path=ROOT / "skills" / "architecture-solution-advisor" / "SKILL.md",
+            knowledge_root=ROOT / "resources" / "knowledge",
+            fixture=ROOT / "benchmarks" / "fixtures" / "render-job-processing",
+            task="Select a proportional architecture.",
+            condition="full",
+            reference_paths=references,
+            knowledge_paths=knowledge,
+        )
+        self.assertEqual(full["knowledge"], compressed["knowledge"])
+        self.assertIn(str(references[0]), prompt)
+        self.assertIn(str(knowledge[0]), prompt)
+        self.assertNotIn("The architecture knowledge catalog is read-only at", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

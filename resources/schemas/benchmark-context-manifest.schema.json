@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/benchmark-context-manifest.schema.json",
+  "title": "Declared context inputs for a behavior-benchmark treatment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "treatments"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "treatments": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/treatment"}
+    }
+  },
+  "$defs": {
+    "treatment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition", "skill", "knowledge_basis", "skill_metadata", "skill_body", "references", "knowledge", "tool_descriptions", "artifact_inputs"],
+      "properties": {
+        "condition": {"enum": ["base", "full", "compressed"]},
+        "skill": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "knowledge_basis": {"enum": ["none", "workflow-required"]},
+        "skill_metadata": {"$ref": "#/$defs/paths"},
+        "skill_body": {"$ref": "#/$defs/paths"},
+        "references": {"$ref": "#/$defs/paths"},
+        "knowledge": {"$ref": "#/$defs/paths"},
+        "tool_descriptions": {"$ref": "#/$defs/paths"},
+        "artifact_inputs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["$fixture-tree"]}
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"condition": {"const": "base"}},
+            "required": ["condition"]
+          },
+          "then": {
+            "properties": {
+              "knowledge_basis": {"const": "none"},
+              "skill_metadata": {"maxItems": 0},
+              "skill_body": {"maxItems": 0},
+              "references": {"maxItems": 0},
+              "knowledge": {"maxItems": 0}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "condition": {"enum": ["full", "compressed"]}
+            },
+            "required": ["condition"]
+          },
+          "then": {
+            "properties": {"knowledge_basis": {"const": "workflow-required"}}
+          }
+        }
+      ]
+    },
+    "paths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$"
+      }
+    }
+  }
+}

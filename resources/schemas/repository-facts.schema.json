@@ -16,7 +16,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.0"
+      "enum": ["1.0", "1.1"]
     },
     "repository": {
       "type": "object",
@@ -129,10 +129,63 @@
           "type": "string",
           "pattern": "^[a-z0-9][a-z0-9-]*$"
         },
+        "role": {
+          "enum": [
+            "runtime",
+            "production",
+            "test",
+            "benchmark-fixture",
+            "example",
+            "documentation",
+            "generated",
+            "vendor"
+          ]
+        },
         "evidence": {
           "$ref": "#/$defs/paths"
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": "1.1"
+          }
+        },
+        "required": ["schema_version"]
+      },
+      "then": {
+        "properties": {
+          "languages": {
+            "items": {
+              "required": ["id", "role", "evidence"]
+            }
+          },
+          "frameworks": {
+            "items": {
+              "required": ["id", "role", "evidence"]
+            }
+          },
+          "storage": {
+            "items": {
+              "required": ["id", "role", "evidence"]
+            }
+          },
+          "interfaces": {
+            "items": {
+              "required": ["id", "role", "evidence"]
+            }
+          },
+          "infrastructure": {
+            "items": {
+              "required": ["id", "role", "evidence"]
+            }
+          }
+        }
+      }
+    }
+  ]
 }

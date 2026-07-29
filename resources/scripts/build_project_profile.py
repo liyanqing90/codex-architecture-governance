@@ -15,6 +15,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 RESOURCE_ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_ROOT = RESOURCE_ROOT / "schemas"
+CONTRIBUTING_FACT_ROLES = {"runtime", "production"}
 
 
 class ProfileBuildError(RuntimeError):
@@ -38,7 +39,22 @@ def file_sha256(path: Path) -> str:
 
 
 def fact_ids(facts: dict[str, Any], field: str) -> set[str]:
-    return {str(item["id"]) for item in facts.get(field, [])}
+    return {
+        str(item["id"])
+        for item in facts.get(field, [])
+        if _fact_contributes(facts, item)
+    }
+
+
+def _fact_contributes(facts: dict[str, Any], fact: dict[str, Any]) -> bool:
+    # Version 1.0 predates fact roles.  Keep its all-facts-contribute
+    # interpretation even if a hand-maintained historical record happens to
+    # include a role-like field; applying 1.1 semantics retroactively would
+    # silently change its recorded routing.
+    if facts.get("schema_version") == "1.0":
+        return True
+    role = fact.get("role")
+    return str(role) in CONTRIBUTING_FACT_ROLES
 
 
 def derive_domains(facts: dict[str, Any]) -> list[str]:
@@ -47,7 +63,12 @@ def derive_domains(facts: dict[str, Any]) -> list[str]:
     storage = fact_ids(facts, "storage")
     interfaces = fact_ids(facts, "interfaces")
     infrastructure = fact_ids(facts, "infrastructure")
-    domains = {"testing", "delivery"}
+    # A Domain Pack is product context, not a generic property of every
+    # repository.  Start empty so that non-contributing observations (tests,
+    # fixtures, examples, documentation, generated code, and vendor trees)
+    # cannot route an otherwise context-free repository into a domain pack.
+    # Broad architecture foundations remain selected by the requesting Skill.
+    domains: set[str] = set()
     if frameworks & {"react", "nextjs", "vue", "astro", "vite"}:
         domains.add("frontend")
     if frameworks & {
@@ -176,6 +197,7 @@ def default_project(facts: dict[str, Any], facts_path: Path) -> dict[str, Any]:
                 "infrastructure",
             )
             for record in facts[field]
+            if _fact_contributes(facts, record)
             for item in record["evidence"]
         }
     )

@@ -7,7 +7,7 @@
   "required": ["schema_version", "review_kinds", "block", "waivers"],
   "properties": {
     "schema_version": {
-      "enum": ["1.0", "1.1"]
+      "enum": ["1.0", "1.1", "1.2"]
     },
     "review_kinds": {
       "type": "array",
@@ -136,6 +136,9 @@
     "risk_acceptances_file": {
       "type": "string",
       "minLength": 1
+    },
+    "product_mode": {
+      "enum": ["advisory", "governed", "enforced"]
     },
     "roles": {
       "type": "object",
@@ -280,7 +283,7 @@
     {
       "if": {
         "properties": {
-          "schema_version": {"const": "1.1"}
+          "schema_version": {"enum": ["1.1", "1.2"]}
         }
       },
       "then": {
@@ -310,6 +313,17 @@
             }
           }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.2"}
+        },
+        "required": ["schema_version"]
+      },
+      "then": {
+        "required": ["product_mode"]
       }
     }
   ]

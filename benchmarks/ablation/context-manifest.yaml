@@ -1,0 +1,101 @@
+schema_version: "1.0"
+treatments:
+  # This is an end-to-end package ablation. Base intentionally receives no
+  # Skill, reference, or Knowledge input. Full and compressed use the same
+  # workflow-required Knowledge; neither treatment is chosen from fixture
+  # outcomes or the hidden Ground Truth.
+  - &base_project
+    condition: base
+    skill: project-architecture-audit
+    knowledge_basis: none
+    skill_metadata: []
+    skill_body: []
+    references: []
+    knowledge: []
+    tool_descriptions: [benchmarks/ablation/tool-description.md]
+    artifact_inputs: [$fixture-tree]
+  - <<: *base_project
+    skill: architecture-solution-advisor
+  - <<: *base_project
+    skill: ai-agent-architecture-audit
+  - <<: *base_project
+    skill: architecture-finding-verifier
+
+  - &full_project
+    condition: full
+    skill: project-architecture-audit
+    knowledge_basis: workflow-required
+    skill_metadata: [skills/project-architecture-audit/SKILL.md]
+    skill_body: [skills/project-architecture-audit/SKILL.md]
+    references:
+      - resources/references/review-contract.md
+      - resources/references/project-rules.md
+      - resources/references/knowledge-contract.md
+    knowledge: &project_audit_knowledge
+      - resources/knowledge/foundations/quality-attributes.md
+      - resources/knowledge/foundations/evidence-reasoning.md
+      - resources/knowledge/foundations/proportional-design.md
+      - resources/knowledge/foundations/system-boundaries.md
+      - resources/knowledge/foundations/data-ownership.md
+    tool_descriptions: [benchmarks/ablation/tool-description.md]
+    artifact_inputs: [$fixture-tree]
+  - <<: *full_project
+    skill: architecture-solution-advisor
+    skill_metadata: [skills/architecture-solution-advisor/SKILL.md]
+    skill_body: [skills/architecture-solution-advisor/SKILL.md]
+    references:
+      - skills/architecture-solution-advisor/references/decision-artifact-workflow.md
+      - resources/references/review-contract.md
+      - resources/references/solution-decision-contract.md
+    knowledge: &solution_advisor_knowledge
+      - resources/knowledge/foundations/quality-attributes.md
+      - resources/knowledge/foundations/tradeoff-analysis.md
+      - resources/knowledge/foundations/proportional-design.md
+      - resources/knowledge/foundations/technology-selection.md
+      - resources/knowledge/foundations/evolutionary-architecture.md
+  - <<: *full_project
+    skill: ai-agent-architecture-audit
+    skill_metadata: [skills/ai-agent-architecture-audit/SKILL.md]
+    skill_body: [skills/ai-agent-architecture-audit/SKILL.md]
+    references:
+      - resources/references/review-contract.md
+      - resources/references/ai-agent-rules.md
+      - resources/references/knowledge-contract.md
+    knowledge: &ai_agent_audit_knowledge
+      - resources/knowledge/foundations/evidence-reasoning.md
+      - resources/knowledge/domains/ai-agent/overview.md
+      - resources/knowledge/decision-guides/workflow-vs-agent.md
+      - resources/knowledge/decision-guides/single-agent-vs-multi-agent.md
+  - <<: *full_project
+    skill: architecture-finding-verifier
+    skill_metadata: [skills/architecture-finding-verifier/SKILL.md]
+    skill_body: [skills/architecture-finding-verifier/SKILL.md]
+    references:
+      - resources/references/review-contract.md
+      - resources/references/project-rules.md
+    knowledge: &finding_verifier_knowledge
+      - resources/knowledge/foundations/evidence-reasoning.md
+      - resources/knowledge/foundations/quality-attributes.md
+
+  - &compressed_project
+    condition: compressed
+    skill: project-architecture-audit
+    knowledge_basis: workflow-required
+    skill_metadata: []
+    skill_body: [benchmarks/ablation/skills/project-architecture-audit.md]
+    references: []
+    knowledge: *project_audit_knowledge
+    tool_descriptions: [benchmarks/ablation/tool-description.md]
+    artifact_inputs: [$fixture-tree]
+  - <<: *compressed_project
+    skill: architecture-solution-advisor
+    skill_body: [benchmarks/ablation/skills/architecture-solution-advisor.md]
+    knowledge: *solution_advisor_knowledge
+  - <<: *compressed_project
+    skill: ai-agent-architecture-audit
+    skill_body: [benchmarks/ablation/skills/ai-agent-architecture-audit.md]
+    knowledge: *ai_agent_audit_knowledge
+  - <<: *compressed_project
+    skill: architecture-finding-verifier
+    skill_body: [benchmarks/ablation/skills/architecture-finding-verifier.md]
+    knowledge: *finding_verifier_knowledge

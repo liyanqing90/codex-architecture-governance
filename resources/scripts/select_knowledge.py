@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from build_project_profile import fact_ids
 from jsonschema import Draft202012Validator, FormatChecker
 from knowledge_model import KnowledgeEntry, validate_knowledge_tree
 
@@ -113,6 +114,30 @@ GENERIC_TRIGGER_TOKENS = {
     "service",
     "system",
 }
+KNOWLEDGE_KINDS = (
+    "foundation",
+    "domain",
+    "decision-guide",
+    "architecture-style",
+    "pattern",
+    "technology-profile",
+    "reference-architecture",
+    "migration-guide",
+    "anti-pattern",
+    "case-study",
+)
+DEFAULT_KIND_BUDGETS = {
+    "foundation": 6,
+    "domain": 10,
+    "decision-guide": 3,
+    "architecture-style": 2,
+    "pattern": 2,
+    "technology-profile": 3,
+    "reference-architecture": 1,
+    "migration-guide": 1,
+    "anti-pattern": 1,
+    "case-study": 1,
+}
 
 
 class SelectionError(RuntimeError):
@@ -143,8 +168,24 @@ def normalized_tokens(value: str) -> set[str]:
     }
 
 
-def fact_ids(facts: dict[str, Any], field: str) -> set[str]:
-    return {str(item["id"]) for item in facts.get(field, [])}
+def parse_kind_budget(value: str) -> tuple[str, int]:
+    kind, separator, raw_limit = value.partition("=")
+    if not separator or kind not in KNOWLEDGE_KINDS:
+        raise argparse.ArgumentTypeError(
+            "--kind-budget must be KIND=LIMIT with KIND one of: "
+            + ", ".join(KNOWLEDGE_KINDS)
+        )
+    try:
+        limit = int(raw_limit)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            f"--kind-budget limit must be an integer: {value}"
+        ) from exc
+    if limit < 0:
+        raise argparse.ArgumentTypeError(
+            f"--kind-budget limit cannot be negative: {value}"
+        )
+    return kind, limit
 
 
 def canonical_domain(value: str) -> str:
@@ -160,9 +201,20 @@ def select_knowledge(
     maximum_entries: int,
     includes: list[str] | None = None,
     excludes: list[str] | None = None,
+    kind_budgets: dict[str, int] | None = None,
+    maintainer_mode: bool = False,
 ) -> dict[str, Any]:
     if maximum_entries < 1:
         raise SelectionError("maximum_entries must be positive")
+    configured_kind_budgets = dict(DEFAULT_KIND_BUDGETS)
+    for kind, limit in (kind_budgets or {}).items():
+        if kind not in KNOWLEDGE_KINDS:
+            raise SelectionError(f"Unknown knowledge kind budget: {kind}")
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0:
+            raise SelectionError(
+                f"Knowledge kind budget for {kind} must be a non-negative integer"
+            )
+        configured_kind_budgets[kind] = limit
     facts_path = facts_path.expanduser().resolve()
     facts = load_yaml(facts_path)
     facts_schema = json.loads(
@@ -210,6 +262,7 @@ def select_knowledge(
     scores: dict[str, int] = dict.fromkeys(entries, 0)
     reasons: dict[str, set[str]] = {entry_id: set() for entry_id in entries}
     priorities: dict[str, str] = dict.fromkeys(entries, "recommended")
+    direct_relevance: dict[str, set[str]] = {entry_id: set() for entry_id in entries}
 
     def add(
         entry_id: str,
@@ -217,11 +270,14 @@ def select_knowledge(
         reason: str,
         *,
         priority: str = "recommended",
+        relevance: str | None = None,
     ) -> None:
         if entry_id not in entries or entry_id in excludes:
             return
         scores[entry_id] += score
         reasons[entry_id].add(reason)
+        if relevance is not None:
+            direct_relevance[entry_id].add(relevance)
         priority_rank = {"optional": 0, "recommended": 1, "required": 2}
         if priority_rank[priority] > priority_rank[priorities[entry_id]]:
             priorities[entry_id] = priority
@@ -232,9 +288,16 @@ def select_knowledge(
             100,
             f"Required foundation or lens for {skill}.",
             priority="required",
+            relevance=f"skill:{skill}",
         )
     for entry_id in includes:
-        add(entry_id, 1000, "Explicit caller include.", priority="required")
+        add(
+            entry_id,
+            1000,
+            "Explicit caller include.",
+            priority="required",
+            relevance=f"include:{entry_id}",
+        )
 
     profile_domains: set[str] = set()
     if profile is not None:
@@ -279,6 +342,7 @@ def select_knowledge(
                 80,
                 f"Project profile or detected facts require {domain}.",
                 priority="required" if domain in profile_domains else "recommended",
+                relevance=f"domain:{domain}",
             )
 
     for fact_id in sorted(frameworks | storage | infrastructure):
@@ -290,6 +354,7 @@ def select_knowledge(
             technology_id,
             90,
             f"Repository facts detect {fact_id}.",
+            relevance=f"fact:{fact_id}",
         )
 
     task_tokens = normalized_tokens(task)
@@ -332,11 +397,15 @@ def select_knowledge(
                 25 + min(len(matched), 4),
                 "Task matches trigger(s): " + ", ".join(matched),
             )
+            direct_relevance[entry_id].update(f"task:{token}" for token in matched)
         if matched_domains:
             add(
                 entry_id,
                 6,
                 "Entry domain matches project: " + ", ".join(matched_domains),
+            )
+            direct_relevance[entry_id].update(
+                f"domain:{domain}" for domain in matched_domains
             )
 
     candidates = [
@@ -357,39 +426,124 @@ def select_knowledge(
             *includes,
             *profile_required,
         )
-        if entry_id in entries and entry_id not in excludes
+        if entry_id in entries
     }
+    blocked_mandatory = sorted(mandatory & set(excludes))
+    if blocked_mandatory:
+        raise SelectionError(
+            "Explicit exclusions remove mandatory knowledge: "
+            + ", ".join(blocked_mandatory)
+        )
     if len(mandatory) > maximum_entries:
         raise SelectionError(
             f"Context budget {maximum_entries} is below {len(mandatory)} "
             "mandatory entries"
         )
-    selected_ids: list[str] = []
-    for entry_id, _ in candidates:
-        if len(selected_ids) >= maximum_entries:
-            break
-        selected_ids.append(entry_id)
-    for entry_id in sorted(mandatory - set(selected_ids)):
-        if len(selected_ids) >= maximum_entries:
-            replace_index = next(
-                (
-                    index
-                    for index in range(len(selected_ids) - 1, -1, -1)
-                    if selected_ids[index] not in mandatory
-                ),
-                None,
+    mandatory_by_kind: dict[str, int] = dict.fromkeys(KNOWLEDGE_KINDS, 0)
+    for entry_id in mandatory:
+        mandatory_by_kind[entries[entry_id].metadata["kind"]] += 1
+    for kind, count in mandatory_by_kind.items():
+        if count > configured_kind_budgets[kind]:
+            raise SelectionError(
+                f"Knowledge kind budget {kind}={configured_kind_budgets[kind]} "
+                f"is below {count} mandatory entries"
             )
-            if replace_index is None:
-                raise SelectionError("Cannot satisfy mandatory knowledge budget")
-            selected_ids.pop(replace_index)
+
+    def maturity(entry_id: str) -> str:
+        return str(entries[entry_id].metadata.get("maturity", "standard"))
+
+    def has_explicit_golden_replacement(entry_id: str) -> bool:
+        """Return only a declared identity replacement, never a fuzzy peer.
+
+        A common broad domain or task trigger is not enough to make a Golden
+        entry a substitute for a standard one. A Golden entry may declare an
+        exact backwards-compatible replacement through ``legacy_ids``.
+        """
+        return any(
+            maturity(candidate_id) == "golden"
+            and entry_id in entries[candidate_id].metadata.get("legacy_ids", [])
+            for candidate_id in entries
+        )
+
+    def exact_non_golden_exception(entry_id: str) -> str | None:
+        entry = entries[entry_id]
+        if entry_id in SKILL_REQUIRED.get(skill, ()):
+            return "skill-required contract dependency"
+        if entry_id in includes:
+            return "explicit caller include"
+        if maintainer_mode:
+            return "maintainer mode"
+        if entry_id in profile_required and not has_explicit_golden_replacement(
+            entry_id
+        ):
+            return "profile-required domain has no declared Golden replacement"
+        if (
+            entry.metadata["kind"] == "technology-profile"
+            and any(reason.startswith("fact:") for reason in direct_relevance[entry_id])
+            and not has_explicit_golden_replacement(entry_id)
+        ):
+            return "detected technology has no declared Golden replacement"
+        return None
+
+    def advisor_allows(entry_id: str) -> bool:
+        if skill != "architecture-solution-advisor" or maturity(entry_id) == "golden":
+            return True
+        exception = exact_non_golden_exception(entry_id)
+        if exception is not None:
+            reasons[entry_id].add("Non-Golden exception: " + exception + ".")
+            return True
+        return False
+
+    selected_ids: list[str] = []
+    selected_by_kind: dict[str, int] = dict.fromkeys(KNOWLEDGE_KINDS, 0)
+    budget_exclusions: dict[str, str] = {}
+
+    def select_if_budgeted(entry_id: str) -> bool:
+        kind = str(entries[entry_id].metadata["kind"])
+        if len(selected_ids) >= maximum_entries:
+            budget_exclusions[entry_id] = (
+                "Relevant but outside the configured total context budget."
+            )
+            return False
+        if selected_by_kind[kind] >= configured_kind_budgets[kind]:
+            budget_exclusions[entry_id] = (
+                f"Relevant but outside the configured {kind} context budget."
+            )
+            return False
         selected_ids.append(entry_id)
-    selected_ids = sorted(
-        set(selected_ids),
-        key=lambda entry_id: (-scores[entry_id], entry_id),
-    )
+        selected_by_kind[kind] += 1
+        return True
+
+    for entry_id in sorted(mandatory, key=lambda item: (-scores[item], item)):
+        if not advisor_allows(entry_id):
+            raise SelectionError(
+                f"Mandatory knowledge {entry_id} lacks an auditable "
+                "architecture-solution-advisor exception"
+            )
+        if not select_if_budgeted(entry_id):
+            raise SelectionError(
+                f"Cannot satisfy mandatory knowledge budget: {entry_id}"
+            )
+
+    for entry_id, _ in candidates:
+        if entry_id in mandatory:
+            continue
+        if not advisor_allows(entry_id):
+            budget_exclusions[entry_id] = (
+                "Architecture solution advisor defaults to Golden discretionary "
+                "knowledge; this standard entry has no explicit exception."
+            )
+            continue
+        select_if_budgeted(entry_id)
+
     if not selected_ids:
         fallback = "foundation.evidence-reasoning"
-        selected_ids = [fallback]
+        if configured_kind_budgets["foundation"] < 1:
+            raise SelectionError(
+                "Knowledge kind budget foundation=0 cannot fit the default "
+                "evidence discipline entry"
+            )
+        select_if_budgeted(fallback)
         reasons[fallback].add("Default evidence discipline fallback.")
         priorities[fallback] = "required"
 
@@ -399,14 +553,21 @@ def select_knowledge(
     for seed_id in seed_ids:
         if len(selected_ids) >= maximum_entries:
             break
-        for related_id in entries[seed_id].metadata["related"]:
-            if (
-                related_id in excludes
-                or related_id in selected_ids
-                or len(selected_ids) >= maximum_entries
-            ):
+        related_ids = [
+            related_id
+            for related_id in entries[seed_id].metadata["related"]
+            if related_id not in excludes and related_id not in selected_ids
+        ]
+        for related_id in related_ids:
+            direct_relevance[related_id].add(f"relation:{seed_id}")
+            if not advisor_allows(related_id):
+                budget_exclusions[related_id] = (
+                    "Architecture solution advisor defaults to Golden discretionary "
+                    "knowledge; this standard related entry has no explicit exception."
+                )
                 continue
-            selected_ids.append(related_id)
+            if not select_if_budgeted(related_id):
+                continue
             priorities[related_id] = "optional"
             reasons[related_id].add(f"One-hop relation from {seed_id}.")
 
@@ -419,6 +580,8 @@ def select_knowledge(
                 "version": entry.metadata["version"],
                 "path": entry.path.relative_to(KNOWLEDGE_ROOT).as_posix(),
                 "sha256": entry.sha256,
+                "kind": entry.metadata["kind"],
+                "maturity": maturity(entry_id),
                 "priority": priorities[entry_id],
                 "reasons": sorted(reasons[entry_id]),
             }
@@ -427,6 +590,8 @@ def select_knowledge(
     for entry_id in sorted(set(entries) - set(selected_ids)):
         if entry_id in excludes:
             reason = "Explicit caller exclusion."
+        elif entry_id in budget_exclusions:
+            reason = budget_exclusions[entry_id]
         elif scores[entry_id] >= SELECTION_THRESHOLD:
             reason = "Relevant but outside the configured context budget."
         elif scores[entry_id] > 0:
@@ -438,17 +603,27 @@ def select_knowledge(
             )
         excluded_records.append({"id": entry_id, "reason": reason})
     result = {
-        "schema_version": "1.1",
+        "schema_version": "1.2",
         "selection": selected,
         "excluded": excluded_records,
         "inputs": {
             "skill": skill,
             "task": task,
             "facts_sha256": file_sha256(facts_path),
+            "maintainer_mode": maintainer_mode,
+            "includes": sorted(includes),
+            "excludes": sorted(excludes),
         },
         "budget": {
             "maximum_entries": maximum_entries,
             "selected_entries": len(selected),
+            "per_kind": {
+                kind: {
+                    "maximum_entries": configured_kind_budgets[kind],
+                    "selected_entries": selected_by_kind[kind],
+                }
+                for kind in KNOWLEDGE_KINDS
+            },
         },
     }
     if profile_path is not None:
@@ -476,12 +651,32 @@ def main() -> int:
     parser.add_argument("--task", required=True)
     parser.add_argument("--skill", required=True)
     parser.add_argument("--max-entries", type=int, default=24)
+    parser.add_argument(
+        "--kind-budget",
+        action="append",
+        default=[],
+        type=parse_kind_budget,
+        metavar="KIND=LIMIT",
+    )
+    parser.add_argument(
+        "--maintainer",
+        action="store_true",
+        help=(
+            "Allow architecture-solution-advisor to include relevant standard "
+            "knowledge with an auditable maintainer-mode exception."
+        ),
+    )
     parser.add_argument("--include", action="append", default=[])
     parser.add_argument("--exclude", action="append", default=[])
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
     try:
+        kind_budgets: dict[str, int] = {}
+        for kind, limit in args.kind_budget:
+            if kind in kind_budgets:
+                raise SelectionError(f"Duplicate knowledge kind budget: {kind}")
+            kind_budgets[kind] = limit
         result = select_knowledge(
             args.facts,
             profile_path=args.profile,
@@ -490,6 +685,8 @@ def main() -> int:
             maximum_entries=args.max_entries,
             includes=args.include,
             excludes=args.exclude,
+            kind_budgets=kind_budgets,
+            maintainer_mode=args.maintainer,
         )
         output = args.output.expanduser().resolve()
         if output.exists() and not args.force:

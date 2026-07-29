@@ -12,9 +12,12 @@ import subprocess
 import time
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
+
+TREATMENT_CONDITIONS = ("base", "full", "compressed")
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -53,6 +56,273 @@ def tree_manifest(path: Path) -> tuple[str, int]:
         )
     records.sort(key=lambda record: record["path"])
     return sha256_bytes(canonical_json(records).encode()), len(records)
+
+
+def tree_bytes(path: Path) -> int:
+    return sum(child.stat().st_size for child in path.rglob("*") if child.is_file())
+
+
+def _text_parts(path: Path) -> tuple[str, str]:
+    """Return the frontmatter and body characters of a Markdown skill asset."""
+    text = path.read_text(encoding="utf-8")
+    if path.suffix.lower() != ".md" or not text.startswith("---\n"):
+        return "", text
+    closing = text.find("\n---\n", 4)
+    if closing == -1:
+        return "", text
+    closing += len("\n---\n")
+    return text[:closing], text[closing:]
+
+
+def _within_root(root: Path, path: Path, label: str) -> Path:
+    resolved = path.expanduser().resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError as exc:
+        raise ValueError(f"{label} escapes repository root: {resolved}") from exc
+    return resolved
+
+
+def load_context_manifest(root: Path, path: Path) -> tuple[Path, dict[str, Any]]:
+    candidate = path if path.is_absolute() else root / path
+    resolved = _within_root(root, candidate, "context manifest")
+    payload = load_yaml(resolved)
+    schema_path = (
+        root / "resources" / "schemas" / "benchmark-context-manifest.schema.json"
+    )
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    validate(payload, schema, resolved)
+    for treatment in payload["treatments"]:
+        for category in (
+            "skill_metadata",
+            "skill_body",
+            "references",
+            "knowledge",
+            "tool_descriptions",
+        ):
+            for relative in treatment[category]:
+                candidate = _within_root(root, root / relative, f"context {category}")
+                if not candidate.is_file():
+                    raise ValueError(
+                        f"Context manifest {category} input is missing: {relative}"
+                    )
+    treatment_map(payload)
+    return resolved, payload
+
+
+def treatment_map(manifest: dict[str, Any]) -> dict[tuple[str, str], dict[str, Any]]:
+    treatments: dict[tuple[str, str], dict[str, Any]] = {}
+    for treatment in manifest["treatments"]:
+        key = (treatment["condition"], treatment["skill"])
+        if key in treatments:
+            raise ValueError("Context manifest repeats treatment " + "/".join(key))
+        treatments[key] = treatment
+    return treatments
+
+
+def treatment_for(
+    manifest: dict[str, Any],
+    *,
+    condition: str,
+    skill: str,
+) -> dict[str, Any]:
+    try:
+        return treatment_map(manifest)[(condition, skill)]
+    except KeyError as exc:
+        raise ValueError(
+            f"Context manifest has no {condition!r} treatment for skill {skill!r}"
+        ) from exc
+
+
+def validate_ablation_treatments(
+    manifest: dict[str, Any],
+    *,
+    skills: set[str],
+) -> None:
+    """Require one comparable Base/Full/Compressed treatment per benchmark Skill."""
+    treatments = treatment_map(manifest)
+    expected = {
+        (condition, skill) for condition in TREATMENT_CONDITIONS for skill in skills
+    }
+    if set(treatments) != expected:
+        raise ValueError(
+            "Context manifest must declare exactly one Base/Full/Compressed "
+            "treatment for every benchmark Skill"
+        )
+    for skill in sorted(skills):
+        base = treatments[("base", skill)]
+        if base["knowledge_basis"] != "none" or any(
+            base[field]
+            for field in ("skill_metadata", "skill_body", "references", "knowledge")
+        ):
+            raise ValueError(
+                f"Context manifest Base treatment for {skill} must not load "
+                "Skill, reference, or Knowledge content"
+            )
+        full = treatments[("full", skill)]
+        compressed = treatments[("compressed", skill)]
+        if (
+            full["knowledge_basis"] != "workflow-required"
+            or compressed["knowledge_basis"] != "workflow-required"
+        ):
+            raise ValueError(
+                f"Context manifest Full and Compressed treatments for {skill} "
+                "must declare workflow-required Knowledge"
+            )
+        if full["knowledge"] != compressed["knowledge"]:
+            raise ValueError(
+                f"Context manifest Full and Compressed treatments for {skill} "
+                "must use identical Knowledge inputs"
+            )
+
+
+def collect_context_budget(
+    *,
+    root: Path,
+    manifest_path: Path,
+    manifest: dict[str, Any],
+    condition: str,
+    corpus: dict[str, Any],
+) -> dict[str, Any]:
+    """Record a reproducible declared-input proxy, never model token usage."""
+    totals = {
+        "skill_metadata_chars": 0,
+        "skill_body_chars": 0,
+        "reference_chars": 0,
+        "knowledge_chars": 0,
+        "tool_description_chars": 0,
+        "artifact_input_bytes": 0,
+    }
+    category_totals = {
+        "skill_metadata": "skill_metadata_chars",
+        "skill_body": "skill_body_chars",
+        "references": "reference_chars",
+        "knowledge": "knowledge_chars",
+        "tool_descriptions": "tool_description_chars",
+    }
+    inputs: list[dict[str, Any]] = []
+    seen_text: set[tuple[str, str]] = set()
+    skills = sorted({str(case["skill"]) for case in corpus["cases"]})
+    for skill in skills:
+        treatment = treatment_for(manifest, condition=condition, skill=skill)
+        for category, total_key in category_totals.items():
+            for relative in treatment[category]:
+                key = (category, relative)
+                if key in seen_text:
+                    continue
+                seen_text.add(key)
+                source = _within_root(root, root / relative, f"context {category}")
+                metadata, body = _text_parts(source)
+                if category == "skill_metadata":
+                    characters = len(metadata)
+                elif category == "skill_body":
+                    characters = len(body)
+                else:
+                    characters = len(source.read_text(encoding="utf-8"))
+                inputs.append(
+                    {
+                        "role": category.replace("_", "-"),
+                        "path": relative,
+                        "sha256": file_sha256(source),
+                        "characters": characters,
+                    }
+                )
+                totals[total_key] += characters
+
+    fixture_paths = sorted(
+        {
+            str(case["fixture"])
+            for case in corpus["cases"]
+            if "$fixture-tree"
+            in treatment_for(
+                manifest,
+                condition=condition,
+                skill=str(case["skill"]),
+            )["artifact_inputs"]
+        }
+    )
+    for relative in fixture_paths:
+        fixture = _within_root(root, root / relative, "context artifact input")
+        if not fixture.is_dir():
+            raise ValueError(f"Context artifact input is not a directory: {relative}")
+        digest, file_count = tree_manifest(fixture)
+        byte_count = tree_bytes(fixture)
+        inputs.append(
+            {
+                "role": "artifact-input",
+                "path": relative,
+                "sha256": digest,
+                "bytes": byte_count,
+                "file_count": file_count,
+            }
+        )
+        totals["artifact_input_bytes"] += byte_count
+
+    result = {
+        "condition": condition,
+        "metric_kind": "declared-context-proxy-v1",
+        "scope": "corpus",
+        "character_unit": "unicode_code_points",
+        "manifest_path": relative_to_root(root, manifest_path, "context manifest"),
+        "manifest_sha256": file_sha256(manifest_path),
+        **totals,
+        "inputs": inputs,
+    }
+    validate_context_budget(result, root=root)
+    return result
+
+
+def validate_context_budget(payload: dict[str, Any], *, root: Path) -> None:
+    character_totals = {
+        "skill-metadata": "skill_metadata_chars",
+        "skill-body": "skill_body_chars",
+        "references": "reference_chars",
+        "knowledge": "knowledge_chars",
+        "tool-descriptions": "tool_description_chars",
+    }
+    calculated = dict.fromkeys(character_totals.values(), 0)
+    calculated["artifact_input_bytes"] = 0
+    seen: set[tuple[str, str]] = set()
+    for record in payload["inputs"]:
+        key = (record["role"], record["path"])
+        if key in seen:
+            raise ValueError("Context budget repeats input " + "/".join(key))
+        seen.add(key)
+        source = _within_root(root, root / record["path"], "context budget input")
+        if record["role"] == "artifact-input":
+            if not source.is_dir():
+                raise ValueError(
+                    f"Context artifact input is not a directory: {record['path']}"
+                )
+            digest, file_count = tree_manifest(source)
+            if record["sha256"] != digest or record.get("file_count") != file_count:
+                raise ValueError(
+                    f"Context artifact input hash is stale: {record['path']}"
+                )
+            actual = tree_bytes(source)
+            if record.get("bytes") != actual:
+                raise ValueError(
+                    f"Context artifact byte count is stale: {record['path']}"
+                )
+            calculated["artifact_input_bytes"] += actual
+            continue
+        if not source.is_file() or record["sha256"] != file_sha256(source):
+            raise ValueError(f"Context input hash is stale: {record['path']}")
+        metadata, body = _text_parts(source)
+        if record["role"] == "skill-metadata":
+            actual = len(metadata)
+        elif record["role"] == "skill-body":
+            actual = len(body)
+        else:
+            actual = len(source.read_text(encoding="utf-8"))
+        if record.get("characters") != actual:
+            raise ValueError(
+                f"Context input character count is stale: {record['path']}"
+            )
+        calculated[character_totals[record["role"]]] += actual
+    for key, actual in calculated.items():
+        if payload.get(key) != actual:
+            raise ValueError(f"Context budget total is stale: {key}")
 
 
 def git_output(root: Path, *args: str) -> str:
@@ -147,6 +417,8 @@ def collect_provenance(
     model: str,
     surface: str,
     declared_runtimes: list[str],
+    context_manifest_path: Path | None = None,
+    context_budget: dict[str, Any] | None = None,
 ) -> dict:
     schema_root = root / "resources" / "schemas"
     manifest_path = root / ".codex-plugin" / "plugin.json"
@@ -163,6 +435,15 @@ def collect_provenance(
         ("knowledge-manifest", root / "resources" / "knowledge" / "manifest.yaml"),
         ("plugin-manifest", manifest_path),
     )
+    if context_manifest_path is not None:
+        input_specs = (
+            *input_specs,
+            ("context-manifest", context_manifest_path),
+            (
+                "benchmark-context-schema",
+                schema_root / "benchmark-context-manifest.schema.json",
+            ),
+        )
     inputs = [
         {
             "role": role,
@@ -220,6 +501,11 @@ def collect_provenance(
     tracked_paths = [item["path"] for item in inputs]
     tracked_paths.extend(item["path"] for item in tools)
     tracked_paths.extend(item["path"] for item in fixtures)
+    if context_budget is not None:
+        # Context assets are execution inputs too. Include them in dirty-state
+        # detection so an uncommitted compact prompt, Skill, reference, or
+        # Knowledge entry cannot be mislabeled as clean release evidence.
+        tracked_paths.extend(item["path"] for item in context_budget["inputs"])
     dirty = bool(
         git_output(
             root,
@@ -287,11 +573,15 @@ def render_command(
     skill: str,
     fixture: Path,
     prompt: str,
+    condition: str = "full",
+    context_manifest: Path | None = None,
 ) -> list[str]:
     values = {
         "skill": skill,
         "fixture": str(fixture),
         "prompt": prompt,
+        "condition": condition,
+        "context_manifest": str(context_manifest) if context_manifest else "",
     }
     rendered: list[str] = []
     for part in template:
@@ -358,6 +648,37 @@ def run_benchmark(args: argparse.Namespace) -> dict:
     validate(corpus, schema, corpus_path)
     if corpus["benchmark"]["kind"] != "ground-truth":
         raise ValueError("Benchmark input must be ground truth")
+    condition = getattr(args, "condition", "full")
+    if condition not in {"base", "full", "compressed"}:
+        raise ValueError(f"Unsupported benchmark condition: {condition}")
+    context_manifest_value = getattr(
+        args,
+        "context_manifest",
+        root / "benchmarks" / "ablation" / "context-manifest.yaml",
+    )
+    context_manifest_path, context_manifest = load_context_manifest(
+        root,
+        Path(context_manifest_value),
+    )
+    validate_ablation_treatments(
+        context_manifest,
+        skills={str(case["skill"]) for case in corpus["cases"]},
+    )
+    context_budget = collect_context_budget(
+        root=root,
+        manifest_path=context_manifest_path,
+        manifest=context_manifest,
+        condition=condition,
+        corpus=corpus,
+    )
+    if not any("{condition}" in argument for argument in args.command):
+        raise ValueError(
+            "Benchmark treatments require a {condition} command placeholder"
+        )
+    if not any("{context_manifest}" in argument for argument in args.command):
+        raise ValueError(
+            "Benchmark treatments require a {context_manifest} command placeholder"
+        )
     provenance = collect_provenance(
         root=root,
         corpus_path=corpus_path,
@@ -367,13 +688,15 @@ def run_benchmark(args: argparse.Namespace) -> dict:
         model=args.model,
         surface=args.surface,
         declared_runtimes=getattr(args, "runtime_executables", []),
+        context_manifest_path=context_manifest_path,
+        context_budget=context_budget,
     )
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_path.write_text("", encoding="utf-8")
     log_records = 0
 
     result = {
-        "schema_version": "1.4",
+        "schema_version": "1.5",
         "benchmark": {
             "id": corpus["benchmark"]["id"],
             "version": corpus["benchmark"]["version"],
@@ -381,6 +704,8 @@ def run_benchmark(args: argparse.Namespace) -> dict:
             "model": args.model,
             "surface": args.surface,
             "skill_version": args.skill_version,
+            "condition": condition,
+            "context_budget": context_budget,
             "run_at": datetime.now(UTC).isoformat(),
             "repetitions": repetitions,
             "provenance": provenance,
@@ -404,6 +729,8 @@ def run_benchmark(args: argparse.Namespace) -> dict:
                 skill=case["skill"],
                 fixture=fixture,
                 prompt=case["prompt"],
+                condition=condition,
+                context_manifest=context_manifest_path,
             )
             started = time.monotonic()
             process = subprocess.run(
@@ -529,6 +856,7 @@ def run_benchmark(args: argparse.Namespace) -> dict:
         result_case = {
             "id": case["id"],
             "fixture": case["fixture"],
+            "skill": case["skill"],
             "expected_findings": [],
             "forbidden_recommendations": [],
             "observed_findings": first_trial["observed_findings"],
@@ -564,7 +892,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--surface", required=True)
-    parser.add_argument("--skill-version", default="0.4.0")
+    parser.add_argument("--skill-version", default="0.4.2")
+    parser.add_argument(
+        "--condition",
+        choices=["base", "full", "compressed"],
+        default="full",
+        help="Declared Skill/context treatment; full preserves the current workflow.",
+    )
+    parser.add_argument(
+        "--context-manifest",
+        type=Path,
+        default=Path("benchmarks/ablation/context-manifest.yaml"),
+        help="Checked-in manifest that binds the declared context treatment.",
+    )
     parser.add_argument(
         "--runtime-executable",
         action="append",
@@ -581,8 +921,8 @@ def parse_args() -> argparse.Namespace:
         "command",
         nargs=argparse.REMAINDER,
         help=(
-            "Command arguments after --. Use {skill}, {fixture}, and {prompt} "
-            "placeholders."
+            "Command arguments after --. Use {skill}, {fixture}, {prompt}, "
+            "{condition}, and {context_manifest} placeholders."
         ),
     )
     args = parser.parse_args()

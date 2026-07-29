@@ -55,6 +55,47 @@ method, reviewer, and date. In addition to the common body contract:
 The validator compares golden entries for high template similarity. Shared
 headings are expected; repeated generic mechanism prose is not.
 
+## Selection budgets and maturity
+
+New selection artifacts use schema `1.2`. They bind each selected entry's
+`kind` and `maturity`, retain a total entry cap, and account for all ten kinds
+individually. Use `--kind-budget KIND=LIMIT` to tighten a kind without letting
+another kind silently consume the freed context budget. Mandatory Skill
+contracts must fit both caps; the selector fails rather than silently dropping
+one.
+
+The Solution Advisor is Golden-only for discretionary context. A standard entry
+may appear only when its recorded reason is one of:
+
+- a required Skill contract dependency;
+- an explicit caller include;
+- maintainer mode;
+- an exact profile-required domain with no declared Golden replacement; or
+- an exact detected technology with no declared Golden replacement.
+
+A broad domain or task-token overlap is not a Golden replacement match.
+`--maintainer` is deliberately visible in the selection inputs and is reserved
+for curation or maintenance work; it should not be the default for an ordinary
+architecture decision.
+
+## Failure-driven expansion
+
+Do not grow the Knowledge library as a framework catalogue. A proposed new
+Golden entry, or a material expansion of one, must begin with a concrete
+decision-quality gap: a benchmark false negative or false positive, unstable
+recommendation, missing trade-off, verified project finding, user rejection or
+correction, or a documented incident/rollback.
+
+For each promotion, preserve the source of that gap in the curation change and
+add the smallest representative regression: an evaluation case, benchmark
+fixture/ground-truth update, or deterministic validator test. State why an
+existing Golden entry cannot cover the gap. Popularity, broad topic overlap,
+or a desire for a complete technology inventory is not sufficient evidence.
+
+Historical entries are not retroactively relabelled to meet this rule. Apply it
+to new curation work and use fresh evidence when replacing a stale or
+insufficient recommendation.
+
 ## Required body
 
 Use one level-one title and all fourteen level-two sections:

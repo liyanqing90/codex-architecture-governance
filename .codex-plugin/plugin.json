@@ -1,9 +1,9 @@
 {
   "name": "codex-architecture-governance",
   "version": "0.4.2",
-  "description": "Knowledge-backed architecture audits, solution decisions, verification, remediation, portfolio governance, and trustworthy deterministic gates for Codex.",
+  "description": "Evidence-bound software system assessment, technical solution decisions, remediation planning, portfolio governance, and deterministic quality gates for Codex.",
   "author": {
-    "name": "Architecture Governance Contributors",
+    "name": "Qingye Open Source Contributors",
     "url": "https://github.com/liyanqing90"
   },
   "homepage": "https://github.com/liyanqing90/codex-architecture-governance#readme",
@@ -15,15 +15,17 @@
     "governance",
     "quality-gate",
     "architecture-decision",
+    "performance",
+    "software-engineering",
     "technology-selection",
     "codex-skills"
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Codex Architecture Governance",
-    "shortDescription": "Knowledge-backed architecture decisions and governance",
-    "longDescription": "Audit repositories and portfolios, verify evidence and provenance, compare architecture and technology options, record decisions, plan migrations, maintain sourced knowledge, benchmark behavior, and enforce trusted findings with layered deterministic policy. Local helpers require Python 3.11–3.13 with PyYAML and jsonschema.",
-    "developerName": "Architecture Governance Contributors",
+    "displayName": "Hengmu",
+    "shortDescription": "Evidence-bound software engineering decisions",
+    "longDescription": "Assess software systems across architecture and engineering qualities such as performance, reliability, security boundaries, data, operations, and maintainability. Verify evidence and provenance, compare architecture and technology options, record decisions, plan migrations, govern portfolios, and enforce trusted findings with layered deterministic policy. Local helpers require Python 3.11–3.13 with PyYAML and jsonschema.",
+    "developerName": "Qingye Open Source Contributors",
     "category": "Developer Tools",
     "capabilities": [
       "Read",
@@ -31,9 +33,9 @@
     ],
     "websiteURL": "https://github.com/liyanqing90/codex-architecture-governance",
     "defaultPrompt": [
-      "Audit this repository and verify every architecture finding.",
-      "Compare architecture options and record an evidence-backed decision.",
-      "Run the layered architecture gate on the latest trusted review."
+      "Assess this repository across architecture and engineering quality, then verify every finding.",
+      "Compare technical solution options and record an evidence-backed decision.",
+      "Run the layered quality gate on the latest trusted review."
     ]
   }
 }

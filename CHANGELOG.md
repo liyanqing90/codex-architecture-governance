@@ -25,6 +25,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   reader-first open-source structure. The plugin ID, repository slug, release
   archive prefix, schemas, CLI contracts, and historical provenance remain
   `codex-architecture-governance` for `0.x` compatibility.
+- Public positioning and plugin metadata now describe Hengmu as an
+  evidence-bound software engineering decision system spanning system
+  assessment, performance and other engineering qualities, technical solution
+  comparison, remediation, portfolio governance, and deterministic gates.
 - Git-verified archived Selection locks remain historically readable but can no
   longer create new trusted Review, Decision, Plan, coverage, or Gate chains;
   current deterministic replay is required.

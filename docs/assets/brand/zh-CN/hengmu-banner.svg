@@ -1,29 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2172" height="724" viewBox="0 0 2172 724" role="img" aria-labelledby="title desc">
   <title id="title">衡木项目横幅</title>
-  <desc id="desc">衡木架构治理采用青野“静默度量”视觉系统。</desc>
+  <desc id="desc">衡木是证据化的软件工程决策系统，采用青野“静默度量”视觉系统。</desc>
   <rect width="2172" height="724" fill="#F4F2EC"/>
 
   <rect x="154" y="98" width="16" height="16" fill="#173FBE"/>
   <text x="194" y="116" fill="#173FBE" font-family="Menlo, Monaco, monospace" font-size="22" letter-spacing="3">QINGYE / 青野</text>
 
   <text x="140" y="382" fill="#161719" font-family="Songti SC, STSong, serif" font-size="194" font-weight="700" letter-spacing="16">衡木</text>
-  <text x="154" y="450" fill="#6D7078" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="28" letter-spacing="13">HENGMU · ARCHITECTURE GOVERNANCE</text>
+  <text x="154" y="450" fill="#6D7078" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="27" letter-spacing="7">SOFTWARE DECISION GOVERNANCE</text>
 
-  <text x="760" y="224" fill="#161719" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="48" font-weight="400">让每一个架构判断，</text>
-  <text x="760" y="296" fill="#161719" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="48" font-weight="400">都有证据、有权衡、有去路。</text>
+  <text x="760" y="194" fill="#161719" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="46" font-weight="400">从系统审查到技术方案，</text>
+  <text x="760" y="264" fill="#161719" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="46" font-weight="400">让每个重要工程判断</text>
+  <text x="760" y="334" fill="#161719" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="46" font-weight="400">都有证据、有权衡、有去路。</text>
   <text x="762" y="378" fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="18" letter-spacing="2">LOCAL-FIRST · PROVENANCE-BOUND · DETERMINISTIC</text>
 
   <path d="M762 490h740" fill="none" stroke="#D9D9D2" stroke-width="2"/>
-  <path d="M762 476v28M1008 480v20M1254 480v20M1502 476v28" fill="none" stroke="#6D7078" stroke-width="2"/>
+  <path d="M762 476v28M947 480v20M1132 480v20M1317 480v20M1502 476v28" fill="none" stroke="#6D7078" stroke-width="2"/>
   <circle cx="762" cy="490" r="7" fill="#173FBE"/>
-  <circle cx="1008" cy="490" r="5" fill="#161719"/>
-  <circle cx="1254" cy="490" r="5" fill="#161719"/>
+  <circle cx="947" cy="490" r="5" fill="#161719"/>
+  <circle cx="1132" cy="490" r="5" fill="#161719"/>
+  <circle cx="1317" cy="490" r="5" fill="#161719"/>
   <circle cx="1502" cy="490" r="7" fill="#173FBE"/>
   <g fill="#6D7078" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="20" letter-spacing="3">
     <text x="762" y="544">证据</text>
-    <text x="1008" y="544">核实</text>
-    <text x="1254" y="544">决策</text>
-    <text x="1502" y="544" text-anchor="end">改造</text>
+    <text x="947" y="544">核实</text>
+    <text x="1132" y="544">决策</text>
+    <text x="1317" y="544">改造</text>
+    <text x="1502" y="544" text-anchor="end">门禁</text>
   </g>
 
   <g transform="translate(1680 76)">

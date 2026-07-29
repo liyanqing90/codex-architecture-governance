@@ -1,7 +1,11 @@
 # Hengmu visual assets
 
-Hengmu is a Qingye open-source project. This directory contains the
-repository-ready visual system used by both README editions.
+Hengmu is a Qingye open-source project for evidence-bound software engineering
+decisions: system assessment, finding verification, technical solution
+comparison, remediation planning, and deterministic governance. Architecture
+is the connecting system view, not the project's only capability. This
+directory contains the repository-ready visual system used by both README
+editions.
 
 ## Asset matrix
 

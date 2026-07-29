@@ -1,30 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2172" height="724" viewBox="0 0 2172 724" role="img" aria-labelledby="title desc">
   <title id="title">Hengmu project banner</title>
-  <desc id="desc">Hengmu architecture governance in the Qingye Quiet Measure visual system.</desc>
+  <desc id="desc">Hengmu evidence-bound software engineering decisions in the Qingye Quiet Measure visual system.</desc>
   <rect width="2172" height="724" fill="#F4F2EC"/>
 
   <rect x="154" y="98" width="16" height="16" fill="#173FBE"/>
   <text x="194" y="116" fill="#173FBE" font-family="Menlo, Monaco, monospace" font-size="22" letter-spacing="3">QINGYE / 青野</text>
 
   <text x="145" y="360" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="154" font-weight="700" letter-spacing="7">HENGMU</text>
-  <text x="154" y="430" fill="#6D7078" font-family="Songti SC, STSong, serif" font-size="30" letter-spacing="8">衡木 · ARCHITECTURE GOVERNANCE</text>
+  <text x="154" y="430" fill="#6D7078" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="27" letter-spacing="7">SOFTWARE DECISION GOVERNANCE</text>
 
-  <text x="900" y="198" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="42" font-weight="400">Architecture decisions</text>
-  <text x="900" y="258" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="42" font-weight="400">with evidence and trade-offs,</text>
-  <text x="900" y="318" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="42" font-weight="400">and a path forward.</text>
+  <text x="900" y="198" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="42" font-weight="400">From system assessment</text>
+  <text x="900" y="258" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="42" font-weight="400">to technology choices—</text>
+  <text x="900" y="318" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="42" font-weight="400">evidence, trade-offs, and a path forward.</text>
   <text x="902" y="388" fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="18" letter-spacing="2">LOCAL-FIRST · PROVENANCE-BOUND · DETERMINISTIC</text>
 
   <path d="M862 490h640" fill="none" stroke="#D9D9D2" stroke-width="2"/>
-  <path d="M862 476v28M1082 480v20M1302 480v20M1502 476v28" fill="none" stroke="#6D7078" stroke-width="2"/>
+  <path d="M862 476v28M1022 480v20M1182 480v20M1342 480v20M1502 476v28" fill="none" stroke="#6D7078" stroke-width="2"/>
   <circle cx="862" cy="490" r="7" fill="#173FBE"/>
-  <circle cx="1082" cy="490" r="5" fill="#161719"/>
-  <circle cx="1302" cy="490" r="5" fill="#161719"/>
+  <circle cx="1022" cy="490" r="5" fill="#161719"/>
+  <circle cx="1182" cy="490" r="5" fill="#161719"/>
+  <circle cx="1342" cy="490" r="5" fill="#161719"/>
   <circle cx="1502" cy="490" r="7" fill="#173FBE"/>
-  <g fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="17" letter-spacing="1.5">
+  <g fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="15" letter-spacing="1">
     <text x="862" y="544">EVIDENCE</text>
-    <text x="1082" y="544">VERIFY</text>
-    <text x="1302" y="544">DECIDE</text>
-    <text x="1502" y="544" text-anchor="end">REMEDIATE</text>
+    <text x="1022" y="544">VERIFY</text>
+    <text x="1182" y="544">DECIDE</text>
+    <text x="1342" y="544">REMEDIATE</text>
+    <text x="1502" y="544" text-anchor="end">GATE</text>
   </g>
 
   <g transform="translate(1680 76)">

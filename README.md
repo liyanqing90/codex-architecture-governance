@@ -2,7 +2,7 @@
   <img
     src="docs/assets/brand/en/hengmu-banner.png"
     width="100%"
-    alt="Hengmu — evidence-backed architecture decisions, a Qingye open-source project"
+    alt="Hengmu — evidence-bound software engineering decisions, a Qingye open-source project"
   >
 </p>
 
@@ -34,11 +34,18 @@
 
 ---
 
-Hengmu is a local-first Codex plugin for architecture work that continues
-after the first review. It audits what exists, treats missing capability as a
-real finding, verifies every claim against evidence, compares viable
-solutions, plans remediation, and applies deterministic policy when a project
-needs a gate.
+Hengmu is a local-first, evidence-bound software engineering decision system.
+It closes the loop from system assessment and independent finding verification
+to technical solution decisions, remediation planning, and deterministic
+quality gates.
+
+Architecture is the system view that connects these concerns, not the only
+thing Hengmu evaluates or decides. Its current assessment rules cover
+performance efficiency, reliability, security and privacy boundaries, data and
+API contracts, observability, testing, deployment, technical debt, and
+proportionality. Its Solution Advisor also supports target architecture,
+technology selection, pattern comparison, and greenfield or remediation
+trade-offs.
 
 It works at two levels:
 
@@ -46,6 +53,13 @@ It works at two levels:
   flows, rules, and review history;
 - a portfolio of repositories, looking for duplication, stack sprawl, shared
   capability, ownership conflicts, data flows, and hidden coupling.
+
+| Capability | What Hengmu does |
+| --- | --- |
+| System assessment | Reviews structure and engineering qualities, including evidence-backed performance budgets and runtime behavior. |
+| Technical solutions | Compares keep-current and structural options across quality, cost, complexity, maturity, lock-in, migration risk, and reversibility. |
+| Specialized review | Applies dedicated lenses for AI-agent systems, mobile applications, and multi-project portfolios. |
+| Decision governance | Binds facts, evidence, provenance, authority, remediation, and deterministic policy into one auditable chain. |
 
 > [!IMPORTANT]
 > **Hengmu** is the public project name. The installable plugin ID, repository
@@ -56,8 +70,8 @@ It works at two levels:
 
 ## Why Hengmu
 
-Most architecture review tools stop too early: they produce observations.
-Hengmu is designed around a longer, evidence-bound chain.
+Most code and architecture reviews stop too early: they produce observations.
+Hengmu is designed around a longer, evidence-bound engineering decision chain.
 
 | Typical review failure | Hengmu's response |
 | --- | --- |

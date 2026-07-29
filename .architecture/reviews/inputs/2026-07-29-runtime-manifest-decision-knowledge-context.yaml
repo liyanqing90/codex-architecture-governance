@@ -1,6 +1,6 @@
 schema_version: '1.0'
-selection_lock_sha256: eb8241e773e2dbb9ee919c4def06a6a0301bd9e9f6f9c0ff12f851bb5d01cd9c
-selection_result_sha256: 82e5105df1aea3fa0a592df210824b22ede10b6bcb1588019fc7ad30eee74322
+selection_lock_sha256: 81f5fc678e231be38703a501fd2e1d5f25024d0de623ab49161dd3e9cb74b7c4
+selection_result_sha256: b8d9f932d8b9ad797403a51332af30a13f8be5c492751a1d5b5131bdeff3ed4f
 selected:
 - id: foundation.proportional-design
   path: foundations/proportional-design.md

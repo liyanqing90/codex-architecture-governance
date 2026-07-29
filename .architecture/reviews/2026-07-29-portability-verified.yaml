@@ -1,0 +1,282 @@
+schema_version: "1.2"
+review:
+  id: codex-architecture-governance-20260729-portability-verified
+  kind: project
+  workflow: project-architecture
+  subject:
+    id: codex-architecture-governance
+    name: Codex Architecture Governance
+    repository: .
+  performed_at: "2026-07-29T04:19:41+00:00"
+  commit: 196b24dd768c191820f89bfda97700411cb01553
+  scope:
+    - .
+  verification_state: verified
+  reviewers:
+    - architecture-verifier
+  profile: .architecture/reviews/inputs/2026-07-29-portability-profile.yaml
+  repository_identity: codex-architecture-governance
+  profile_sha256: 5a7a92d887675de9a1b90e0309847ead314455648ba3805c9ac2cb589180323d
+  dirty_tree: false
+  rule_packs:
+    - {id: project-core, version: "1.0.0", sha256: b211d548ad5fe367b9dab8416051c43f3a206da81bd2a8e7596cd788ed3f100c}
+    - {id: plugin-platform, version: "1.0.0", sha256: 7ae17488df7a78ce1b857d3f842bd51b87de4ec30576fbe250cfa991472b3700}
+    - {id: test-automation-platform, version: "1.0.0", sha256: 23efb3c02cd9e4e2ec2cb83d1505b30dd780aff2a9ac7157506b361cb783c5aa}
+  scope_manifest:
+    - .
+  verification_run:
+    id: portability-verifier-20260729-041941
+    model: gpt-5
+    surface: codex-desktop
+    started_at: "2026-07-29T04:16:16+00:00"
+    completed_at: "2026-07-29T04:19:41+00:00"
+  source_candidate:
+    path: .architecture/reviews/2026-07-29-portability-candidates.yaml
+    review_id: codex-architecture-governance-20260729-portability-candidates
+    sha256: 20ea89d95633b3d87b0849c354699562e3ce126c2bc13fa7c428e3c923343ca4
+summary:
+  architecture: >-
+    A local-first Codex plugin whose release evidence is verified against
+    archived Git objects and whose persisted paths and fixture manifests must
+    remain deterministic across Python 3.11–3.13 on Linux, macOS, and Windows.
+  raw_findings: 1
+  confirmed: 1
+  rejected: 0
+  needs_evidence: 0
+coverage:
+  - {rule_id: PROJECT.BOUNDARY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPENDENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.COHESION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.FRONTEND.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DATA.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OWNERSHIP.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONTRACT.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.TRANSACTION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.IDEMPOTENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.RELIABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.STATE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.SECURITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PRIVACY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OBSERVABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONFIG.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PERFORMANCE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.TEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPLOY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CHANGE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEBT.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DESIGN.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.MANIFEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.AUTHORITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.ISOLATION.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.LIFECYCLE.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.SUPPLYCHAIN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.RUN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.ISOLATION.001, status: assessed, finding_ids: []}
+  - rule_id: TESTPLATFORM.EVIDENCE.001
+    status: assessed
+    finding_ids:
+      - CAG-PORTABILITY-001
+  - {rule_id: TESTPLATFORM.SCHEDULE.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.FLAKE.001, status: assessed, finding_ids: []}
+findings:
+  - id: CAG-PORTABILITY-001
+    fingerprint: 2f51c73a43ef3a09f25e12ab9b042b050728d13d8bc6b59ad52e056a60dcdeee
+    kind: strength
+    rule_id: TESTPLATFORM.EVIDENCE.001
+    title: Provenance verification uses portable paths and complete Git history
+    invariant: >-
+      Identical tracked fixture bytes produce the same manifest on every
+      supported operating system, and archived verification can resolve the
+      commit that owns preserved benchmark evidence.
+    severity: info
+    confidence: 0.99
+    verification:
+      status: confirmed
+      rationale: >-
+        The verifier inspected both manifest implementations, reproduced the
+        depth-one failure from GitHub Actions logs, tested the strongest benign
+        hypothesis that file bytes rather than ordering caused the mismatch,
+        and observed 68 clean local tests plus direct mixed-case digest
+        coverage. The source fixes the invariant at serialization and checkout
+        ownership boundaries rather than bypassing provenance validation.
+      verified_by: architecture-verifier
+      verified_at: "2026-07-29T04:19:00+00:00"
+      level: V2
+      verifier:
+        type: agent
+        identity: architecture-verifier
+        run_id: portability-verifier-20260729-041941
+      source_candidate:
+        review_id: codex-architecture-governance-20260729-portability-candidates
+        sha256: 20ea89d95633b3d87b0849c354699562e3ce126c2bc13fa7c428e3c923343ca4
+    status: open
+    evidence:
+      - type: source
+        location: scripts/run_behavior_benchmark.py:45
+        repository: codex-architecture-governance
+        commit: 196b24dd768c191820f89bfda97700411cb01553
+        path: scripts/run_behavior_benchmark.py
+        line_start: 45
+        line_end: 55
+        blob_sha: e10633361096cf5dfe65928effd4ce417f2ced30
+        excerpt_sha256: 02528f2b51d43d130cd140921eb7c7e2c56038c191b0a444b536cd7759cfe159
+        symbol: tree_manifest
+        observation: >-
+          The manifest converts every relative path to POSIX form and sorts the
+          serialized path strings rather than platform-specific Path objects.
+        excerpt: 'records.sort(key=lambda record: record["path"])'
+        source_commit: 196b24dd768c191820f89bfda97700411cb01553
+        freshness: current
+      - type: source
+        location: resources/scripts/architecture_tool.py:4027
+        repository: codex-architecture-governance
+        commit: 196b24dd768c191820f89bfda97700411cb01553
+        path: resources/scripts/architecture_tool.py
+        line_start: 4027
+        line_end: 4037
+        blob_sha: 7cb3334da756c8bb57a2be41c307a289d4039af9
+        excerpt_sha256: 6efc4e818f2113a9424bfc88c4f49c7fa539563bba373e8e7b16d33ba3b7e885
+        symbol: review_bindings
+        observation: >-
+          Review binding paths are emitted with as_posix so trusted artifacts
+          are portable between Windows and POSIX hosts.
+        excerpt: "profile_path.relative_to(root).as_posix()"
+        source_commit: 196b24dd768c191820f89bfda97700411cb01553
+        freshness: current
+      - type: test
+        location: tests/test_behavior_benchmark.py:24
+        repository: codex-architecture-governance
+        commit: 196b24dd768c191820f89bfda97700411cb01553
+        path: tests/test_behavior_benchmark.py
+        line_start: 24
+        line_end: 49
+        blob_sha: 9778a193416125fe1c4cd9a03a11b5c6f41fb19a
+        excerpt_sha256: 58fdc0241ecdfcb40b862c8ba34b7185f8762d51808066247f49d4e5900c234e
+        symbol: test_tree_manifest_uses_portable_case_sensitive_order
+        observation: >-
+          A mixed-case fixture asserts the canonical record order and digest,
+          guarding the Windows case-folded Path ordering failure.
+        excerpt: "def test_tree_manifest_uses_portable_case_sensitive_order(self) -> None:"
+        source_commit: 196b24dd768c191820f89bfda97700411cb01553
+        freshness: current
+      - type: config
+        location: .github/workflows/ci.yml:29
+        repository: codex-architecture-governance
+        commit: 196b24dd768c191820f89bfda97700411cb01553
+        path: .github/workflows/ci.yml
+        line_start: 29
+        line_end: 34
+        blob_sha: cdd7674e94ee93dc37bc97b8f2ae24039848f711
+        excerpt_sha256: 0ded19d39d0e90462ddd613de893d8a150142ed04069832b3f913b69ed6285f1
+        observation: >-
+          CI fetches complete history before tests that resolve benchmark
+          evidence at its archived source commit.
+        excerpt: "fetch-depth: 0"
+        source_commit: 196b24dd768c191820f89bfda97700411cb01553
+        freshness: current
+      - type: config
+        location: .github/workflows/release.yml:17
+        repository: codex-architecture-governance
+        commit: 196b24dd768c191820f89bfda97700411cb01553
+        path: .github/workflows/release.yml
+        line_start: 17
+        line_end: 22
+        blob_sha: 0e9f44268364e6060669b583c90b146fb58bc01c
+        excerpt_sha256: 0ded19d39d0e90462ddd613de893d8a150142ed04069832b3f913b69ed6285f1
+        observation: >-
+          Release validation uses the same complete-history invariant as CI.
+        excerpt: "fetch-depth: 0"
+        source_commit: 196b24dd768c191820f89bfda97700411cb01553
+        freshness: current
+    impact:
+      affected_components:
+        - behavior-benchmark
+        - trusted-review-bindings
+        - continuous-integration
+        - release-workflow
+      failure_mode: >-
+        Platform-specific path ordering or a shallow checkout would reject
+        valid provenance, preventing test and release completion.
+      blast_radius: >-
+        Every supported CI platform and any release consuming archived
+        benchmark evidence.
+    counter_evidence:
+      - Full history increases checkout transfer size, but this repository is small and archived evidence is a declared release invariant.
+      - The new local regression proves canonical ordering directly; the next remote matrix remains required to prove runner integration.
+    first_seen: "2026-07-29"
+    last_seen: "2026-07-29"
+    found_by:
+      - architecture-auditor
+    related_findings:
+      - CAG-EVIDENCE-001
+    quality_attribute_impacts:
+      - deterministic-enforcement
+      - compatibility
+      - traceability
+    evidence_level: E3
+    evidence_fingerprint: 5ddcc31bb0eccb918bfc584e77ec11a29cd665ecb9dacb81a602141623cb1639
+    fact_inference_boundary:
+      facts:
+        - GitHub's first v0.4.0 matrix could not resolve ca63aa6 from a depth-one checkout.
+        - Windows orders Path objects with platform semantics that differ from Git's case-sensitive tree order.
+        - The repaired code sorts serialized POSIX paths and both CI and release fetch complete history.
+        - The clean local suite passes 68 tests on Python 3.13.
+      inferences:
+        - The same tracked fixture bytes now produce the same manifest digest on all supported hosts.
+      unknowns:
+        - The repaired GitHub-hosted operating-system matrix has not run at candidate creation time.
+    applicability:
+      profile_conditions:
+        - Reproducibility, compatibility, deterministic enforcement, and traceability are declared critical qualities.
+        - Archived benchmark verification is exercised by the release test suite.
+    source_candidate_ids:
+      - codex-architecture-governance-20260729-portability-candidates
+    rule_pack_version: "1.0.0"
+    staleness_state: current
+    decision_references: []
+    tags:
+      - provenance
+      - cross-platform
+      - ci
+      - release
+evidence_sources:
+  - scripts/run_behavior_benchmark.py
+  - resources/scripts/architecture_tool.py
+  - tests/test_behavior_benchmark.py
+  - tests/test_architecture_tool.py
+  - .github/workflows/ci.yml
+  - .github/workflows/release.yml
+limitations:
+  - The repaired GitHub-hosted operating-system matrix has not run at candidate creation time.
+coverage_complete: true
+repository_facts:
+  path: .architecture/reviews/inputs/2026-07-29-portability-repository-facts.yaml
+  sha256: a122a2695ae04443118eb3c06d6640780138387dd10f156cfd5c3c2e85a6350e
+knowledge_selection:
+  path: .architecture/reviews/inputs/2026-07-29-portability-knowledge-selection.yaml
+  sha256: 5967a91f6fc1264b094d283299395214d472648c21738540962e08f4492b5363
+selected_knowledge:
+  - {id: foundation.evidence-reasoning, version: "1.0.0", sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: foundation.system-boundaries, version: "1.0.0", sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+  - {id: foundation.data-ownership, version: "1.0.0", sha256: 260f240ec9782f5a42a68481652912532cfcd6a0b07fdc5366d44388cc3d0204}
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: domain.backend-api, version: "1.0.0", sha256: ea716865510106db441623d39045b2ca26f66c4424ed18fb15383938614ac4b4}
+  - {id: domain.cloud-native-platform, version: "1.0.0", sha256: 37ee84809a4162ff3e49a04a82433786efe762f7440dc5273232cb7b5b612c9c}
+  - {id: domain.data-platform, version: "1.0.0", sha256: 72dc109fdb28d74df5f947bf615017bd80d655a7e9c5b3fde7df53cff2fc6364}
+  - {id: domain.mobile, version: "1.0.0", sha256: 2ea2e6bc0a933063138793d9e3f657a100605f05411fc8fe4b1235b72f578a2b}
+  - {id: style.plugin-architecture, version: "1.0.0", sha256: 9d72e896b0154e8ee979474c6d47579889705c751a32a172f4b1b72bdef13a8a}
+  - {id: foundation.compatibility, version: "1.0.0", sha256: 17d8e8c8557969246fe2e9a62e8a645aeac171c9c9d2cbeb5d0bdfc27e51330b}
+  - {id: foundation.quality-attribute-scenario, version: "1.0.0", sha256: 5ac5810dc0f9f168080d03ee43270407bd8ed0945fafd73de32e0447c22ffe42}
+  - {id: migration.internal-extension-to-plugin, version: "1.0.0", sha256: a54900d935353aa5f91741743a936e2b7f2967fdbdfaecbce6cde6f7847215f2}
+critical_flow_coverage:
+  - {id: plugin-discovery-and-skill-execution, status: assessed, reason: "No manifest or Skill runtime path changed."}
+  - {id: finding-verification-and-policy-enforcement, status: assessed, reason: "Portable review bindings and evidence resolution were inspected and tested."}
+  - {id: architecture-knowledge-and-behavior-evaluation, status: assessed, reason: "Fixture hashing and archived provenance resolution were inspected and tested."}
+  - {id: greenfield-architecture-decision, status: assessed, reason: "Greenfield artifact paths were normalized and the focused test passed."}
+  - {id: safe-project-initialization, status: assessed, reason: "Initialization paths were unchanged and the full suite passed."}
+  - {id: deterministic-release-packaging, status: assessed, reason: "Release checkout and the full packaging test suite were assessed."}
+unknowns:
+  - The repaired remote matrix result remains unknown until this candidate is committed and published.

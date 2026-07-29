@@ -1,0 +1,220 @@
+schema_version: "1.2"
+decision:
+  id: ADR-CAG-005
+  source_review: codex-architecture-governance-20260729-portability-verified
+  source_review_sha256: 8b2f6446d05e082bb4ffb057fad1f72de44462d90bf04489e2ad8c4962e3f226
+  decided_at: "2026-07-29T04:22:06+00:00"
+  decision_makers:
+    - architecture-owner
+  status: accepted
+  knowledge_selection_path: .architecture/decision-knowledge-selection.yaml
+  knowledge_selection_sha256: 6f80b46ed1217314a18181f1d1ae5375c6f9c962496fbc2dee3821ce0f714961
+problem:
+  quality_attributes:
+    - maintainability
+  constraints:
+    - The eight public Skill identities and their workflow boundaries are compatibility contracts.
+    - Runtime operation must remain local-first and require no hosted service, credentials, network, or telemetry.
+    - Python 3.11 through 3.13 support and the current deterministic artifact contracts must be preserved.
+    - The repository is maintained by a small open-source team with constrained operating budget.
+  finding_ids: []
+  assumptions:
+    - The product remains an installable Codex plugin and local CLI for the next release horizon.
+    - Repository-scale artifacts remain within normal local and CI resource budgets.
+  known_facts:
+    - The portability review assessed 31 rules, 6 critical flows, and 15 selected Knowledge entries without confirming an architecture risk.
+    - Eight public Skills, versioned Knowledge and Rule Packs, strict schemas, and deterministic Python tooling already form distinct change boundaries.
+    - Archived benchmark verification remains strict while CI and release now fetch the evidence-owning Git commits.
+    - Portable path serialization and mixed-case manifest tests remove the observed Windows digest divergence.
+    - The project Profile explicitly prohibits a required hosted runtime.
+  unknowns:
+    - The repaired GitHub-hosted matrix has not yet completed for the portability review commit.
+    - External adoption and migration behavior after the v0.4.0 release are not yet observed.
+    - The change frequency and ownership pressure that would justify stricter internal module enforcement are not yet measured.
+    - A multi-user hosted governance service has no validated product demand or operating model.
+knowledge_snapshot:
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: migration.layered-monolith-to-modular, version: "1.0.0", sha256: 3017c377c06e2d19654ccf0b07f6431a1dfb5854e135ea8c4ec58117aab64bb9}
+  - {id: style.modular-monolith, version: "1.0.0", sha256: 3f97c548665d8e6c4159c5f6ecee4a5d099a2ac4def69fba2b0a5d6d6703c3c0}
+  - {id: style.microservices, version: "1.0.0", sha256: 0533dbcda24b99313c8fe8fccd64ea2ce08bd020e60571ad561c04a800ececf6}
+  - {id: technology.import-linter, version: "1.0.0", sha256: 8a1dd4ac1887df7f0236750899809449062448196851b76a86e3bd9979eb17ee}
+  - {id: foundation.evolutionary-architecture, version: "1.0.0", sha256: 6f04262de0936a1cffca25b6cadf5e2b0e4b8e7aa6724292ba1d9fd314413f3f}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: foundation.technology-selection, version: "1.0.0", sha256: 183032d368331cd7a3c47988a8f042be627dd5fd1104596d76516951ea0f5948}
+  - {id: foundation.tradeoff-analysis, version: "1.0.0", sha256: 058c9756ba4d9306f42e0fb49365aff3564f3545e103c05812040ce2c9f8b9d5}
+  - {id: domain.backend-api, version: "1.0.0", sha256: ea716865510106db441623d39045b2ca26f66c4424ed18fb15383938614ac4b4}
+  - {id: domain.cloud-native-platform, version: "1.0.0", sha256: 37ee84809a4162ff3e49a04a82433786efe762f7440dc5273232cb7b5b612c9c}
+  - {id: domain.data-platform, version: "1.0.0", sha256: 72dc109fdb28d74df5f947bf615017bd80d655a7e9c5b3fde7df53cff2fc6364}
+  - {id: domain.mobile, version: "1.0.0", sha256: 2ea2e6bc0a933063138793d9e3f657a100605f05411fc8fe4b1235b72f578a2b}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+  - {id: case-study.small-team-modular-saas, version: "1.0.0", sha256: 358980e0bdd5b0a88b2288bd0e0f7f121bcdfa8d94719cb3de6511c3f2f51e97}
+options:
+  - id: keep-current
+    title: Keep the local-first plugin architecture
+    complexity_tier: keep-current
+    architecture_styles: []
+    patterns: []
+    technologies: []
+    benefits:
+      - Preserves the verified workflow, knowledge, schema, and deterministic-tool boundaries.
+      - Avoids migration and operating cost unsupported by a confirmed finding or measured demand.
+    liabilities:
+      - Continued growth still depends on maintainers preserving ownership boundaries through tests and review.
+    assumptions:
+      - The plugin and local CLI remain the product and deployment boundary.
+    quality_attribute_effects:
+      - attribute: maintainability
+        effect: neutral
+        rationale: Existing contracts permit independent evolution without adding a new runtime boundary.
+    business_fit: Matches the current installable open-source product and constrained operating budget.
+    team_fit: Uses the repository and Python capabilities already owned by the maintainers.
+    evolution_fit: Keeps compatible internal extraction seams available when measured change pressure appears.
+    implementation_complexity: low
+    operational_complexity: low
+    migration_risk: low
+    reversibility: easy
+    cost: low
+    technical_maturity: mature
+    lock_in: none
+    tradeoff_scores:
+      business_fit: 2
+      quality_fit: 1
+      team_fit: 2
+      implementation: 2
+      operations: 2
+      migration: 2
+      reversibility: 2
+      cost: 2
+      maturity: 2
+      lock_in: 2
+      evolution: 1
+    rejected_reasons: []
+  - id: internal-modules
+    title: Enforce smaller internal modules and import boundaries
+    complexity_tier: low
+    architecture_styles:
+      - style.modular-monolith
+    patterns: []
+    technologies:
+      - technology.import-linter
+    benefits:
+      - Makes internal ownership and allowed dependency directions machine-checkable.
+      - Creates clearer extraction seams without adding a distributed runtime.
+    liabilities:
+      - Requires a staged refactor, new configuration, and ongoing dependency-policy maintenance.
+    assumptions:
+      - Change coupling or contributor growth becomes measurable enough to justify enforcement.
+    quality_attribute_effects:
+      - attribute: maintainability
+        effect: improves
+        rationale: Explicit module contracts can reduce cross-owner changes once current boundaries create observed friction.
+    business_fit: Remains compatible with one package and one release flow.
+    team_fit: Requires manageable repository-level tooling but diverts time from product capabilities.
+    evolution_fit: Provides the preferred next step if internal dependency pressure becomes material.
+    implementation_complexity: medium
+    operational_complexity: low
+    migration_risk: medium
+    reversibility: moderate
+    cost: medium
+    technical_maturity: mature
+    lock_in: low
+    tradeoff_scores:
+      business_fit: 1
+      quality_fit: 2
+      team_fit: 1
+      implementation: 0
+      operations: 2
+      migration: 0
+      reversibility: 1
+      cost: 1
+      maturity: 2
+      lock_in: 1
+      evolution: 2
+    rejected_reasons:
+      - No verified finding or measured change-coupling threshold currently justifies the migration cost.
+  - id: hosted-services
+    title: Extract governance capabilities into hosted services
+    complexity_tier: high
+    architecture_styles:
+      - style.microservices
+    patterns: []
+    technologies: []
+    benefits:
+      - Could centralize policy, execution, and organization-wide governance for a validated multi-user service.
+      - Could scale selected workloads independently if hosted demand and operating ownership emerge.
+    liabilities:
+      - Adds network, identity, tenancy, availability, deployment, and on-call concerns absent from the current product.
+      - Breaks the current full-offline operating constraint and increases cost and failure modes.
+    assumptions:
+      - A funded multi-user hosted product and an accountable operating team exist.
+    quality_attribute_effects:
+      - attribute: maintainability
+        effect: degrades
+        rationale: Distributed contracts and operations add coordination cost without current scale or ownership evidence.
+    business_fit: Does not fit the current installable plugin product or constrained budget.
+    team_fit: Requires service operations, identity, security, and on-call ownership not declared by the project.
+    evolution_fit: Protects hypothetical hosted scale but constrains current local and offline evolution.
+    implementation_complexity: high
+    operational_complexity: high
+    migration_risk: high
+    reversibility: difficult
+    cost: high
+    technical_maturity: mature
+    lock_in: medium
+    tradeoff_scores:
+      business_fit: -2
+      quality_fit: -1
+      team_fit: -2
+      implementation: -2
+      operations: -2
+      migration: -2
+      reversibility: -1
+      cost: -2
+      maturity: 2
+      lock_in: 0
+      evolution: -1
+    rejected_reasons:
+      - It violates the required local-first and no-hosted-runtime constraints.
+      - No validated demand or accountable operating model offsets the distributed-system cost.
+selected_option: keep-current
+rationale: >-
+  The verified review found no architecture risk requiring remediation and
+  confirmed that the most release-critical evidence boundary now fails closed.
+  Keeping the current local-first plugin structure therefore provides the best
+  business, team, operational, migration, and reversibility fit. Internal
+  modular enforcement remains a bounded next step when change-coupling evidence
+  appears; hosted services are inconsistent with current constraints and lack
+  product or ownership evidence.
+revisit_triggers:
+  - More than two independently owned modules repeatedly require coordinated changes across the same release boundary.
+  - The deterministic CLI exceeds agreed CI budgets on representative downstream repositories.
+  - A funded multi-user hosted product has named security, tenancy, availability, and on-call owners.
+  - A verified review confirms boundary or dependency findings that cannot be corrected locally.
+acceptance_evidence:
+  - Architecture owner accepted the keep-current option for v0.4.0 after reviewing the verified artifact and explicit alternatives.
+  - The selected option preserves every critical Profile constraint and requires no unverified architecture claim.
+hard_eliminations:
+  - option_id: hosted-services
+    rule: The Profile prohibits a required hosted runtime and requires full offline operation.
+    evidence:
+      - .architecture/profile.yaml declares full offline operation and a prohibited required hosted runtime.
+      - .architecture/constraints.md requires no network, credentials, telemetry, or external service for runtime behavior.
+migration:
+  affected_paths:
+    - docs/migrating-to-0.4.md
+    - resources/schemas/architecture-decision.schema.json
+    - resources/schemas/architecture-design-brief.schema.json
+    - resources/schemas/benchmark-observation.schema.json
+    - resources/schemas/benchmark.schema.json
+    - resources/schemas/gate-policy.schema.json
+    - resources/schemas/knowledge-entry.schema.json
+    - resources/schemas/knowledge-selection.schema.json
+  slices:
+    - Preserve the current eight-Skill public surface and local deterministic runtime for v0.4.0.
+    - Monitor review findings, dependency direction, contributor ownership, and CI duration against the revisit triggers.
+    - If a trigger is reached, pilot internal module boundaries before considering any deployment split.
+  rollback: Remove only an optional future enforcement pilot and retain the current compatible plugin and CLI boundaries.
+  validation:
+    - Validate the accepted decision against the exact verified Review and selected Knowledge bytes.
+    - Pass repository validation, tests, lint, formatting, architecture release gate, deterministic packaging, checksum, license audit, and SBOM generation.

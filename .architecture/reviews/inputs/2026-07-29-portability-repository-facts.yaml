@@ -1,0 +1,66 @@
+schema_version: '1.0'
+repository:
+  root: .
+  commit: 196b24dd768c191820f89bfda97700411cb01553
+  dirty: false
+  scanned_at: '2026-07-29T04:18:49.717370+00:00'
+  scope:
+  - .
+languages:
+- id: python
+  evidence:
+  - benchmarks/fixtures/account-balance-updates/store.py
+  - benchmarks/fixtures/accounts-billing-application/app/accounts.py
+  - benchmarks/fixtures/accounts-billing-application/app/billing.py
+  - benchmarks/fixtures/desktop-sqlite-catalog/catalog.py
+  - benchmarks/fixtures/orders-billing-services/billing.py
+  - benchmarks/fixtures/orders-billing-services/orders.py
+  - benchmarks/fixtures/payment-approval-process/agent.py
+  - benchmarks/fixtures/payment-design-runtime/payment.py
+  - benchmarks/fixtures/render-job-processing/worker.py
+  - benchmarks/fixtures/research-assistant/agent.py
+  - benchmarks/fixtures/retrieval-payment-runtime/runtime.py
+  - resources/scripts/architecture_tool.py
+  - resources/scripts/build_project_profile.py
+  - resources/scripts/fingerprint_artifact.py
+  - resources/scripts/inspect_repository.py
+  - resources/scripts/knowledge_model.py
+  - resources/scripts/migrate_artifacts.py
+  - resources/scripts/select_knowledge.py
+  - resources/scripts/validate_coverage.py
+  - resources/scripts/validate_knowledge.py
+  - scripts/audit_licenses.py
+  - scripts/codex_benchmark_adapter.py
+  - scripts/curate_golden_knowledge.py
+  - scripts/generate_sbom.py
+  - scripts/generate_target_knowledge.py
+  - scripts/migrate_legacy_knowledge.py
+  - scripts/package_plugin.py
+  - scripts/run_behavior_benchmark.py
+  - scripts/validate_repository.py
+  - scripts/verify_checksum.py
+  - tests/test_architecture_tool.py
+  - tests/test_behavior_benchmark.py
+  - tests/test_codex_benchmark_adapter.py
+  - tests/test_package_plugin.py
+  - tests/test_repository_contract.py
+  - tests/test_supply_chain.py
+  - tests/test_target_architecture.py
+- id: swift
+  evidence:
+  - benchmarks/fixtures/mobile-record-editor/Repository.swift
+frameworks: []
+storage: []
+interfaces: []
+infrastructure: []
+artifacts:
+  manifests:
+  - pyproject.toml
+  - requirements.txt
+  migrations: []
+  api_definitions: []
+  ci:
+  - .github/workflows/ci.yml
+  - .github/workflows/knowledge-freshness.yml
+  - .github/workflows/release.yml
+  deployments: []

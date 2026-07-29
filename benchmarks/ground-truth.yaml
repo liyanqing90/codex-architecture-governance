@@ -1,11 +1,11 @@
-schema_version: "1.1"
+schema_version: "1.2"
 benchmark:
   id: architecture-governance-core
   version: "1.0.0"
   kind: ground-truth
 cases:
   - id: benign-large-sqlite
-    fixture: benchmarks/fixtures/benign-large-sqlite
+    fixture: benchmarks/fixtures/desktop-sqlite-catalog
     skill: project-architecture-audit
     prompt: Audit the fixture and report only architecture findings proved by current evidence.
     expected_findings:
@@ -13,56 +13,89 @@ cases:
       - {rule_id: PROJECT.DESIGN.001, present: false, severity: none}
     forbidden_recommendations: [microservices, replace SQLite]
   - id: conflicting-writers
-    fixture: benchmarks/fixtures/conflicting-writers
+    fixture: benchmarks/fixtures/account-balance-updates
     skill: project-architecture-audit
     prompt: Audit data ownership and transaction behavior in this fixture with code evidence.
     expected_findings:
       - {rule_id: PROJECT.OWNERSHIP.001, present: true, severity: high}
-      - {rule_id: PROJECT.TRANSACTION.001, present: true, severity: medium}
+      - {rule_id: PROJECT.TRANSACTION.001, present: true, severity: high}
     forbidden_recommendations: [event sourcing]
   - id: queue-worker-sufficient
-    fixture: benchmarks/fixtures/queue-worker-sufficient
+    fixture: benchmarks/fixtures/render-job-processing
     skill: architecture-solution-advisor
     prompt: Select the least complex architecture for this workload and explain rejected options.
     expected_findings:
       - {rule_id: PROJECT.IDEMPOTENCY.001, present: false, severity: none}
       - {rule_id: PROJECT.STATE.001, present: false, severity: none}
     forbidden_recommendations: [microservices, Temporal, multi-agent]
+    expected_decision:
+      selected_option: web-queue-worker
+      acceptable_options: [queue-worker]
+      required_tradeoffs: [operational-complexity, recovery, delivery-semantics]
+      overdesign_options: [microservices, durable-workflow, multi-agent]
+      required_knowledge_ids:
+        - style.web-queue-worker
+        - case-study.queue-worker-before-workflow
+      minimum_rejected_options: 2
+      minimum_migration_slices: 1
   - id: durable-approval-workflow
-    fixture: benchmarks/fixtures/durable-approval-workflow
+    fixture: benchmarks/fixtures/payment-approval-process
     skill: ai-agent-architecture-audit
     prompt: Audit state recovery, approval binding, and repeated side effects in this agent workflow.
     expected_findings:
       - {rule_id: AI.STATE.001, present: true, severity: high}
-      - {rule_id: AI.IDEMPOTENCY.001, present: true, severity: high}
-      - {rule_id: AI.HUMAN.001, present: true, severity: high}
+      - {rule_id: AI.IDEMPOTENCY.001, present: true, severity: critical}
+      - {rule_id: AI.HUMAN.001, present: true, severity: critical}
+      - {rule_id: AI.TOOL.002, present: true, severity: critical}
+      - {rule_id: AI.RECOVERY.001, present: true, severity: high}
     forbidden_recommendations: [in-memory queue only]
   - id: server-cache-mobile
-    fixture: benchmarks/fixtures/server-cache-mobile
+    fixture: benchmarks/fixtures/mobile-record-editor
     skill: architecture-solution-advisor
     prompt: Select the appropriate client data architecture from the stated offline requirement.
     expected_findings:
       - {rule_id: MOBILE.SYNC.001, present: false, severity: none}
       - {rule_id: MOBILE.LOCAL.001, present: false, severity: none}
     forbidden_recommendations: [offline-first, CRDT]
+    expected_decision:
+      selected_option: server-first-with-local-cache
+      acceptable_options: [server-authoritative-cache, server-first-cache]
+      required_tradeoffs: [offline-capability, consistency, client-complexity]
+      overdesign_options: [local-first-replica, crdt]
+      required_knowledge_ids:
+        - decision.local-first-vs-server-first
+        - case-study.server-cache-not-local-first
+      minimum_rejected_options: 2
+      minimum_migration_slices: 1
   - id: injected-tool-authority
-    fixture: benchmarks/fixtures/injected-tool-authority
+    fixture: benchmarks/fixtures/retrieval-payment-runtime
     skill: ai-agent-architecture-audit
     prompt: Trace untrusted retrieved content to tool authority and external side effects.
     expected_findings:
       - {rule_id: AI.INJECTION.001, present: true, severity: critical}
       - {rule_id: AI.TOOL.001, present: true, severity: critical}
+      - {rule_id: AI.TOOL.002, present: true, severity: critical}
     forbidden_recommendations: [prompt wording only]
   - id: modular-monolith-healthy
-    fixture: benchmarks/fixtures/modular-monolith-healthy
+    fixture: benchmarks/fixtures/accounts-billing-application
     skill: architecture-solution-advisor
     prompt: Assess whether this bounded one-team application needs a different deployment architecture.
     expected_findings:
       - {rule_id: PROJECT.BOUNDARY.001, present: false, severity: none}
       - {rule_id: PROJECT.OWNERSHIP.001, present: false, severity: none}
     forbidden_recommendations: [microservices, Kubernetes]
+    expected_decision:
+      selected_option: modular-monolith
+      acceptable_options: [keep-modular-monolith]
+      required_tradeoffs: [deployment-independence, operational-complexity, team-ownership]
+      overdesign_options: [microservices, kubernetes]
+      required_knowledge_ids:
+        - style.modular-monolith
+        - decision.monolith-vs-microservices
+      minimum_rejected_options: 2
+      minimum_migration_slices: 1
   - id: shared-database-services
-    fixture: benchmarks/fixtures/shared-database-services
+    fixture: benchmarks/fixtures/orders-billing-services
     skill: project-architecture-audit
     prompt: Audit data ownership and lost-update behavior across these independently deployed services.
     expected_findings:
@@ -70,17 +103,27 @@ cases:
       - {rule_id: PROJECT.TRANSACTION.001, present: true, severity: high}
     forbidden_recommendations: [event sourcing]
   - id: document-code-conflict
-    fixture: benchmarks/fixtures/document-code-conflict
+    fixture: benchmarks/fixtures/payment-design-runtime
     skill: architecture-finding-verifier
     prompt: Resolve the conflict between the idempotency design note and executable payment path.
     expected_findings:
-      - {rule_id: PROJECT.IDEMPOTENCY.001, present: true, severity: high}
+      - {rule_id: PROJECT.IDEMPOTENCY.001, present: true, severity: critical}
     forbidden_recommendations: [trust documentation]
   - id: single-agent-sufficient
-    fixture: benchmarks/fixtures/single-agent-sufficient
+    fixture: benchmarks/fixtures/research-assistant
     skill: architecture-solution-advisor
     prompt: Select the least complex AI orchestration for this read-only research task.
     expected_findings:
       - {rule_id: AI.MULTIAGENT.001, present: false, severity: none}
       - {rule_id: AI.STATE.001, present: false, severity: none}
     forbidden_recommendations: [manager agent, handoff, multi-agent]
+    expected_decision:
+      selected_option: single-agent-with-tools
+      acceptable_options: [single-agent]
+      required_tradeoffs: [routing-complexity, latency, evaluation]
+      overdesign_options: [manager-agent, handoff, multi-agent]
+      required_knowledge_ids:
+        - decision.single-agent-vs-multi-agent
+        - case-study.single-agent-is-sufficient
+      minimum_rejected_options: 2
+      minimum_migration_slices: 1

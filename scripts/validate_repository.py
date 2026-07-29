@@ -57,6 +57,7 @@ REQUIRED_FILES = (
     "docs/releasing.md",
     "docs/migrating-to-0.2.md",
     "docs/migrating-to-0.3.md",
+    "docs/migrating-to-0.4.md",
     "docs/target-architecture.md",
     "docs/target-architecture-implementation.md",
     "evals/cases.yaml",
@@ -73,11 +74,16 @@ REQUIRED_FILES = (
     "requirements-runtime.lock",
     "requirements.txt",
     "scripts/generate_sbom.py",
+    "scripts/curate_golden_knowledge.py",
+    "scripts/codex_benchmark_adapter.py",
     "scripts/audit_licenses.py",
     "scripts/run_behavior_benchmark.py",
     "scripts/verify_checksum.py",
     "resources/knowledge/manifest.yaml",
     "resources/schemas/knowledge-entry.schema.json",
+    "resources/schemas/architecture-design-brief.schema.json",
+    "resources/schemas/benchmark.schema.json",
+    "resources/schemas/benchmark-observation.schema.json",
     "resources/schemas/knowledge-manifest.schema.json",
     "resources/schemas/knowledge-selection.schema.json",
     "resources/schemas/repository-facts.schema.json",
@@ -475,6 +481,7 @@ def validate_schemas_and_yaml(root: Path, errors: list[str]) -> None:
                 )
 
     template_schemas = {
+        "architecture-design-brief.yaml": "architecture-design-brief.schema.json",
         "architecture-decision.yaml": "architecture-decision.schema.json",
         "assetkeeper-profile.example.yaml": "project-profile.schema.json",
         "baseline.yaml": "baseline.schema.json",

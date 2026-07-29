@@ -1,7 +1,7 @@
 ---
 id: decision.local-first-vs-server-first
 kind: decision-guide
-version: 1.0.0
+version: 2.0.0
 status: active
 domains:
 - mobile
@@ -12,70 +12,111 @@ triggers:
 - server-first
 quality_attributes:
 - maintainability
-related: []
+related:
+- decision.optimistic-vs-pessimistic-update
+- decision.state-management
 last_reviewed: '2026-07-28'
 review_after_days: 365
 source_policy: stable-principles-plus-official-docs
 sources:
-- title: Android Offline-first Guidance
-  url: https://developer.android.com/topic/architecture/data-layer/offline-first
-  authority: official
+- title: Local-first software
+  url: https://www.inkandswitch.com/essay/local-first/
+  authority: research
+  supports:
+  - LOCAL-FIRST
+  - SYNC-CONFLICT
+maturity: golden
+curation:
+  method: assisted-reviewed
+  reviewer: Codex Architecture Governance review
+  reviewed_at: '2026-07-28'
 ---
 
-# Local-first vs Server-first
+# Local-First vs Server-First
 
 ## Problem and intent
 
-Choose authority and replica semantics from offline creation, conflict, device lifecycle, privacy, migration, and recovery.
+Choose the authoritative and interaction path for data when devices may be offline, concurrent, constrained, or shared.
 
 ## Mechanism
 
-Apply the mechanism at its owning boundary, keep authority and contracts explicit, and bind the choice to measurable scenarios rather than technology presence.
+Server-first commits against a central authority and may cache locally. Local-first commits to a device replica and synchronizes operations or versions later, so conflicts and convergence are product semantics rather than transport details.
+
+## Options
+
+### Server-first with local cache
+
+- Fit: Connectivity is expected and shared authority must arbitrate changes.
+- Avoid: Core work must remain writable for long offline periods.
+- Cost: Offline behavior is limited and latency depends on network.
+- Failure: A cache is mistaken for a writable replica and loses edits.
+### Offline queue over server authority
+
+- Fit: Users need bounded offline commands that can replay later.
+- Avoid: Concurrent offline edits require rich merging.
+- Cost: Command durability, ordering, idempotency, expiry, and rejection UI.
+- Failure: Replayed commands are no longer valid or execute twice.
+### Local-first replicated data
+
+- Fit: Instant offline-capable collaboration is a defining product requirement.
+- Avoid: The team cannot define conflict and convergence semantics.
+- Cost: Replica identity, sync protocol, merge model, tombstones, migration, and support.
+- Failure: Silent conflict resolution loses intent or replicas never converge.
 
 ## Fit when
 
-A client must work through prolonged disconnection or multi-device editing.
+At least one named option fits a measured quality scenario and the team can own its
+required failure and recovery behavior.
 
 ## Avoid when
 
-Connectivity is required and server authority plus cache meets the experience.
+The choice is driven only by a technology name, hypothetical scale, or a problem
+already solved by the current design.
 
 ## Required capabilities
 
-An accountable owner, explicit compatibility and failure semantics, proportional tests, observable outcomes, and an affordable operating model are required.
+Authority declaration, offline duration, replica/device identity, version or operation model, conflict UX, encryption, deletion/tombstone rules, schema migration, and sync observability.
 
 ## Benefits
 
-The choice addresses the stated problem while keeping the reason, protected qualities, and governing evidence reviewable.
+Makes offline reliability and user-perceived responsiveness an explicit architecture property.
 
 ## Costs and liabilities
 
-It adds implementation, migration, cognitive, and operational costs that must be compared with keeping the current design.
+Local-first moves distributed-systems complexity onto every device; server-first depends on connectivity.
 
 ## Failure modes
 
-It fails when adopted from naming, popularity, or hypothetical scale without ownership, negative-path behavior, and acceptance evidence.
+Last-write-wins data loss, duplicate offline commands, clock assumptions, unbounded tombstones, account crossover, and incompatible local schema upgrades.
 
 ## Alternatives
 
-Keep the current architecture with a local correction, or select the next simpler mechanism that satisfies the same quality scenario.
+Compare the current design and the named options—Server-first with local cache, Offline queue over server authority, Local-first replicated data—against the same
+quality scenarios; do not compare feature lists without operating consequences.
 
 ## Migration and exit
 
-Introduce the new behavior behind a compatible boundary, observe a bounded cohort, preserve rollback, and remove the old path only after consumers and data are verified.
+Begin with read caching and a single idempotent offline command, simulate long disconnect and concurrent edits, introduce versioned conflict handling, and expand only after convergence and recovery tests pass.
 
 ## Evidence to inspect
 
-Inspect the product scenario, owning code and configuration, consumers, persisted contracts, tests, runtime evidence when applicable, team capability, and cost boundary.
+Offline product scenarios, concurrent editor count, data sensitivity, conflict examples, device storage limits, sync traces, deletion behavior, and migration tests across skipped versions.
 
 ## Evidence that changes the recommendation
 
-A simpler option meeting the same measurable outcome, missing operational ownership, incompatible consumers, or contrary runtime evidence changes the recommendation.
+Server-first remains simpler unless offline writes and instant local interaction are critical product capabilities, not convenience features.
 
 ## Quality trade-offs
 
-Prioritize maintainability while explicitly recording effects on reliability, security, performance, maintainability, delivery speed, cost, and cognitive load.
+Availability and local latency trade against centralized consistency, simpler authorization, and lower client complexity.
+
+## Claim map
+
+- LOCAL-FIRST: Local-first software treats the local copy as primary for interaction and synchronizes in the background.
+- SYNC-CONFLICT: Replicated writes require explicit conflict or convergence behavior.
 
 ## Volatile facts
 
-Versions, support status, compatibility, security advisories, licensing, pricing, and service limits require current official confirmation; they are not timeless architecture facts.
+Product versions, protocol/library support, service limits, pricing, licensing, and
+security advisories must be rechecked in the cited official sources at decision time.
+The mechanisms and decision criteria above are maintained separately from those facts.

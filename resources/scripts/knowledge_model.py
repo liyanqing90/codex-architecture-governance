@@ -8,6 +8,7 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,21 @@ REQUIRED_SECTIONS = (
     "Volatile facts",
 )
 FORBIDDEN_MARKERS = ("TODO", "TBD", "placeholder", "fill this")
+GOLDEN_KIND_SECTIONS = {
+    "decision-guide": ("Options",),
+    "technology-profile": ("Operating model", "Capability boundaries"),
+    "reference-architecture": (
+        "Components and responsibilities",
+        "Data flow",
+    ),
+    "architecture-style": ("Operating model",),
+    "pattern": ("Operating model",),
+}
+OPTION_FIELD_RE = re.compile(
+    r"^- (Fit|Avoid|Cost|Failure):\s+\S",
+    flags=re.MULTILINE,
+)
+CLAIM_RE = re.compile(r"^- (?P<id>[A-Z][A-Z0-9-]{1,31}):\s+\S", re.MULTILINE)
 
 
 class KnowledgeError(RuntimeError):
@@ -185,6 +201,63 @@ def validate_markdown_entry(
     for source in metadata["sources"]:
         if not source["url"].startswith("https://"):
             raise KnowledgeError(f"{path} source must use HTTPS: {source['url']}")
+    if (
+        metadata.get("status") == "active"
+        and metadata.get("curation", {}).get("method") == "generated"
+    ):
+        raise KnowledgeError(f"{path} generated content cannot be active")
+    if metadata.get("maturity") == "golden":
+        for section in GOLDEN_KIND_SECTIONS.get(metadata["kind"], ()):
+            content = _section_content(body, section)
+            if content is None:
+                raise KnowledgeError(
+                    f"{path} golden {metadata['kind']} is missing section "
+                    f"'## {section}'"
+                )
+        if metadata["kind"] == "decision-guide":
+            options = _section_content(body, "Options") or ""
+            option_blocks = re.split(r"^### ", options, flags=re.MULTILINE)[1:]
+            if len(option_blocks) < 2:
+                raise KnowledgeError(
+                    f"{path} golden decision guide requires at least two named options"
+                )
+            for option in option_blocks:
+                fields = {match.group(1) for match in OPTION_FIELD_RE.finditer(option)}
+                missing_fields = sorted({"Fit", "Avoid", "Cost", "Failure"} - fields)
+                if missing_fields:
+                    title = option.splitlines()[0].strip()
+                    raise KnowledgeError(
+                        f"{path} option {title!r} is missing: "
+                        + ", ".join(missing_fields)
+                    )
+        claim_content = _section_content(body, "Claim map")
+        if claim_content is None:
+            raise KnowledgeError(f"{path} golden entry is missing '## Claim map'")
+        claim_ids = {match.group("id") for match in CLAIM_RE.finditer(claim_content)}
+        if len(claim_ids) < 2:
+            raise KnowledgeError(
+                f"{path} golden entry requires at least two mapped claims"
+            )
+        supported: set[str] = set()
+        for source in metadata["sources"]:
+            source_claims = source.get("supports")
+            if not source_claims:
+                raise KnowledgeError(
+                    f"{path} golden source {source['title']!r} has no supports mapping"
+                )
+            unknown_claims = sorted(set(source_claims) - claim_ids)
+            if unknown_claims:
+                raise KnowledgeError(
+                    f"{path} source {source['title']!r} references unknown claims: "
+                    + ", ".join(unknown_claims)
+                )
+            supported.update(source_claims)
+        unsupported = sorted(claim_ids - supported)
+        if unsupported:
+            raise KnowledgeError(
+                f"{path} has claims with no supporting source: "
+                + ", ".join(unsupported)
+            )
     return KnowledgeEntry(
         path=path,
         metadata=metadata,
@@ -260,6 +333,27 @@ def validate_knowledge_tree(
             raise KnowledgeError(
                 f"{entry.path} references unknown related IDs: " + ", ".join(unknown)
             )
+    golden = [
+        entry
+        for entry in entries.values()
+        if entry.metadata.get("maturity") == "golden"
+    ]
+    for index, left in enumerate(golden):
+        for right in golden[index + 1 :]:
+            left_tokens = re.findall(r"[a-z0-9][a-z0-9-]*", left.body.lower())
+            right_tokens = re.findall(r"[a-z0-9][a-z0-9-]*", right.body.lower())
+            similarity = SequenceMatcher(
+                None,
+                left_tokens,
+                right_tokens,
+                autojunk=False,
+            ).ratio()
+            if similarity >= 0.88:
+                raise KnowledgeError(
+                    f"Golden entries {left.id} and {right.id} are too similar "
+                    f"({similarity:.3f}); replace shared template prose with "
+                    "decision-specific mechanisms"
+                )
     manifest["_validated_counts"] = counts
     manifest["_validated_at"] = evaluation_date.isoformat()
     return manifest, entries

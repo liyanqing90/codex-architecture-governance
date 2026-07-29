@@ -77,6 +77,15 @@ class SupplyChainTests(unittest.TestCase):
             )
             self.assertEqual(first, second)
             self.assertEqual(first["spdxVersion"], "SPDX-2.3")
+            plugin_version = next(
+                record["versionInfo"]
+                for record in first["packages"]
+                if record["name"] == "codex-architecture-governance"
+            )
+            self.assertEqual(
+                first["creationInfo"]["creators"],
+                [f"Tool: codex-architecture-governance-sbom-{plugin_version}"],
+            )
 
             with zipfile.ZipFile(archive) as bundle:
                 archive_names = {f"./{name}" for name in bundle.namelist()}

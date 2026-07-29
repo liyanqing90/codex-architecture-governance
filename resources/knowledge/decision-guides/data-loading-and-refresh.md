@@ -1,7 +1,7 @@
 ---
 id: decision.data-loading-and-refresh
 kind: decision-guide
-version: 1.0.0
+version: 2.0.0
 status: active
 domains:
 - frontend
@@ -12,70 +12,115 @@ triggers:
 - stale
 quality_attributes:
 - maintainability
-related: []
+related:
+- decision.cache-strategy
+- decision.optimistic-vs-pessimistic-update
 last_reviewed: '2026-07-28'
 review_after_days: 365
 source_policy: stable-principles-plus-official-docs
 sources:
-- title: Azure Architecture Center
-  url: https://learn.microsoft.com/en-us/azure/architecture/
+- title: MDN HTTP caching
+  url: https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching
   authority: official
+  supports:
+  - CACHE-FRESHNESS
+- title: MDN Fetch API
+  url: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
+  authority: official
+  supports:
+  - LOAD-BOUNDARY
+maturity: golden
+curation:
+  method: assisted-reviewed
+  reviewer: Codex Architecture Governance review
+  reviewed_at: '2026-07-28'
 ---
 
 # Data Loading and Refresh
 
 ## Problem and intent
 
-Classify first-render, secondary, and user-triggered data before choosing blocking load, prefetch, refetch, or stale refresh.
+Choose when a client obtains data, what may be reused, and how freshness is restored without hiding stale or contradictory state from the user.
 
 ## Mechanism
 
-Apply the mechanism at its owning boundary, keep authority and contracts explicit, and bind the choice to measurable scenarios rather than technology presence.
+Separate initial load, revalidation, and mutation. Give every cached result a freshness rule and an owner; cancel or supersede obsolete requests, and merge a response only when its resource key and request generation still match.
+
+## Options
+
+### Load on demand
+
+- Fit: Cold or infrequent views where latency is acceptable.
+- Avoid: Navigation must feel instant or the data is predictably needed.
+- Cost: Visible loading latency and repeated origin work.
+- Failure: Request waterfalls or empty states become the normal experience.
+### Prefetch then revalidate
+
+- Fit: Likely navigation and bounded, cacheable read models.
+- Avoid: Data is sensitive, expensive, or unlikely to be consumed.
+- Cost: Extra bandwidth, cache bookkeeping, and possible unused work.
+- Failure: Unbounded prefetch amplifies load and returns stale snapshots.
+### Push invalidation plus pull refresh
+
+- Fit: Active clients need fast awareness but the server remains authoritative.
+- Avoid: Clients cannot maintain subscriptions or tolerate reconnect logic.
+- Cost: Subscription infrastructure and replay/version semantics.
+- Failure: Missed invalidations leave a client stale unless reconnect triggers a full check.
 
 ## Fit when
 
-A client must balance first-render speed with freshness and consistency.
+At least one named option fits a measured quality scenario and the team can own its
+required failure and recovery behavior.
 
 ## Avoid when
 
-All data is static build-time content.
+The choice is driven only by a technology name, hypothetical scale, or a problem
+already solved by the current design.
 
 ## Required capabilities
 
-An accountable owner, explicit compatibility and failure semantics, proportional tests, observable outcomes, and an affordable operating model are required.
+Stable resource keys, freshness budgets, cancellation, version-aware merge rules, loading/error UI, and request/cache telemetry.
 
 ## Benefits
 
-The choice addresses the stated problem while keeping the reason, protected qualities, and governing evidence reviewable.
+Makes perceived latency and staleness explicit while preventing late responses from overwriting newer client state.
 
 ## Costs and liabilities
 
-It adds implementation, migration, cognitive, and operational costs that must be compared with keeping the current design.
+More client states and network policy must be tested; prefetch and revalidation can increase origin traffic.
 
 ## Failure modes
 
-It fails when adopted from naming, popularity, or hypothetical scale without ownership, negative-path behavior, and acceptance evidence.
+Race between navigations, cache keys omitting tenant or authorization scope, retry storms, and background refresh silently replacing user edits.
 
 ## Alternatives
 
-Keep the current architecture with a local correction, or select the next simpler mechanism that satisfies the same quality scenario.
+Compare the current design and the named options—Load on demand, Prefetch then revalidate, Push invalidation plus pull refresh—against the same
+quality scenarios; do not compare feature lists without operating consequences.
 
 ## Migration and exit
 
-Introduce the new behavior behind a compatible boundary, observe a bounded cohort, preserve rollback, and remove the old path only after consumers and data are verified.
+Instrument the current load path, introduce one resource-keyed loader, add revalidation to a single high-value view, and retain a forced-refresh escape hatch until stale-rate and origin-load targets hold.
 
 ## Evidence to inspect
 
-Inspect the product scenario, owning code and configuration, consumers, persisted contracts, tests, runtime evidence when applicable, team capability, and cost boundary.
+Navigation traces, request waterfalls, cache hit/stale rates, resource-key construction, abort handling, authorization scope, and tests for out-of-order responses.
 
 ## Evidence that changes the recommendation
 
-A simpler option meeting the same measurable outcome, missing operational ownership, incompatible consumers, or contrary runtime evidence changes the recommendation.
+Prefer on-demand loading when prefetch hit rate is low; prefer push invalidation only when measured freshness targets cannot be met by bounded revalidation.
 
 ## Quality trade-offs
 
-Prioritize maintainability while explicitly recording effects on reliability, security, performance, maintainability, delivery speed, cost, and cognitive load.
+Prefetch improves latency at bandwidth cost; revalidation improves freshness at origin-load cost; push improves timeliness at connection and recovery cost.
+
+## Claim map
+
+- LOAD-BOUNDARY: Initial loading, reuse, and revalidation are separate lifecycle decisions.
+- CACHE-FRESHNESS: HTTP caches require explicit freshness and validation semantics.
 
 ## Volatile facts
 
-Versions, support status, compatibility, security advisories, licensing, pricing, and service limits require current official confirmation; they are not timeless architecture facts.
+Product versions, protocol/library support, service limits, pricing, licensing, and
+security advisories must be rechecked in the cited official sources at decision time.
+The mechanisms and decision criteria above are maintained separately from those facts.

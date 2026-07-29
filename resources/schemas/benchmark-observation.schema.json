@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.architecture/schemas/benchmark-observation.schema.json",
+  "title": "One model observation for an architecture benchmark case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "observed_findings",
+    "observed_recommendations",
+    "observed_decision"
+  ],
+  "properties": {
+    "observed_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule_id", "severity", "evidence"],
+        "properties": {
+          "rule_id": {"type": "string", "minLength": 3},
+          "severity": {
+            "enum": ["critical", "high", "medium", "low", "info"]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path", "line_start", "line_end", "excerpt"],
+              "properties": {
+                "path": {"type": "string", "minLength": 1},
+                "line_start": {"type": "integer", "minimum": 1},
+                "line_end": {"type": "integer", "minimum": 1},
+                "excerpt": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        }
+      }
+    },
+    "observed_recommendations": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "observed_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected_option",
+        "compared_tradeoffs",
+        "knowledge_ids",
+        "rejected_options",
+        "migration_slices"
+      ],
+      "properties": {
+        "selected_option": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "compared_tradeoffs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "availability",
+              "client-complexity",
+              "consistency",
+              "cost",
+              "delivery-semantics",
+              "deployment-independence",
+              "evaluation",
+              "implementation-complexity",
+              "latency",
+              "maintainability",
+              "migration-risk",
+              "offline-capability",
+              "operational-complexity",
+              "recovery",
+              "reliability",
+              "reversibility",
+              "routing-complexity",
+              "safety",
+              "security",
+              "team-ownership"
+            ]
+          }
+        },
+        "knowledge_ids": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 3}
+        },
+        "rejected_options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "reason"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$"
+              },
+              "reason": {"type": "string", "minLength": 10}
+            }
+          }
+        },
+        "migration_slices": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 10}
+        }
+      }
+    }
+  }
+}

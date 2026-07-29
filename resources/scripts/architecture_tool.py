@@ -55,7 +55,7 @@ VERIFICATION_LEVEL_ORDER = {
     "V4": 4,
     "V5": 5,
 }
-TOOL_VERSION = "0.3.2"
+TOOL_VERSION = "0.4.0"
 REVIEW_KIND_CORE_PACK = {
     "project": "project-core",
     "ai-agent": "ai-agent-core",
@@ -72,6 +72,10 @@ REVIEW_WORKFLOW_KIND = {
 
 class ArchitectureError(RuntimeError):
     """User-facing input or contract error."""
+
+
+def highest_verification_level(*levels: str) -> str:
+    return max(levels, key=lambda value: VERIFICATION_LEVEL_ORDER[value])
 
 
 def slugify(value: str) -> str:
@@ -1494,14 +1498,38 @@ def decision_knowledge_snapshot() -> list[dict[str, str]]:
     return sorted(result, key=lambda item: item["kind"])
 
 
+def validate_design_brief(path: Path) -> dict[str, Any]:
+    data = validate_file(path, "architecture-design-brief.schema.json")
+    scenario_ids = [item["id"] for item in data["quality_scenarios"]]
+    if len(scenario_ids) != len(set(scenario_ids)):
+        raise ArchitectureError(f"{path} repeats a quality scenario ID")
+    flow_ids = [item["id"] for item in data["critical_flows"]]
+    if len(flow_ids) != len(set(flow_ids)):
+        raise ArchitectureError(f"{path} repeats a critical flow ID")
+    question_ids = [item["id"] for item in data["decision_questions"]]
+    if len(question_ids) != len(set(question_ids)):
+        raise ArchitectureError(f"{path} repeats a decision question ID")
+    return data
+
+
 def validate_decision(
     path: Path,
     *,
     review_path: Path | None = None,
+    design_brief_path: Path | None = None,
     require_accepted: bool = False,
     repository_root: Path | None = None,
 ) -> dict[str, Any]:
     data = validate_file(path, "architecture-decision.schema.json")
+    decision_kind = data["decision"].get("decision_kind", "remediation")
+    if decision_kind == "greenfield" and review_path is not None:
+        raise ArchitectureError(
+            f"{path} greenfield decision cannot bind a source review"
+        )
+    if decision_kind == "remediation" and design_brief_path is not None:
+        raise ArchitectureError(
+            f"{path} remediation decision cannot bind a design brief"
+        )
     option_ids = [option["id"] for option in data["options"]]
     if len(option_ids) != len(set(option_ids)):
         raise ArchitectureError(f"{path} has duplicate decision option IDs")
@@ -1664,7 +1692,7 @@ def validate_decision(
                     f"{path} decision uses quality attributes absent from the "
                     "project Profile: " + ", ".join(unknown_quality)
                 )
-        if data["schema_version"] == "1.2":
+        if data["schema_version"] in {"1.2", "1.3"}:
             selection_path = require_within_root(
                 root,
                 root / data["decision"]["knowledge_selection_path"],
@@ -1704,6 +1732,37 @@ def validate_decision(
                 raise ArchitectureError(
                     f"{path} knowledge selection is bound to another profile"
                 )
+    if decision_kind == "greenfield":
+        if design_brief_path is None:
+            if root is None:
+                raise ArchitectureError(
+                    f"{path} greenfield decision requires --design-brief or --project"
+                )
+            design_brief_path = root / data["decision"]["source_context"]
+        design_brief_path = design_brief_path.resolve()
+        if root is not None:
+            design_brief_path = require_within_root(
+                root,
+                design_brief_path,
+                "decision source design brief",
+            )
+            expected_context = design_brief_path.relative_to(root).as_posix()
+            if data["decision"]["source_context"] != expected_context:
+                raise ArchitectureError(
+                    f"{path} source_context does not match {design_brief_path}"
+                )
+        brief = validate_design_brief(design_brief_path)
+        if data["decision"]["source_context_sha256"] != file_sha256(design_brief_path):
+            raise ArchitectureError(
+                f"{path} source_context_sha256 does not match {design_brief_path}"
+            )
+        brief_attributes = {item["attribute"] for item in brief["quality_scenarios"]}
+        missing_scenarios = sorted(quality_attributes - brief_attributes)
+        if missing_scenarios:
+            raise ArchitectureError(
+                f"{path} quality attributes are absent from the design brief: "
+                + ", ".join(missing_scenarios)
+            )
     if review_path is not None:
         review_path = review_path.resolve()
         review = (
@@ -1723,9 +1782,13 @@ def validate_decision(
             raise ArchitectureError(
                 f"{path} requires a trusted 1.1 or 1.2 source review"
             )
-        if data["schema_version"] == "1.2" and review["schema_version"] != "1.2":
+        if (
+            data["schema_version"] in {"1.2", "1.3"}
+            and review["schema_version"] != "1.2"
+        ):
             raise ArchitectureError(
-                f"{path} schema 1.2 requires a trusted 1.2 source review"
+                f"{path} schema {data['schema_version']} requires a trusted "
+                "1.2 source review"
             )
         if data["decision"]["source_review"] != review["review"]["id"]:
             raise ArchitectureError(
@@ -3142,7 +3205,14 @@ def gate_from_config(
         except ArchitectureError as exc:
             policy_failures.append(str(exc))
 
-    signature_required = block.get("minimum_verification_level", "V0") == "V5" or any(
+    tiered_levels = block.get("verification_levels", {})
+    configured_levels = [
+        block.get("minimum_verification_level", "V0"),
+        tiered_levels.get("accepted_risk", "V0"),
+        tiered_levels.get("release", "V0"),
+        *tiered_levels.get("by_severity", {}).values(),
+    ]
+    signature_required = "V5" in configured_levels or any(
         finding["verification"].get("level") == "V5"
         for finding in review["findings"]
         if finding["verification"]["status"] == "confirmed"
@@ -3317,12 +3387,35 @@ def gate_from_config(
             freshness_sensitive
             and change_policy["require_fresh_review_on_critical_change"]
             and commit_root is not None
-            and reviewed_commit != (head or current_git_commit(commit_root))
         ):
-            policy_failures.append(
-                "Critical or security-sensitive paths require a review at HEAD: "
-                + ", ".join(freshness_sensitive)
-            )
+            if not reviewed_commit:
+                policy_failures.append(
+                    "Critical or security-sensitive changes require review.commit"
+                )
+            elif not git_is_ancestor(
+                commit_root,
+                reviewed_commit,
+                head or current_git_commit(commit_root),
+            ):
+                policy_failures.append(
+                    f"Review commit {reviewed_commit} is not an ancestor of HEAD"
+                )
+            else:
+                sensitive_review_delta = git_changed_paths(
+                    commit_root,
+                    reviewed_commit,
+                    head or current_git_commit(commit_root),
+                )
+                stale_freshness_sensitive = sorted(
+                    path
+                    for path in freshness_sensitive
+                    if path in sensitive_review_delta
+                )
+                if stale_freshness_sensitive:
+                    policy_failures.append(
+                        "Critical or security-sensitive paths changed after the "
+                        "selected review: " + ", ".join(stale_freshness_sensitive)
+                    )
 
     decisions: list[tuple[Path, dict[str, Any]]] = []
     plans: list[tuple[Path, dict[str, Any]]] = []
@@ -3348,6 +3441,18 @@ def gate_from_config(
         for path, plan in plans
         if plan["plan"]["status"] in {"accepted", "in-progress", "complete"}
     ]
+    compatible_migration_decisions = [
+        (path, decision)
+        for path, decision in accepted_decisions
+        if decision["selected_option"] == "keep-current"
+        and decision.get("migration")
+        and set(change_impacts["migration"]).issubset(
+            set(decision["migration"].get("affected_paths", []))
+        )
+        and decision["migration"].get("slices")
+        and decision["migration"].get("validation")
+        and decision["migration"].get("rollback")
+    ]
     if "change" in selected_stages:
         change_policy = policy["change_requirements"]
         if (
@@ -3364,10 +3469,11 @@ def gate_from_config(
             change_impacts["migration"]
             and change_policy["require_plan_on_migration_change"]
             and not active_plans
+            and not compatible_migration_decisions
         ):
             policy_failures.append(
-                "Migration changes require an accepted or active remediation "
-                "plan for the selected review: "
+                "Migration changes require an accepted compatible-migration "
+                "decision or an active remediation plan for the selected review: "
                 + ", ".join(change_impacts["migration"])
             )
 
@@ -3446,7 +3552,24 @@ def gate_from_config(
             continue
 
         verification_level = finding["verification"].get("level", "V0")
-        required_level = block.get("minimum_verification_level", "V0")
+        required_levels = [
+            block.get("minimum_verification_level", "V0"),
+            block.get("verification_levels", {})
+            .get("by_severity", {})
+            .get(finding["severity"], "V0"),
+        ]
+        if finding["status"] == "accepted-risk":
+            required_levels.append(
+                block.get("verification_levels", {}).get(
+                    "accepted_risk",
+                    "V0",
+                )
+            )
+        if "release" in selected_stages:
+            required_levels.append(
+                block.get("verification_levels", {}).get("release", "V0")
+            )
+        required_level = highest_verification_level(*required_levels)
         if (
             VERIFICATION_LEVEL_ORDER[verification_level]
             < VERIFICATION_LEVEL_ORDER[required_level]
@@ -3954,9 +4077,419 @@ def benchmark_evidence_valid(fixture: Path, evidence: list[dict[str, Any]]) -> b
     return True
 
 
+def git_blob_bytes(root: Path, commit: str, path: str) -> bytes:
+    process = subprocess.run(
+        ["git", "-C", str(root), "show", f"{commit}:{path}"],
+        capture_output=True,
+        check=False,
+    )
+    if process.returncode != 0:
+        detail = process.stderr.decode("utf-8", errors="replace").strip()
+        raise ArchitectureError(
+            f"Benchmark provenance cannot resolve {path} at {commit}: {detail}"
+        )
+    return process.stdout
+
+
+def git_tree_manifest(
+    root: Path,
+    commit: str,
+    directory: str,
+) -> tuple[str, int]:
+    output = git_output(root, "ls-tree", "-r", "--name-only", commit, "--", directory)
+    paths = [path for path in output.splitlines() if path]
+    if not paths:
+        raise ArchitectureError(
+            f"Benchmark provenance fixture is empty at {commit}: {directory}"
+        )
+    prefix = directory.rstrip("/") + "/"
+    records = []
+    for path in paths:
+        if not path.startswith(prefix):
+            raise ArchitectureError(
+                f"Benchmark provenance fixture path escaped {directory}: {path}"
+            )
+        records.append(
+            {
+                "path": path[len(prefix) :],
+                "sha256": sha256_bytes(git_blob_bytes(root, commit, path)),
+            }
+        )
+    return canonical_sha256(records), len(records)
+
+
+def validate_benchmark_provenance(
+    *,
+    root: Path,
+    run_path: Path,
+    observed: dict[str, Any],
+    runtime_verification: str = "strict",
+    artifact_commit: str | None = None,
+) -> dict[str, Any] | None:
+    if observed["schema_version"] not in {"1.3", "1.4"}:
+        return None
+    extended_provenance = observed["schema_version"] == "1.4"
+    provenance = observed["benchmark"]["provenance"]
+    source = provenance["source"]
+    commit = source["commit"]
+    git_output(root, "cat-file", "-e", f"{commit}^{{commit}}")
+    archive_binding: dict[str, Any] | None = None
+    if runtime_verification == "archived":
+        if artifact_commit is None:
+            raise ArchitectureError(
+                "Archived runtime verification requires --artifact-commit"
+            )
+        git_output(root, "cat-file", "-e", f"{artifact_commit}^{{commit}}")
+        try:
+            relative_run = run_path.resolve().relative_to(root)
+        except ValueError as exc:
+            raise ArchitectureError(
+                "Archived benchmark run must be inside the repository"
+            ) from exc
+        archived_run = git_blob_bytes(root, artifact_commit, relative_run.as_posix())
+        if archived_run != run_path.read_bytes():
+            raise ArchitectureError(
+                "Benchmark run does not match the archived Git artifact"
+            )
+        archive_binding = {
+            "commit": artifact_commit,
+            "run_path": relative_run.as_posix(),
+            "run_blob_sha": git_output(
+                root,
+                "rev-parse",
+                f"{artifact_commit}:{relative_run.as_posix()}",
+            ),
+        }
+    if source["dirty"]:
+        raise ArchitectureError(
+            "Benchmark release evidence must originate from clean relevant inputs"
+        )
+
+    required_roles = {
+        "ground-truth",
+        "benchmark-schema",
+        "observation-schema",
+        "dependency-lock",
+        "knowledge-manifest",
+    }
+    if extended_provenance:
+        required_roles.add("plugin-manifest")
+    inputs = provenance["inputs"]
+    roles = [item["role"] for item in inputs]
+    if len(roles) != len(set(roles)):
+        raise ArchitectureError("Benchmark provenance has duplicate input roles")
+    if not required_roles.issubset(roles):
+        missing = ", ".join(sorted(required_roles - set(roles)))
+        raise ArchitectureError(f"Benchmark provenance is missing inputs: {missing}")
+    for item in inputs:
+        actual = sha256_bytes(git_blob_bytes(root, commit, item["path"]))
+        if actual != item["sha256"]:
+            raise ArchitectureError(
+                f"Benchmark provenance input hash mismatch: {item['path']}"
+            )
+    if extended_provenance:
+        manifest_item = next(
+            item for item in inputs if item["role"] == "plugin-manifest"
+        )
+        try:
+            manifest = json.loads(
+                git_blob_bytes(root, commit, manifest_item["path"]).decode("utf-8")
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ArchitectureError(
+                "Benchmark provenance plugin manifest is invalid"
+            ) from exc
+        if manifest.get("version") != observed["benchmark"]["skill_version"]:
+            raise ArchitectureError(
+                "Benchmark Skill version does not match the source plugin manifest"
+            )
+        if provenance["model_request"] != observed["benchmark"]["model"]:
+            raise ArchitectureError(
+                "Benchmark model request does not match benchmark.model"
+            )
+        command_template = provenance["command_template"]
+        if canonical_sha256(command_template) != provenance["command_template_sha256"]:
+            raise ArchitectureError("Benchmark command template hash mismatch")
+
+        runtimes = provenance["runtime_executables"]
+        runtime_ids = [item["id"] for item in runtimes]
+        if len(runtime_ids) != len(set(runtime_ids)):
+            raise ArchitectureError("Benchmark provenance has duplicate runtime IDs")
+        runtime_roles = {item["role"] for item in runtimes}
+        if runtime_roles != {"command", "model"}:
+            raise ArchitectureError(
+                "Benchmark provenance requires command and model runtimes"
+            )
+        runtime_checks = []
+        for runtime in runtimes:
+            if (
+                sha256_bytes(runtime["version_output"].encode("utf-8"))
+                != runtime["version_output_sha256"]
+            ):
+                raise ArchitectureError(
+                    f"Benchmark recorded runtime version hash mismatch: {runtime['id']}"
+                )
+            resolved_value = shutil.which(runtime["requested"])
+            if resolved_value is None:
+                runtime_checks.append(
+                    {
+                        "id": runtime["id"],
+                        "current_host_match": False,
+                        "reason": "unavailable",
+                    }
+                )
+                continue
+            resolved = Path(resolved_value).resolve()
+            executable_match = (
+                resolved.name == runtime["resolved_name"]
+                and sha256_bytes(str(resolved).encode("utf-8"))
+                == runtime["resolved_path_sha256"]
+                and file_sha256(resolved) == runtime["executable_sha256"]
+            )
+            process = subprocess.run(
+                [str(resolved), *runtime["version_arguments"]],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            version_output = "\n".join(
+                part
+                for part in (process.stdout.strip(), process.stderr.strip())
+                if part
+            )
+            version_match = (
+                process.returncode == 0
+                and version_output == runtime["version_output"]
+                and sha256_bytes(version_output.encode("utf-8"))
+                == runtime["version_output_sha256"]
+            )
+            current_host_match = executable_match and version_match
+            reason = (
+                "matched"
+                if current_host_match
+                else (
+                    "executable-mismatch"
+                    if not executable_match
+                    else "version-mismatch"
+                )
+            )
+            runtime_checks.append(
+                {
+                    "id": runtime["id"],
+                    "current_host_match": current_host_match,
+                    "reason": reason,
+                }
+            )
+        runtime_mismatches = [
+            item for item in runtime_checks if not item["current_host_match"]
+        ]
+        if runtime_mismatches and runtime_verification == "strict":
+            first = runtime_mismatches[0]
+            if first["reason"] == "unavailable":
+                raise ArchitectureError(
+                    f"Benchmark runtime executable is unavailable: {first['id']}"
+                )
+            label = (
+                "executable" if first["reason"] == "executable-mismatch" else "version"
+            )
+            raise ArchitectureError(
+                f"Benchmark runtime {label} mismatch: {first['id']}"
+            )
+        model_versions = {
+            item["version_output"] for item in runtimes if item["role"] == "model"
+        }
+        if observed["benchmark"]["surface"] not in model_versions:
+            raise ArchitectureError(
+                "Benchmark surface does not match a model runtime version"
+            )
+
+    tools = provenance["tools"]
+    tool_ids = [item["id"] for item in tools]
+    if len(tool_ids) != len(set(tool_ids)):
+        raise ArchitectureError("Benchmark provenance has duplicate tool IDs")
+    if "benchmark-runner" not in tool_ids:
+        raise ArchitectureError("Benchmark provenance is missing benchmark-runner")
+    if "codex-benchmark-adapter" not in tool_ids:
+        raise ArchitectureError(
+            "Benchmark provenance is missing codex-benchmark-adapter"
+        )
+    for item in tools:
+        actual = sha256_bytes(git_blob_bytes(root, commit, item["path"]))
+        if actual != item["sha256"]:
+            raise ArchitectureError(
+                f"Benchmark provenance tool hash mismatch: {item['path']}"
+            )
+
+    fixture_records = provenance["fixtures"]
+    fixture_ids = [item["case_id"] for item in fixture_records]
+    case_ids = [item["id"] for item in observed["cases"]]
+    if len(fixture_ids) != len(set(fixture_ids)) or set(fixture_ids) != set(case_ids):
+        raise ArchitectureError(
+            "Benchmark provenance fixtures do not match benchmark cases"
+        )
+    for item in fixture_records:
+        digest, file_count = git_tree_manifest(root, commit, item["path"])
+        if digest != item["sha256"] or file_count != item["file_count"]:
+            raise ArchitectureError(
+                f"Benchmark provenance fixture hash mismatch: {item['case_id']}"
+            )
+
+    log = provenance["execution_log"]
+    relative_log = Path(log["path"])
+    if relative_log.is_absolute() or ".." in relative_log.parts:
+        raise ArchitectureError("Benchmark execution log path must be run-relative")
+    log_path = require_within_root(
+        run_path.parent,
+        run_path.parent / relative_log,
+        "benchmark execution log",
+    )
+    if file_sha256(log_path) != log["sha256"]:
+        raise ArchitectureError("Benchmark execution log hash mismatch")
+    if archive_binding is not None:
+        relative_log_path = log_path.resolve().relative_to(root)
+        archived_log = git_blob_bytes(
+            root,
+            artifact_commit,
+            relative_log_path.as_posix(),
+        )
+        if archived_log != log_path.read_bytes():
+            raise ArchitectureError(
+                "Benchmark execution log does not match the archived Git artifact"
+            )
+        archive_binding["execution_log_path"] = relative_log_path.as_posix()
+        archive_binding["execution_log_blob_sha"] = git_output(
+            root,
+            "rev-parse",
+            f"{artifact_commit}:{relative_log_path.as_posix()}",
+        )
+    lines = log_path.read_text(encoding="utf-8").splitlines()
+    if len(lines) != log["records"]:
+        raise ArchitectureError("Benchmark execution log record count mismatch")
+
+    records: dict[tuple[str, int], tuple[dict[str, Any], str]] = {}
+    for line in lines:
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ArchitectureError(
+                f"Benchmark execution log is invalid JSONL: {exc}"
+            ) from exc
+        key = (record.get("case_id"), record.get("trial_index"))
+        if key in records:
+            raise ArchitectureError(
+                f"Benchmark execution log has duplicate record: {key}"
+            )
+        records[key] = (record, sha256_bytes(line.encode("utf-8")))
+
+    expected_records = sum(len(case.get("trials", [])) for case in observed["cases"])
+    if expected_records != len(records):
+        raise ArchitectureError(
+            "Benchmark execution log does not cover every preserved trial"
+        )
+    for case in observed["cases"]:
+        for trial in case["trials"]:
+            key = (case["id"], trial["index"])
+            if key not in records:
+                raise ArchitectureError(
+                    f"Benchmark execution log is missing {case['id']} trial "
+                    f"{trial['index']}"
+                )
+            record, record_sha256 = records[key]
+            execution = trial["execution"]
+            if record_sha256 != execution["log_record_sha256"]:
+                raise ArchitectureError(
+                    f"Benchmark log record hash mismatch: {case['id']} trial "
+                    f"{trial['index']}"
+                )
+            for field in (
+                "exit_code",
+                "command_sha256",
+                "stdout_sha256",
+                "stderr_sha256",
+            ):
+                if record.get(field) != execution[field]:
+                    raise ArchitectureError(
+                        f"Benchmark execution {field} mismatch: {case['id']} "
+                        f"trial {trial['index']}"
+                    )
+            if extended_provenance:
+                command = record.get("command")
+                if command != execution["command"]:
+                    raise ArchitectureError(
+                        f"Benchmark execution command mismatch: {case['id']} "
+                        f"trial {trial['index']}"
+                    )
+                if canonical_sha256(command) != execution["command_sha256"]:
+                    raise ArchitectureError(
+                        f"Benchmark execution command hash mismatch: {case['id']} "
+                        f"trial {trial['index']}"
+                    )
+            observation = record.get("observation")
+            if not isinstance(observation, dict):
+                raise ArchitectureError(
+                    f"Benchmark execution observation is missing: {case['id']} "
+                    f"trial {trial['index']}"
+                )
+            if canonical_sha256(observation) != execution["observation_sha256"]:
+                raise ArchitectureError(
+                    f"Benchmark observation hash mismatch: {case['id']} trial "
+                    f"{trial['index']}"
+                )
+            normalized_findings = [
+                {
+                    "rule_id": finding["rule_id"],
+                    "severity": finding["severity"],
+                    "evidence": finding["evidence"],
+                }
+                for finding in trial["observed_findings"]
+            ]
+            if observation["observed_findings"] != normalized_findings:
+                raise ArchitectureError(
+                    f"Benchmark logged findings mismatch: {case['id']} trial "
+                    f"{trial['index']}"
+                )
+            if (
+                observation["observed_recommendations"]
+                != trial["observed_recommendations"]
+                or observation.get("observed_decision")
+                != trial.get("observed_decision")
+                or observation.get("usage") != trial.get("usage")
+            ):
+                raise ArchitectureError(
+                    f"Benchmark logged observation mismatch: {case['id']} trial "
+                    f"{trial['index']}"
+                )
+    return {
+        "valid": True,
+        "source_commit": commit,
+        "source_dirty": source["dirty"],
+        "execution_log_sha256": log["sha256"],
+        "execution_log_records": log["records"],
+        "environment": provenance["environment"],
+        "runtime_executables": (
+            provenance.get("runtime_executables") if extended_provenance else None
+        ),
+        "runtime_verification": (
+            {
+                "mode": runtime_verification,
+                "current_host_match": all(
+                    item["current_host_match"] for item in runtime_checks
+                ),
+                "checks": runtime_checks,
+            }
+            if extended_provenance
+            else None
+        ),
+        "archive_binding": archive_binding,
+    }
+
+
 def score_benchmark(
     ground_truth_path: Path,
     run_path: Path,
+    *,
+    runtime_verification: str = "strict",
+    artifact_commit: str | None = None,
 ) -> dict[str, Any]:
     truth = validate_file(ground_truth_path, "benchmark.schema.json")
     observed = validate_file(run_path, "benchmark.schema.json")
@@ -3964,6 +4497,13 @@ def score_benchmark(
         raise ArchitectureError(f"{ground_truth_path} is not ground truth")
     if observed["benchmark"]["kind"] != "run":
         raise ArchitectureError(f"{run_path} is not a benchmark run")
+    provenance_summary = validate_benchmark_provenance(
+        root=ground_truth_path.parent.parent.resolve(),
+        run_path=run_path.resolve(),
+        observed=observed,
+        runtime_verification=runtime_verification,
+        artifact_commit=artifact_commit,
+    )
     for field in ("id", "version"):
         if truth["benchmark"][field] != observed["benchmark"][field]:
             raise ArchitectureError(
@@ -3996,6 +4536,26 @@ def score_benchmark(
     input_tokens = 0
     output_tokens = 0
     cost_usd = 0.0
+    usage_trials = 0
+    decision_trials = 0
+    correct_decisions = 0
+    overdesign_decisions = 0
+    required_tradeoffs_seen = 0
+    required_tradeoffs_total = 0
+    valid_knowledge_citations = 0
+    knowledge_citations = 0
+    required_knowledge_seen = 0
+    required_knowledge_total = 0
+    rejection_explanation_values: list[float] = []
+    migration_actionability_values: list[float] = []
+    decision_stability_values: list[float] = []
+    try:
+        _, benchmark_knowledge = validate_knowledge_tree(
+            KNOWLEDGE_ROOT,
+            schema_root=SCHEMA_ROOT,
+        )
+    except KnowledgeError as exc:
+        raise ArchitectureError(str(exc)) from exc
     for case_id, expected_case in truth_cases.items():
         run_case = run_cases[case_id]
         if run_case["fixture"] != expected_case["fixture"]:
@@ -4023,6 +4583,7 @@ def score_benchmark(
                     "observed_recommendations",
                     [],
                 ),
+                "observed_decision": run_case.get("observed_decision"),
             }
         ]
         declared_repetitions = observed["benchmark"].get("repetitions")
@@ -4038,8 +4599,15 @@ def score_benchmark(
             raise ArchitectureError(
                 f"Benchmark case {case_id} summary does not match first trial"
             )
+        if run_case.get("trials") and run_case.get("observed_decision") != trials[
+            0
+        ].get("observed_decision"):
+            raise ArchitectureError(
+                f"Benchmark case {case_id} decision summary does not match first trial"
+            )
         total_trials += len(trials)
         trial_actuals: list[dict[str, dict[str, Any]]] = []
+        trial_decisions: list[str] = []
         fixture = require_within_root(
             ground_truth_path.parent.parent,
             ground_truth_path.parent.parent / run_case["fixture"],
@@ -4082,10 +4650,67 @@ def score_benchmark(
                 if any(forbidden.lower() in value for value in recommendations)
             )
             durations.append(trial["duration_seconds"])
-            usage = trial.get("usage", {})
-            input_tokens += usage.get("input_tokens", 0)
-            output_tokens += usage.get("output_tokens", 0)
-            cost_usd += usage.get("cost_usd", 0.0)
+            usage = trial.get("usage")
+            if usage is not None:
+                usage_trials += 1
+                input_tokens += usage.get("input_tokens", 0)
+                output_tokens += usage.get("output_tokens", 0)
+                cost_usd += usage.get("cost_usd", 0.0)
+            expected_decision = expected_case.get("expected_decision")
+            actual_decision = trial.get("observed_decision")
+            if expected_decision is not None:
+                decision_trials += 1
+                if actual_decision is None:
+                    trial_decisions.append("<missing>")
+                    required_tradeoffs_total += len(
+                        expected_decision["required_tradeoffs"]
+                    )
+                    required_knowledge_total += len(
+                        expected_decision["required_knowledge_ids"]
+                    )
+                    rejection_explanation_values.append(0.0)
+                    migration_actionability_values.append(
+                        float(expected_decision["minimum_migration_slices"] == 0)
+                    )
+                    continue
+                selected = actual_decision["selected_option"]
+                trial_decisions.append(selected)
+                accepted = {
+                    expected_decision["selected_option"],
+                    *expected_decision.get("acceptable_options", []),
+                }
+                correct_decisions += int(selected in accepted)
+                overdesign_decisions += int(
+                    selected in set(expected_decision["overdesign_options"])
+                )
+                expected_tradeoffs = set(expected_decision["required_tradeoffs"])
+                actual_tradeoffs = set(actual_decision["compared_tradeoffs"])
+                required_tradeoffs_total += len(expected_tradeoffs)
+                required_tradeoffs_seen += len(expected_tradeoffs & actual_tradeoffs)
+                cited_knowledge = set(actual_decision["knowledge_ids"])
+                knowledge_citations += len(cited_knowledge)
+                valid_knowledge_citations += len(
+                    cited_knowledge & set(benchmark_knowledge)
+                )
+                expected_knowledge = set(expected_decision["required_knowledge_ids"])
+                required_knowledge_total += len(expected_knowledge)
+                required_knowledge_seen += len(expected_knowledge & cited_knowledge)
+                minimum_rejections = expected_decision["minimum_rejected_options"]
+                rejection_explanation_values.append(
+                    min(
+                        len(actual_decision["rejected_options"]) / minimum_rejections,
+                        1.0,
+                    )
+                )
+                minimum_slices = expected_decision["minimum_migration_slices"]
+                migration_actionability_values.append(
+                    min(
+                        len(actual_decision["migration_slices"]) / minimum_slices,
+                        1.0,
+                    )
+                    if minimum_slices
+                    else 1.0
+                )
         for left_index, left in enumerate(trial_actuals):
             for right in trial_actuals[left_index + 1 :]:
                 union = set(left) | set(right)
@@ -4096,10 +4721,13 @@ def score_benchmark(
                     compared_severity_stability += 1
                     if left[rule_id]["severity"] == right[rule_id]["severity"]:
                         stable_severity += 1
+        for left_index, left in enumerate(trial_decisions):
+            for right in trial_decisions[left_index + 1 :]:
+                decision_stability_values.append(float(left == right))
 
     precision_denominator = true_positive + false_positive
     recall_denominator = true_positive + false_negative
-    return {
+    result = {
         "cases": len(truth_cases),
         "trials": total_trials,
         "true_positive": true_positive,
@@ -4131,10 +4759,51 @@ def score_benchmark(
         "mean_duration_seconds": (
             sum(durations) / len(durations) if durations else 0.0
         ),
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
-        "cost_usd": cost_usd,
+        "usage_trials": usage_trials,
+        "input_tokens": input_tokens if usage_trials else None,
+        "output_tokens": output_tokens if usage_trials else None,
+        "cost_usd": cost_usd if usage_trials else None,
+        "decision_trials": decision_trials,
+        "recommendation_accuracy": (
+            correct_decisions / decision_trials if decision_trials else 1.0
+        ),
+        "overdesign_rate": (
+            overdesign_decisions / decision_trials if decision_trials else 0.0
+        ),
+        "tradeoff_coverage": (
+            required_tradeoffs_seen / required_tradeoffs_total
+            if required_tradeoffs_total
+            else 1.0
+        ),
+        "knowledge_citation_validity": (
+            valid_knowledge_citations / knowledge_citations
+            if knowledge_citations
+            else float(not decision_trials)
+        ),
+        "required_knowledge_coverage": (
+            required_knowledge_seen / required_knowledge_total
+            if required_knowledge_total
+            else 1.0
+        ),
+        "rejection_explanation_coverage": (
+            sum(rejection_explanation_values) / len(rejection_explanation_values)
+            if rejection_explanation_values
+            else 1.0
+        ),
+        "migration_actionability": (
+            sum(migration_actionability_values) / len(migration_actionability_values)
+            if migration_actionability_values
+            else 1.0
+        ),
+        "decision_stability": (
+            sum(decision_stability_values) / len(decision_stability_values)
+            if decision_stability_values
+            else 1.0
+        ),
     }
+    if provenance_summary is not None:
+        result["provenance"] = provenance_summary
+    return result
 
 
 def gate_result_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
@@ -4323,12 +4992,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Repository root used to resolve completion evidence.",
     )
 
+    validate_design_brief_parser = subparsers.add_parser(
+        "validate-design-brief",
+        help="Validate one Greenfield architecture design brief.",
+    )
+    validate_design_brief_parser.add_argument("path")
+
     validate_decision_parser = subparsers.add_parser(
         "validate-decision",
-        help="Validate one architecture decision and its source review.",
+        help="Validate a remediation or Greenfield architecture decision.",
     )
     validate_decision_parser.add_argument("path")
-    validate_decision_parser.add_argument("--review")
+    decision_source = validate_decision_parser.add_mutually_exclusive_group()
+    decision_source.add_argument("--review")
+    decision_source.add_argument("--design-brief")
     validate_decision_parser.add_argument(
         "--project",
         help="Repository root used to validate Profile quality attributes.",
@@ -4405,10 +5082,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     decision_bindings_parser = subparsers.add_parser(
         "decision-bindings",
-        help="Print review and knowledge hashes for an architecture decision.",
+        help="Print source-context and knowledge hashes for an architecture decision.",
     )
     decision_bindings_parser.add_argument("--project", required=True)
-    decision_bindings_parser.add_argument("--review", required=True)
+    binding_source = decision_bindings_parser.add_mutually_exclusive_group(
+        required=True
+    )
+    binding_source.add_argument("--review")
+    binding_source.add_argument("--design-brief")
     decision_bindings_parser.add_argument(
         "--knowledge-selection",
         help=(
@@ -4423,6 +5104,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     benchmark_parser.add_argument("--ground-truth", required=True)
     benchmark_parser.add_argument("--run", required=True)
+    benchmark_parser.add_argument(
+        "--runtime-verification",
+        choices=["strict", "archived"],
+        default="strict",
+        help=(
+            "Require current-host runtime identity, or verify immutable archived "
+            "run/log bytes while reporting current-host mismatches."
+        ),
+    )
+    benchmark_parser.add_argument(
+        "--artifact-commit",
+        help="Git commit that immutably contains the run and execution log.",
+    )
+    benchmark_parser.add_argument(
+        "--output",
+        type=Path,
+        help="Also write the score as deterministic UTF-8 JSON.",
+    )
 
     gate = subparsers.add_parser(
         "gate",
@@ -4618,10 +5317,17 @@ def run(args: argparse.Namespace) -> int:
         )
         print("Architecture remediation plan is valid.")
         return 0
+    if args.command == "validate-design-brief":
+        validate_design_brief(Path(args.path).resolve())
+        print("Architecture design brief is valid.")
+        return 0
     if args.command == "validate-decision":
         validate_decision(
             Path(args.path).resolve(),
             review_path=Path(args.review).resolve() if args.review else None,
+            design_brief_path=(
+                Path(args.design_brief).resolve() if args.design_brief else None
+            ),
             require_accepted=args.require_accepted,
             repository_root=(Path(args.project).resolve() if args.project else None),
         )
@@ -4727,26 +5433,44 @@ def run(args: argparse.Namespace) -> int:
             project_root / ".architecture" / "profile.yaml",
             "project-profile.schema.json",
         )
-        review_path = Path(args.review)
-        if not review_path.is_absolute():
-            review_path = project_root / review_path
-        review_path = require_within_root(
-            project_root,
-            review_path,
-            "decision source review",
-        )
-        review = validate_review(
-            review_path,
-            rule_pack_ids=profile["project"]["rule_packs"],
-            strict_trust=True,
-            repository_root=project_root,
-        )
+        review: dict[str, Any] | None = None
+        design_brief_path: Path | None = None
+        review_path: Path | None = None
+        if args.review:
+            review_path = Path(args.review)
+            if not review_path.is_absolute():
+                review_path = project_root / review_path
+            review_path = require_within_root(
+                project_root,
+                review_path,
+                "decision source review",
+            )
+            review = validate_review(
+                review_path,
+                rule_pack_ids=profile["project"]["rule_packs"],
+                strict_trust=True,
+                repository_root=project_root,
+            )
+        else:
+            design_brief_path = Path(args.design_brief)
+            if not design_brief_path.is_absolute():
+                design_brief_path = project_root / design_brief_path
+            design_brief_path = require_within_root(
+                project_root,
+                design_brief_path,
+                "decision source design brief",
+            )
+            validate_design_brief(design_brief_path)
         if args.knowledge_selection:
-            selection_path = Path(args.knowledge_selection)
-        elif review["schema_version"] == "1.2":
+            selection_path: Path | None = Path(args.knowledge_selection)
+        elif review is not None and review["schema_version"] == "1.2":
             selection_path = Path(review["knowledge_selection"]["path"])
         else:
             selection_path = None
+        if design_brief_path is not None and selection_path is None:
+            raise ArchitectureError(
+                "Greenfield decision bindings require --knowledge-selection"
+            )
         if selection_path is not None:
             if not selection_path.is_absolute():
                 selection_path = project_root / selection_path
@@ -4760,9 +5484,7 @@ def run(args: argparse.Namespace) -> int:
                 "knowledge-selection.schema.json",
             )
             binding_result = {
-                "schema_version": "1.2",
-                "source_review": review["review"]["id"],
-                "source_review_sha256": file_sha256(review_path),
+                "schema_version": ("1.3" if design_brief_path is not None else "1.2"),
                 "knowledge_selection_path": selection_path.relative_to(
                     project_root
                 ).as_posix(),
@@ -4776,7 +5498,28 @@ def run(args: argparse.Namespace) -> int:
                     for item in selection["selection"]
                 ],
             }
+            if design_brief_path is not None:
+                binding_result.update(
+                    {
+                        "decision_kind": "greenfield",
+                        "source_context": design_brief_path.relative_to(
+                            project_root
+                        ).as_posix(),
+                        "source_context_sha256": file_sha256(design_brief_path),
+                    }
+                )
+            else:
+                if review is None or review_path is None:
+                    raise ArchitectureError("Missing decision source review")
+                binding_result.update(
+                    {
+                        "source_review": review["review"]["id"],
+                        "source_review_sha256": file_sha256(review_path),
+                    }
+                )
         else:
+            if review is None or review_path is None:
+                raise ArchitectureError("Missing decision source review")
             binding_result = {
                 "schema_version": "1.1",
                 "source_review": review["review"]["id"],
@@ -4795,8 +5538,14 @@ def run(args: argparse.Namespace) -> int:
         result = score_benchmark(
             Path(args.ground_truth).resolve(),
             Path(args.run).resolve(),
+            runtime_verification=args.runtime_verification,
+            artifact_commit=args.artifact_commit,
         )
-        print(json.dumps(result, indent=2, ensure_ascii=False))
+        rendered = json.dumps(result, indent=2, ensure_ascii=False)
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(f"{rendered}\n", encoding="utf-8")
+        print(rendered)
         return 0
     if args.command == "gate":
         review_path = Path(args.review) if args.review else None

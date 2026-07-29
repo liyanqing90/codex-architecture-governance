@@ -37,6 +37,24 @@ Every entry must satisfy
 `last_reviewed` is an evidence date, not a publication convenience. Never move
 it forward without inspecting the cited material.
 
+Generated entries must use `status: draft` and
+`curation.method: generated`. An active entry cannot carry generated
+provenance.
+
+Golden entries set `maturity: golden` and record a non-generated curation
+method, reviewer, and date. In addition to the common body contract:
+
+- decision guides define at least two named options, each with explicit
+  `Fit`, `Avoid`, `Cost`, and `Failure` fields;
+- styles and patterns define an operating model;
+- technology profiles define an operating model and capability boundaries;
+- reference architectures define component responsibilities and data flow;
+- every golden entry defines at least two claim IDs in `Claim map`;
+- every source declares the exact claim IDs it supports.
+
+The validator compares golden entries for high template similarity. Shared
+headings are expected; repeated generic mechanism prose is not.
+
 ## Required body
 
 Use one level-one title and all fourteen level-two sections:
@@ -91,7 +109,9 @@ python3 -m pytest tests/test_target_architecture.py
 
 The validator rejects invalid frontmatter, missing or shallow sections,
 duplicate IDs, duplicate aliases, unknown relationships, non-HTTPS sources,
-future review dates, stale entries, and forbidden placeholders.
+future review dates, stale entries, generated-active promotion, unsupported
+golden claims, shallow option analysis, template similarity, and forbidden
+placeholders.
 
 When adding selection triggers, add a focused case to
 `evals/knowledge-selection.yaml` and prove both expected inclusions and

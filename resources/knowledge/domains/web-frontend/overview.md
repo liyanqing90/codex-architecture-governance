@@ -16,8 +16,11 @@ last_reviewed: '2026-07-28'
 review_after_days: 90
 source_policy: stable-principles-plus-official-docs
 sources:
-- title: OpenAI Practical Guide to Building Agents
-  url: https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/
+- title: W3C Web Content Accessibility Guidelines
+  url: https://www.w3.org/TR/WCAG22/
+  authority: standard
+- title: MDN Web performance
+  url: https://developer.mozilla.org/en-US/docs/Web/Performance
   authority: official
 ---
 

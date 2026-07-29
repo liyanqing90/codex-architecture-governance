@@ -1,0 +1,241 @@
+schema_version: "1.2"
+review:
+  id: codex-architecture-governance-20260729-project-candidates
+  kind: project
+  workflow: project-architecture
+  subject:
+    id: codex-architecture-governance
+    name: Codex Architecture Governance
+    repository: .
+  performed_at: "2026-07-29T01:29:27+00:00"
+  commit: 4099c61341ed074997c8636c5e6870ee80b0777e
+  scope:
+    - .
+  verification_state: candidates
+  reviewers:
+    - architecture-auditor
+  profile: .architecture/profile.yaml
+  repository_identity: codex-architecture-governance
+  profile_sha256: f7f9c698a20660a6a3a952002638ce99a3004259f8a7ab0d13c72f79395a4afe
+  dirty_tree: false
+  rule_packs:
+    - id: project-core
+      version: "1.0.0"
+      sha256: b211d548ad5fe367b9dab8416051c43f3a206da81bd2a8e7596cd788ed3f100c
+    - id: plugin-platform
+      version: "1.0.0"
+      sha256: 7ae17488df7a78ce1b857d3f842bd51b87de4ec30576fbe250cfa991472b3700
+    - id: test-automation-platform
+      version: "1.0.0"
+      sha256: 23efb3c02cd9e4e2ec2cb83d1505b30dd780aff2a9ac7157506b361cb783c5aa
+  scope_manifest:
+    - .
+summary:
+  architecture: >-
+    A local-first Codex plugin composed of eight workflow Skills, versioned
+    knowledge and Rule Packs, strict YAML/JSON contracts, and a deterministic
+    Python CLI for inspection, verification, decision support, policy gates,
+    behavior evaluation, and release packaging.
+  raw_findings: 1
+  confirmed: 0
+  rejected: 0
+  needs_evidence: 0
+coverage:
+  - {rule_id: PROJECT.BOUNDARY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPENDENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.COHESION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.FRONTEND.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DATA.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OWNERSHIP.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONTRACT.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.TRANSACTION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.IDEMPOTENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.RELIABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.STATE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.SECURITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PRIVACY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OBSERVABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONFIG.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PERFORMANCE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.TEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPLOY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CHANGE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEBT.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DESIGN.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.MANIFEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.AUTHORITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.ISOLATION.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.LIFECYCLE.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.SUPPLYCHAIN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.RUN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.ISOLATION.001, status: assessed, finding_ids: []}
+  - rule_id: TESTPLATFORM.EVIDENCE.001
+    status: assessed
+    finding_ids:
+      - CAG-EVIDENCE-001
+  - {rule_id: TESTPLATFORM.SCHEDULE.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.FLAKE.001, status: assessed, finding_ids: []}
+findings:
+  - id: CAG-EVIDENCE-001
+    fingerprint: d43af250fa7d5dfaa3c71aacfcb38202157804875ad49547bbcfde9be5cf6325
+    kind: strength
+    rule_id: TESTPLATFORM.EVIDENCE.001
+    title: Behavior benchmark evidence is source-resolved and reproducible
+    invariant: >-
+      Results bind code, environment, dependencies, configuration, artifacts,
+      logs, and runner version.
+    severity: info
+    confidence: 0.98
+    verification:
+      status: candidate
+      rationale: Awaiting an independent model verification of the source-bound evidence.
+    status: open
+    evidence:
+      - type: source
+        location: scripts/codex_benchmark_adapter.py:113
+        repository: .
+        commit: 4099c61341ed074997c8636c5e6870ee80b0777e
+        path: scripts/codex_benchmark_adapter.py
+        line_start: 113
+        line_end: 138
+        blob_sha: 36ee632d3a7cda629b52fddb0443addeea03c0cc
+        excerpt_sha256: 43c71c647e88d64b018b011b0a577271b6c7fec6edb6666b934d2a6baa234ed8
+        symbol: evidence_errors
+        observation: >-
+          Every reported evidence path must remain fixture-relative, readable,
+          within its declared line range, and contain the verbatim excerpt.
+        excerpt: "def evidence_errors(observation: dict, fixture: Path) -> list[str]:"
+        source_commit: 4099c61341ed074997c8636c5e6870ee80b0777e
+        freshness: current
+      - type: test
+        location: tests/test_behavior_benchmark.py:68
+        repository: .
+        commit: 4099c61341ed074997c8636c5e6870ee80b0777e
+        path: tests/test_behavior_benchmark.py
+        line_start: 68
+        line_end: 111
+        blob_sha: 6dc5a8f818da14daa8125cad1a6e3a0f24f02d81
+        excerpt_sha256: ff47944276185abc95e6b191b31316b4e0a6fb1401862494ac73446b39422de4
+        symbol: test_fixture_evidence_is_resolved_not_self_asserted
+        observation: >-
+          Tests accept a real fixture excerpt, reject a fabricated excerpt, and
+          scan all benchmark inputs for outcome-disclosing labels and phrases.
+        excerpt: "    def test_fixture_evidence_is_resolved_not_self_asserted(self) -> None:"
+        source_commit: 4099c61341ed074997c8636c5e6870ee80b0777e
+        freshness: current
+      - type: test
+        location: benchmarks/results/gpt-5.6-terra.yaml:1
+        repository: .
+        commit: 4099c61341ed074997c8636c5e6870ee80b0777e
+        path: benchmarks/results/gpt-5.6-terra.yaml
+        line_start: 1
+        line_end: 10
+        blob_sha: f670c9b7e2b2a2bbf28538472c0ac8f58ecf0eec
+        excerpt_sha256: 3f2ee4f09ccd16497b9ca8d5883f619381affa08a8768685c3b2e10e66cb35e8
+        observation: >-
+          The preserved run identifies schema 1.2, model gpt-5.6-terra,
+          Codex CLI surface 0.146.0-alpha.3.1, Skill version 0.4.0, run time,
+          and three repetitions.
+        excerpt: "  surface: codex-cli-0.146.0-alpha.3.1"
+        source_commit: 4099c61341ed074997c8636c5e6870ee80b0777e
+        freshness: current
+    impact:
+      affected_components:
+        - behavior-benchmark
+        - architecture-knowledge
+        - release-evidence
+      failure_mode: >-
+        If these bindings regress, self-asserted or stale model evidence can
+        inflate benchmark quality and hide unsupported findings.
+      blast_radius: >-
+        Architecture behavior claims and release decisions that consume the
+        affected benchmark run.
+    counter_evidence:
+      - Token and cost usage were unavailable from the Codex CLI surface and remain null.
+      - Required case-study coverage reached 0.7083 rather than full coverage in both model runs.
+    first_seen: "2026-07-29"
+    last_seen: "2026-07-29"
+    found_by:
+      - architecture-auditor
+    related_findings: []
+    quality_attribute_impacts:
+      - traceability
+      - reliability
+      - reproducibility
+    evidence_level: E4
+    evidence_fingerprint: 7513dd3e3f478e41dcd7451c0210f353f5a17a747681dfb31e91d8eb0b46a203
+    fact_inference_boundary:
+      facts:
+        - Source validation resolves paths, line ranges, and verbatim excerpts against fixture bytes.
+        - Tests reject fabricated excerpts and outcome-disclosing fixture content.
+        - Two preserved real-model runs each contain ten cases and three trials.
+      inferences:
+        - These controls materially reduce benchmark leakage and unsupported evidence claims.
+      unknowns:
+        - External clean-machine reproduction and GitHub-hosted CI results are not yet available for commit 4099c61.
+    applicability:
+      profile_conditions:
+        - The project is a test-automation and architecture-governance plugin with traceability as a critical quality.
+    source_candidate_ids:
+      - codex-architecture-governance-20260729-project-candidates
+    rule_pack_version: "1.0.0"
+    staleness_state: current
+    decision_references: []
+    tags:
+      - benchmark
+      - evidence
+      - traceability
+evidence_sources:
+  - scripts/codex_benchmark_adapter.py
+  - tests/test_behavior_benchmark.py
+  - benchmarks/results/gpt-5.6-terra.yaml
+  - benchmarks/results/gpt-5.6-sol.yaml
+  - benchmarks/reports/0.4.0-model-behavior.md
+limitations:
+  - GitHub-hosted CI and the release workflow have not yet run for commit 4099c61.
+  - No independent clean-machine installation has yet been recorded for v0.4.0.
+coverage_complete: true
+repository_facts:
+  path: .architecture/repository-facts.yaml
+  sha256: 3a209eba84442fadb3f2be34eec5398a6eeadad54832eff21931e4c8da3fbbf5
+knowledge_selection:
+  path: .architecture/knowledge-selection.yaml
+  sha256: a34b9e7a18871f7bad79c765ab65933be6563347c7a4f54992fe8136a65df3fe
+selected_knowledge:
+  - {id: foundation.evidence-reasoning, version: "1.0.0", sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: foundation.data-ownership, version: "1.0.0", sha256: 260f240ec9782f5a42a68481652912532cfcd6a0b07fdc5366d44388cc3d0204}
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: foundation.system-boundaries, version: "1.0.0", sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db}
+  - {id: domain.backend-api, version: "1.0.0", sha256: ea716865510106db441623d39045b2ca26f66c4424ed18fb15383938614ac4b4}
+  - {id: domain.cloud-native-platform, version: "1.0.0", sha256: 37ee84809a4162ff3e49a04a82433786efe762f7440dc5273232cb7b5b612c9c}
+  - {id: domain.data-platform, version: "1.0.0", sha256: 72dc109fdb28d74df5f947bf615017bd80d655a7e9c5b3fde7df53cff2fc6364}
+  - {id: domain.mobile, version: "1.0.0", sha256: 2ea2e6bc0a933063138793d9e3f657a100605f05411fc8fe4b1235b72f578a2b}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+  - {id: style.plugin-architecture, version: "1.0.0", sha256: 9d72e896b0154e8ee979474c6d47579889705c751a32a172f4b1b72bdef13a8a}
+  - {id: foundation.compatibility, version: "1.0.0", sha256: 17d8e8c8557969246fe2e9a62e8a645aeac171c9c9d2cbeb5d0bdfc27e51330b}
+  - {id: foundation.quality-attribute-scenario, version: "1.0.0", sha256: 5ac5810dc0f9f168080d03ee43270407bd8ed0945fafd73de32e0447c22ffe42}
+  - {id: foundation.tradeoff-analysis, version: "1.0.0", sha256: 058c9756ba4d9306f42e0fb49365aff3564f3545e103c05812040ce2c9f8b9d5}
+  - {id: migration.internal-extension-to-plugin, version: "1.0.0", sha256: a54900d935353aa5f91741743a936e2b7f2967fdbdfaecbce6cde6f7847215f2}
+critical_flow_coverage:
+  - id: plugin-discovery-and-skill-execution
+    status: assessed
+    reason: Manifest, Skill routing, references, validators, and package inventory were traced and tested.
+  - id: finding-verification-and-policy-enforcement
+    status: assessed
+    reason: Candidate-to-verified source chains, evidence resolution, decisions, plans, and gate states were traced and tested.
+  - id: architecture-knowledge-and-behavior-evaluation
+    status: assessed
+    reason: Provenance, selection, leakage controls, repeated model runs, and scoring outputs were traced and validated.
+  - id: greenfield-architecture-decision
+    status: assessed
+    reason: Design Brief 1.3 validation, knowledge binding, option comparison, and acceptance boundaries were traced and tested.
+  - id: safe-project-initialization
+    status: assessed
+    reason: Staging, validation, atomic installation, and overwrite refusal were traced and tested.
+  - id: deterministic-release-packaging
+    status: assessed
+    reason: Runtime allowlist, dependency lock, license policy, deterministic ZIP, checksum, and SPDX generation were traced and tested.
+unknowns:
+  - External adoption behavior and migration experience remain unknown until v0.4.0 is installed by downstream users.

@@ -7,6 +7,61 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-29
+
+### Added
+
+- Twenty-one curated golden knowledge entries with named options, concrete
+  operating mechanisms, failure and exit semantics, claim-to-source mappings,
+  and maintainer curation provenance.
+- A Greenfield Design Brief contract, template, validator, decision bindings,
+  and Architecture Decision schema `1.3` path that does not manufacture a
+  source review.
+- Solution-decision benchmark observations and scoring for recommendation
+  accuracy, over-design, trade-off coverage, knowledge citation validity,
+  rejected-option explanations, migration actionability, and stability.
+- A read-only Codex benchmark adapter with machine Rule IDs, canonical
+  decision vocabulary, structured-output validation, and one bounded
+  evidence-only correction that never receives ground truth.
+- Benchmark schema `1.4` provenance that binds source, environment,
+  dependencies, configuration, plugin manifest and Skill version, fixtures,
+  runner and adapter bytes, reconstructible command templates, exact trial
+  commands, external runtime fingerprints, and hash-verified execution logs.
+- A Git-bound archived benchmark verification mode for cross-platform
+  reviewers; strict current-runtime replay remains the default.
+- Severity- and stage-aware verification policy: critical V3, high V2,
+  medium/low V1, and V4 for risk acceptance and release.
+
+### Changed
+
+- Generated knowledge now defaults to draft and cannot become active without a
+  non-generated curation record.
+- Knowledge selection uses canonical domain IDs, includes `plugin-platform`,
+  labels required/recommended/optional context, performs bounded one-hop
+  relation expansion, and downweights generic reference-architecture matches.
+- Knowledge validation rejects golden entries that are template-similar,
+  omit named option trade-offs, or leave claims without authoritative sources.
+- Backend API and web frontend domain guidance now cites relevant HTTP,
+  OpenAPI, WCAG, and web-performance sources.
+- Adversarial fixture paths and prose are outcome-neutral, with a regression
+  test preventing expected decisions from leaking into model-visible inputs.
+- Benchmark scores distinguish absent usage telemetry from actual zero
+  token/cost consumption.
+- Base-commit gates now require re-review only when a classified critical or
+  security path changed after the reviewed commit; later governance-only
+  records no longer create an impossible review/HEAD self-reference.
+- An accepted `keep-current` decision with explicit migration slices,
+  rollback, validation, and exact affected-path coverage now satisfies
+  compatible migration governance without manufacturing a remediation plan
+  for a non-risk Finding.
+
+### Security
+
+- Greenfield decisions bind the exact Design Brief and knowledge-selection
+  bytes; remediation decisions retain verified-review provenance.
+- Persistent risk acceptance and release evidence can no longer rely on the
+  same global V1 verification floor as low-risk findings.
+
 ## [0.3.2] - 2026-07-29
 
 ### Fixed

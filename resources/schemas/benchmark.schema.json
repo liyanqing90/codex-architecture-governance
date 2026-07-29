@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "benchmark", "cases"],
   "properties": {
-    "schema_version": {"const": "1.1"},
+    "schema_version": {"enum": ["1.1", "1.2", "1.3", "1.4"]},
     "benchmark": {
       "type": "object",
       "additionalProperties": false,
@@ -19,7 +19,8 @@
         "surface": {"type": "string"},
         "skill_version": {"type": "string"},
         "run_at": {"type": "string", "format": "date-time"},
-        "repetitions": {"type": "integer", "minimum": 1, "maximum": 20}
+        "repetitions": {"type": "integer", "minimum": 1, "maximum": 20},
+        "provenance": {"$ref": "#/$defs/provenance"}
       }
     },
     "cases": {
@@ -50,6 +51,9 @@
           "forbidden_recommendations": {
             "type": "array",
             "items": {"type": "string", "minLength": 1}
+          },
+          "expected_decision": {
+            "$ref": "#/$defs/expectedDecision"
           },
           "observed_findings": {
             "type": "array",
@@ -82,6 +86,9 @@
             "type": "array",
             "items": {"type": "string"}
           },
+          "observed_decision": {
+            "$ref": "#/$defs/observedDecision"
+          },
           "trials": {
             "type": "array",
             "minItems": 1,
@@ -92,6 +99,124 @@
     }
   },
   "$defs": {
+    "expectedDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected_option",
+        "required_tradeoffs",
+        "overdesign_options",
+        "required_knowledge_ids",
+        "minimum_rejected_options",
+        "minimum_migration_slices"
+      ],
+      "properties": {
+        "selected_option": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "acceptable_options": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "required_tradeoffs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "overdesign_options": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "required_knowledge_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "minimum_rejected_options": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_migration_slices": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "observedDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected_option",
+        "compared_tradeoffs",
+        "knowledge_ids",
+        "rejected_options",
+        "migration_slices"
+      ],
+      "properties": {
+        "selected_option": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "compared_tradeoffs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "knowledge_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "rejected_options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "reason"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 10
+              }
+            }
+          }
+        },
+        "migration_slices": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 10
+          }
+        }
+      }
+    },
     "observedFinding": {
       "type": "object",
       "additionalProperties": false,
@@ -136,6 +261,12 @@
           "type": "array",
           "items": {"type": "string"}
         },
+        "observed_decision": {
+          "$ref": "#/$defs/observedDecision"
+        },
+        "execution": {
+          "$ref": "#/$defs/trialExecution"
+        },
         "usage": {
           "type": "object",
           "additionalProperties": false,
@@ -146,6 +277,258 @@
           }
         }
       }
+    },
+    "trialExecution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exit_code",
+        "command_sha256",
+        "stdout_sha256",
+        "stderr_sha256",
+        "observation_sha256",
+        "log_record_sha256"
+      ],
+      "properties": {
+        "exit_code": {"const": 0},
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string"}
+        },
+        "command_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "stdout_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "stderr_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "observation_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "log_record_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "environment",
+        "command_template_sha256",
+        "inputs",
+        "fixtures",
+        "tools",
+        "execution_log"
+      ],
+      "properties": {
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repository", "commit", "dirty"],
+          "properties": {
+            "repository": {"type": "string", "minLength": 1},
+            "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+            "dirty": {"type": "boolean"}
+          }
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "os",
+            "os_release",
+            "architecture",
+            "python_implementation",
+            "python_version"
+          ],
+          "properties": {
+            "os": {"type": "string", "minLength": 1},
+            "os_release": {"type": "string", "minLength": 1},
+            "architecture": {"type": "string", "minLength": 1},
+            "python_implementation": {"type": "string", "minLength": 1},
+            "python_version": {"type": "string", "minLength": 1}
+          }
+        },
+        "model_request": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command_template": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string"}
+        },
+        "command_template_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "runtime_executables": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"$ref": "#/$defs/runtimeExecutable"}
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 5,
+          "items": {"$ref": "#/$defs/provenanceInput"}
+        },
+        "fixtures": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["case_id", "path", "sha256", "file_count"],
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$"
+              },
+              "path": {"type": "string", "minLength": 1},
+              "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "file_count": {"type": "integer", "minimum": 1}
+            }
+          }
+        },
+        "tools": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "path", "sha256"],
+            "properties": {
+              "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+              "path": {"type": "string", "minLength": 1},
+              "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+            }
+          }
+        },
+        "execution_log": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "format", "sha256", "records"],
+          "properties": {
+            "path": {"type": "string", "minLength": 1},
+            "format": {"const": "jsonl"},
+            "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "records": {"type": "integer", "minimum": 1}
+          }
+        }
+      }
+    },
+    "provenanceInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "path", "sha256"],
+      "properties": {
+        "role": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "runtimeExecutable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "role",
+        "requested",
+        "resolved_name",
+        "resolved_path_sha256",
+        "executable_sha256",
+        "version_arguments",
+        "version_output",
+        "version_output_sha256"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "role": {"enum": ["command", "model"]},
+        "requested": {"type": "string", "minLength": 1},
+        "resolved_name": {"type": "string", "minLength": 1},
+        "resolved_path_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "executable_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "version_arguments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string"}
+        },
+        "version_output": {"type": "string", "minLength": 1},
+        "version_output_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"enum": ["1.3", "1.4"]},
+          "benchmark": {
+            "properties": {"kind": {"const": "run"}},
+            "required": ["kind"]
+          }
+        },
+        "required": ["schema_version", "benchmark"]
+      },
+      "then": {
+        "properties": {
+          "benchmark": {"required": ["provenance"]},
+          "cases": {
+            "items": {
+              "required": ["trials"],
+              "properties": {
+                "trials": {
+                  "items": {"required": ["execution"]}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.4"},
+          "benchmark": {
+            "properties": {"kind": {"const": "run"}},
+            "required": ["kind"]
+          }
+        },
+        "required": ["schema_version", "benchmark"]
+      },
+      "then": {
+        "properties": {
+          "benchmark": {
+            "properties": {
+              "provenance": {
+                "required": [
+                  "model_request",
+                  "command_template",
+                  "runtime_executables"
+                ]
+              }
+            }
+          },
+          "cases": {
+            "items": {
+              "properties": {
+                "trials": {
+                  "items": {
+                    "properties": {
+                      "execution": {"required": ["command"]}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

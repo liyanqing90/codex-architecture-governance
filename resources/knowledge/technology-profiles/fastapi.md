@@ -1,7 +1,7 @@
 ---
 id: technology.fastapi
 kind: technology-profile
-version: 1.0.0
+version: 2.0.0
 status: active
 domains:
 - backend-api
@@ -10,73 +10,101 @@ triggers:
 - asgi
 quality_attributes:
 - maintainability
-related: []
+related:
+- domain.backend-api
+- decision.request-vs-background-job
 last_reviewed: '2026-07-28'
 review_after_days: 90
 source_policy: official-docs-required
 sources:
-- title: FastAPI Documentation
-  url: https://fastapi.tiangolo.com/
+- title: FastAPI features
+  url: https://fastapi.tiangolo.com/features/
   authority: official
+  supports:
+  - FASTAPI-OPENAPI
+- title: FastAPI async guidance
+  url: https://fastapi.tiangolo.com/async/
+  authority: official
+  supports:
+  - FASTAPI-ASYNC
 dynamic_facts: true
-version_range: Current supported stable releases; verify official documentation before a project
-  decision.
+version_range: Current supported stable releases; verify official documentation before a project decision.
+maturity: golden
+curation:
+  method: assisted-reviewed
+  reviewer: Codex Architecture Governance review
+  reviewed_at: '2026-07-28'
 ---
 
 # FastAPI
 
 ## Problem and intent
 
-Use FastAPI only for capabilities established by current official documentation and matched to a verified project requirement.
+Evaluate FastAPI as a Python API delivery adapter without letting framework conveniences define the application architecture.
 
 ## Mechanism
 
-Apply the mechanism at its owning boundary, keep authority and contracts explicit, and bind the choice to measurable scenarios rather than technology presence.
+Keep route functions thin: authenticate and validate, invoke an application use case, commit at an owned transaction boundary, and map typed results/errors to the HTTP contract.
+
+## Operating model
+
+FastAPI is an ASGI web framework that maps Python type annotations and dependency declarations to request validation, OpenAPI generation, and async or sync endpoint execution. The application still owns domain, transaction, authorization, and background-work boundaries.
+
+## Capability boundaries
+
+Use it for HTTP routing, validated request/response models, dependency composition, OpenAPI contracts, and ASGI integration. Do not treat dependencies as a service locator, background tasks as a durable job system, or Pydantic transport models as domain ownership.
 
 ## Fit when
 
-The project's language, runtime, deployment, and team constraints match FastAPI's operating model.
+The team owns Python/ASGI operations and values typed validation and OpenAPI for HTTP APIs.
 
 ## Avoid when
 
-A simpler existing dependency meets the requirement or the team cannot own FastAPI's lifecycle and failure modes.
+An existing framework already meets the need, CPU-bound work dominates the request path, or the team cannot operate Python packaging and ASGI lifecycle behavior.
 
 ## Required capabilities
 
-An accountable owner, explicit compatibility and failure semantics, proportional tests, observable outcomes, and an affordable operating model are required.
+Supported Python/runtime policy, pinned dependencies, explicit lifespan and resource ownership, request/response schemas, authorization at use-case boundaries, transaction policy, timeout/body limits, and integration/contract tests.
 
 ## Benefits
 
-The choice addresses the stated problem while keeping the reason, protected qualities, and governing evidence reviewable.
+Provides concise typed HTTP adapters and generated API documentation while retaining ordinary Python application structure.
 
 ## Costs and liabilities
 
-It adds implementation, migration, cognitive, and operational costs that must be compared with keeping the current design.
+Framework and validation-library upgrades can affect generated schemas and behavior; async code introduces cancellation and blocking-I/O obligations.
 
 ## Failure modes
 
-It fails when adopted from naming, popularity, or hypothetical scale without ownership, negative-path behavior, and acceptance evidence.
+Blocking calls inside async handlers, request-scoped transactions leaking, trusting validation as authorization, incompatible OpenAPI drift, in-process tasks lost on restart, and overly large dependency graphs.
 
 ## Alternatives
 
-Keep the current architecture with a local correction, or select the next simpler mechanism that satisfies the same quality scenario.
+Use the repository's current Python web framework, a smaller ASGI layer for minimal endpoints, or a non-Python stack when organizational ownership dominates.
 
 ## Migration and exit
 
-Introduce the new behavior behind a compatible boundary, observe a bounded cohort, preserve rollback, and remove the old path only after consumers and data are verified.
+Wrap one use case behind a FastAPI adapter, snapshot the OpenAPI contract, load-test sync/async dependencies, verify shutdown and transaction cleanup, then migrate routes without moving domain rules into handlers.
 
 ## Evidence to inspect
 
-Inspect the product scenario, owning code and configuration, consumers, persisted contracts, tests, runtime evidence when applicable, team capability, and cost boundary.
+Current Python stack, route/use-case separation, generated OpenAPI diff, dependency lifecycle, blocking-call traces, concurrency/load tests, transaction cleanup, security tests, and deployment shutdown logs.
 
 ## Evidence that changes the recommendation
 
-A simpler option meeting the same measurable outcome, missing operational ownership, incompatible consumers, or contrary runtime evidence changes the recommendation.
+Reject adoption when it duplicates a healthy framework or when measured runtime and team constraints do not fit; recheck current compatibility in official release documentation.
 
 ## Quality trade-offs
 
-Prioritize maintainability while explicitly recording effects on reliability, security, performance, maintainability, delivery speed, cost, and cognitive load.
+Developer speed and typed contracts trade against framework coupling, Python runtime limits, async correctness, and schema migration work.
+
+## Claim map
+
+- FASTAPI-OPENAPI: FastAPI uses Python types to validate data and generate OpenAPI-based documentation.
+- FASTAPI-ASYNC: FastAPI supports both async and normal path-operation functions with different execution behavior.
 
 ## Volatile facts
 
-Versions, support status, compatibility, security advisories, licensing, pricing, and service limits require current official confirmation; they are not timeless architecture facts.
+Runtime versions, limits, compatibility, security advisories, pricing, and licensing
+must be confirmed from the cited official source at decision time. The stable operating
+mechanism remains distinct from those current facts.

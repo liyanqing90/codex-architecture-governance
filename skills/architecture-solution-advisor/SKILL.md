@@ -1,6 +1,6 @@
 ---
 name: architecture-solution-advisor
-description: Compares architecture styles, patterns, technologies, and keep-current options for confirmed findings and explicit quality-attribute scenarios. Use after architecture verification when a project needs a target architecture, technology selection, ADR-like decision, tradeoff analysis, or a reasoned choice between monoliths, services, events, workflows, agent runtimes, mobile data models, or shared portfolio capabilities. Produces an architecture decision, not an implementation plan or code change.
+description: Compares architecture styles, patterns, technologies, and keep-current options for confirmed findings or an approved Greenfield design brief with explicit quality-attribute scenarios. Use after architecture verification for remediation, or before implementation for a new system, when a project needs a target architecture, technology selection, ADR-like decision, tradeoff analysis, or a reasoned choice between monoliths, services, events, workflows, agent runtimes, mobile data models, or shared portfolio capabilities. Produces an architecture decision, not an implementation plan or code change.
 ---
 
 # Advise an architecture solution
@@ -14,11 +14,25 @@ Read completely:
 
 - `../../resources/references/review-contract.md`;
 - `../../resources/references/solution-decision-contract.md`;
-- the verified review;
 - the project Profile, constraints, and critical flows;
-- the repository-facts and knowledge-selection artifacts bound to the Review;
 - `../../resources/knowledge/manifest.yaml`;
 - only Markdown entries selected for this decision.
+
+Choose exactly one source mode:
+
+- **Remediation:** read the verified review and the repository-facts and
+  knowledge-selection artifacts bound to that Review.
+- **Greenfield:** read a validated
+  `../../resources/schemas/architecture-design-brief.schema.json` artifact.
+  The brief, not an empty or manufactured review, supplies objectives, facts,
+  assumptions, unknowns, boundaries, critical flows, and quality scenarios.
+
+Validate a Greenfield brief before using it:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py validate-design-brief \
+  <repo>/.architecture/architecture-design-brief.yaml
+```
 
 Create a decision-specific selection rather than reusing unrelated audit
 context:
@@ -36,8 +50,9 @@ Read every selected Markdown entry completely. The selection must include each
 style, pattern, technology, reference architecture, and migration cited by an
 option.
 
-Stop when no confirmed unresolved finding, quality scenario, or decision
-authority exists. Do not invent scale, team, budget, compliance, or migration
+Stop when remediation has no confirmed unresolved finding, or Greenfield work
+has no approved design brief, measurable quality scenario, or decision
+authority. Do not invent scale, team, budget, compliance, or migration
 requirements.
 
 ## Decision workflow
@@ -80,8 +95,10 @@ Write:
 For a portfolio, use `.architecture-portfolio/reviews/`.
 
 Start from `../../resources/templates/architecture-decision.yaml`. Bind the
-decision to the verified review ID and SHA-256 and bind cited knowledge to the
-exact Markdown entry hashes:
+decision to either the verified review or the Greenfield design brief, and bind
+cited knowledge to exact Markdown entry hashes.
+
+For remediation:
 
 ```bash
 python3 ../../resources/scripts/architecture_tool.py decision-bindings \
@@ -90,11 +107,23 @@ python3 ../../resources/scripts/architecture_tool.py decision-bindings \
   --knowledge-selection <decision-knowledge-selection.yaml>
 ```
 
-Use only confirmed, non-resolved Finding IDs. Include at least three options,
+For Greenfield:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py decision-bindings \
+  --project <repo> \
+  --design-brief <architecture-design-brief.yaml> \
+  --knowledge-selection <decision-knowledge-selection.yaml>
+```
+
+Use schema 1.2 with only confirmed, non-resolved Finding IDs for remediation.
+Use schema 1.3 with `decision_kind: greenfield`, the design-brief path and
+SHA-256, and an empty `problem.finding_ids` list for Greenfield. Include at
+least three options,
 the full declared-quality effects and trade-off scorecard, hard eliminations,
 explicit rejection reasons for every nonselected option, known facts,
-assumptions, unknowns, compatible migration slices, rollback, and validation.
-Use Architecture Decision schema 1.2 for new decisions.
+assumptions, unknowns, compatible implementation or migration slices, rollback,
+and validation.
 
 Validate:
 
@@ -102,6 +131,9 @@ Validate:
 python3 ../../resources/scripts/architecture_tool.py validate-decision \
   <decision.yaml> --review <verified-review.yaml> --project <repo>
 ```
+
+For Greenfield, replace `--review` with
+`--design-brief <architecture-design-brief.yaml>`.
 
 Leave `decision.status: proposed` until an authorized decision maker accepts
 it. Do not implement or create a remediation plan in this workflow.

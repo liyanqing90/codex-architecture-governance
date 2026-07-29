@@ -13,7 +13,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.0"
+      "enum": ["1.0", "1.1"]
     },
     "selection": {
       "type": "array",
@@ -39,6 +39,9 @@
           "sha256": {
             "type": "string",
             "pattern": "^[a-f0-9]{64}$"
+          },
+          "priority": {
+            "enum": ["required", "recommended", "optional"]
           },
           "reasons": {
             "type": "array",
@@ -109,5 +112,33 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": "1.1"
+          }
+        },
+        "required": ["schema_version"]
+      },
+      "then": {
+        "properties": {
+          "selection": {
+            "items": {
+              "required": [
+                "id",
+                "version",
+                "path",
+                "sha256",
+                "priority",
+                "reasons"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
 }

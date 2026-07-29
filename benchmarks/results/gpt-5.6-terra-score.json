@@ -1,0 +1,70 @@
+{
+  "cases": 10,
+  "trials": 30,
+  "true_positive": 33,
+  "false_positive": 2,
+  "false_negative": 6,
+  "precision": 0.9428571428571428,
+  "recall": 0.8461538461538461,
+  "severity_agreement": 0.8787878787878788,
+  "evidence_validity": 1.0,
+  "forbidden_recommendation_hits": 0,
+  "finding_stability": 0.9,
+  "severity_stability": 0.75,
+  "mean_duration_seconds": 68.12450793183307,
+  "usage_trials": 0,
+  "input_tokens": null,
+  "output_tokens": null,
+  "cost_usd": null,
+  "decision_trials": 12,
+  "recommendation_accuracy": 0.9166666666666666,
+  "overdesign_rate": 0.0,
+  "tradeoff_coverage": 0.8055555555555556,
+  "knowledge_citation_validity": 1.0,
+  "required_knowledge_coverage": 0.7916666666666666,
+  "rejection_explanation_coverage": 1.0,
+  "migration_actionability": 1.0,
+  "decision_stability": 0.8333333333333334,
+  "provenance": {
+    "valid": true,
+    "source_commit": "ca63aa6e5d6785725232d5a344943d623f893ab4",
+    "source_dirty": false,
+    "execution_log_sha256": "353ad481c8da05613ff8bf88c5c01c30ccd694b776df7ea2a6b3c1f91079b07f",
+    "execution_log_records": 30,
+    "environment": {
+      "os": "Darwin",
+      "os_release": "27.0.0",
+      "architecture": "arm64",
+      "python_implementation": "CPython",
+      "python_version": "3.13.0"
+    },
+    "runtime_executables": [
+      {
+        "id": "command-executable",
+        "role": "command",
+        "requested": "./.venv/bin/python",
+        "resolved_name": "python3.13",
+        "resolved_path_sha256": "8221805af4e5bdefcc7d69093bd904cba19642372787acfe1a34390f0b03678f",
+        "executable_sha256": "76c73e25cdd69650a897648666e41c364940fbcff0d1176572a667d4d470ec9e",
+        "version_arguments": [
+          "--version"
+        ],
+        "version_output": "Python 3.13.0",
+        "version_output_sha256": "16a6debef74e616fddbc292531469a793f37a710a0a690090a984dc9598962ab"
+      },
+      {
+        "id": "model-runtime-1",
+        "role": "model",
+        "requested": "codex",
+        "resolved_name": "codex",
+        "resolved_path_sha256": "d3712054caa326dc142bbb3e63a8bf48febadab5cac36b5e76414112707a5029",
+        "executable_sha256": "6d8be49e49751554df16572369e636cbe02c84b208cad3dc35528c846eeca223",
+        "version_arguments": [
+          "--version"
+        ],
+        "version_output": "codex-cli 0.146.0-alpha.3.1",
+        "version_output_sha256": "aee29075dc6041f5ca7df82b89a3aeb5f0fd6fe6ba5d49d4549ec48b90e6dfcb"
+      }
+    ]
+  }
+}

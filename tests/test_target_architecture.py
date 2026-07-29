@@ -124,6 +124,63 @@ class TargetArchitectureTests(unittest.TestCase):
             len(selection["selection"]) + len(selection["excluded"]),
             205,
         )
+        priorities = {item["id"]: item["priority"] for item in selection["selection"]}
+        self.assertEqual(
+            priorities["foundation.evidence-reasoning"],
+            "required",
+        )
+        self.assertEqual(priorities["technology.fastapi"], "recommended")
+
+    def test_selector_uses_canonical_profile_domains_and_avoids_generic_reference(
+        self,
+    ) -> None:
+        selection = select_knowledge(
+            ROOT / ".architecture" / "repository-facts.yaml",
+            profile_path=ROOT / ".architecture" / "profile.yaml",
+            task="Review this plugin's architecture knowledge quality and contracts.",
+            skill="project-architecture-audit",
+            maximum_entries=24,
+        )
+        selected = {item["id"]: item["priority"] for item in selection["selection"]}
+
+        self.assertEqual(selected["domain.plugin-platform"], "required")
+        self.assertEqual(selected["domain.data-platform"], "required")
+        self.assertEqual(
+            selected["domain.test-automation-platform"],
+            "required",
+        )
+        self.assertNotIn("reference.multi-tenant-knowledge-base", selected)
+
+    def test_selector_expands_one_hop_as_optional_without_displacing_required(
+        self,
+    ) -> None:
+        selection = select_knowledge(
+            ROOT / ".architecture" / "repository-facts.yaml",
+            profile_path=None,
+            task="Review a bounded decision.",
+            skill="unregistered-test-skill",
+            maximum_entries=3,
+            includes=["decision.cache-strategy"],
+        )
+        selected = {item["id"]: item["priority"] for item in selection["selection"]}
+
+        self.assertEqual(selected["decision.cache-strategy"], "required")
+        self.assertEqual(selected["pattern.materialized-view"], "optional")
+        self.assertLessEqual(len(selected), 3)
+
+    def test_selector_does_not_route_generic_knowledge_token_to_reference(
+        self,
+    ) -> None:
+        selection = select_knowledge(
+            ROOT / ".architecture" / "repository-facts.yaml",
+            profile_path=None,
+            task="Review knowledge quality.",
+            skill="unregistered-test-skill",
+            maximum_entries=8,
+        )
+        selected = {item["id"] for item in selection["selection"]}
+
+        self.assertNotIn("reference.multi-tenant-knowledge-base", selected)
 
     def test_knowledge_tree_has_all_target_packs_and_entries(self) -> None:
         manifest, entries = validate_knowledge_tree(

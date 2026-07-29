@@ -25,8 +25,13 @@ Maintainers review them with every release that changes a public contract.
   validation. Review when the Codex packaging contract changes.
 - Artifact schemas and CLI exit codes are public contracts. Schema `1.0`
   remains readable; trusted `1.1` remains compatible; new project artifacts
-  use facts/selection-bound `1.2`. Compatible additions are preferred;
+  use facts/selection-bound `1.2`; Greenfield Decisions may use additive schema
+  `1.3` bound to a Design Brief. Compatible additions are preferred;
   incompatible changes require migration guidance.
+- Generated knowledge is draft-only. Golden active entries require reviewed
+  curation provenance, named option or operating-model depth, and source claim
+  mappings. Owner: maintainers. Source: the knowledge-entry schema and
+  validator.
 
 ## Security, privacy, and compliance
 
@@ -38,6 +43,9 @@ Maintainers review them with every release that changes a public contract.
 - Candidate model findings cannot block a build. Only schema-valid verified
   findings with complete Rule Pack coverage, provenance, evidence bindings,
   and authorized verification may enter the deterministic quality gate.
+- Verification floors are proportional to severity and authority. The
+  repository requires critical V3, high V2, medium/low V1, and V4 for release
+  or persistent risk acceptance.
 - Repository inspection may report observable technology and artifact facts
   but must never emit suitability, severity, or remediation conclusions.
 - Initialization may create `.architecture/` or `.architecture-portfolio/`

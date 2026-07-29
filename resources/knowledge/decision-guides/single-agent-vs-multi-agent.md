@@ -1,7 +1,7 @@
 ---
 id: decision.single-agent-vs-multi-agent
 kind: decision-guide
-version: 1.0.0
+version: 2.0.0
 status: active
 domains:
 - ai-agent
@@ -11,70 +11,111 @@ triggers:
 - handoff
 quality_attributes:
 - maintainability
-related: []
+related:
+- decision.workflow-vs-agent
+- foundation.proportional-design
 last_reviewed: '2026-07-28'
 review_after_days: 365
 source_policy: stable-principles-plus-official-docs
 sources:
-- title: OpenAI Agents SDK
-  url: https://openai.github.io/openai-agents-python/
+- title: OpenAI practical guide to building agents
+  url: https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/
   authority: official
+  supports:
+  - SINGLE-FIRST
+  - MULTI-PATTERNS
+maturity: golden
+curation:
+  method: assisted-reviewed
+  reviewer: Codex Architecture Governance review
+  reviewed_at: '2026-07-28'
 ---
 
-# Single Agent vs Multi-agent
+# Single-Agent vs Multi-Agent Orchestration
 
 ## Problem and intent
 
-Add agents only for distinct authority, context, ownership, or evaluation boundaries that one agent cannot safely serve.
+Choose one agent loop or multiple specialized agents from evaluation evidence, context/tool boundaries, ownership, and failure isolation.
 
 ## Mechanism
 
-Apply the mechanism at its owning boundary, keep authority and contracts explicit, and bind the choice to measurable scenarios rather than technology presence.
+A single agent owns the user context and chooses among tools. Multi-agent orchestration introduces typed delegation: a manager invokes specialists or a handoff transfers control, and every boundary constrains context, authority, result schema, and termination.
+
+## Options
+
+### Single agent with tools
+
+- Fit: One instruction hierarchy and context can handle the task reliably.
+- Avoid: Tool overlap or instruction complexity causes measured failures.
+- Cost: Prompt/tool growth and context management.
+- Failure: The agent selects the wrong similar tool or loses critical instructions.
+### Manager with specialist tools
+
+- Fit: Specialized tasks need separate context but one controller should retain authority.
+- Avoid: Delegation overhead exceeds the task or the manager cannot verify results.
+- Cost: Routing, schemas, nested latency/cost, and trace composition.
+- Failure: The manager trusts an unsupported specialist answer.
+### Peer handoffs
+
+- Fit: Different agents genuinely own separate conversational domains and control may transfer.
+- Avoid: A single user-facing authority or strong transaction boundary is required.
+- Cost: Handoff state, permission change, return path, and user clarity.
+- Failure: Context or authority disappears between peers and no agent owns completion.
 
 ## Fit when
 
-One agent may be overloaded by genuinely separate specialist contexts or handoff authority.
+At least one named option fits a measured quality scenario and the team can own its
+required failure and recovery behavior.
 
 ## Avoid when
 
-Multiple personas merely divide a deterministic workflow.
+The choice is driven only by a technology name, hypothetical scale, or a problem
+already solved by the current design.
 
 ## Required capabilities
 
-An accountable owner, explicit compatibility and failure semantics, proportional tests, observable outcomes, and an affordable operating model are required.
+Single-agent baseline, labeled routing and task evals, typed delegation, context minimization, tool/permission scopes, hop and budget limits, trace correlation, failure return, and accountable final owner.
 
 ## Benefits
 
-The choice addresses the stated problem while keeping the reason, protected qualities, and governing evidence reviewable.
+Preserves simple orchestration until specialization measurably improves quality or isolation.
 
 ## Costs and liabilities
 
-It adds implementation, migration, cognitive, and operational costs that must be compared with keeping the current design.
+Every agent boundary adds model calls, context transformation, evaluation combinations, and unclear accountability risk.
 
 ## Failure modes
 
-It fails when adopted from naming, popularity, or hypothetical scale without ownership, negative-path behavior, and acceptance evidence.
+Role-play agents without isolation value, delegation loops, contradictory instructions, authority escalation, context leakage, and final answers with no evidence owner.
 
 ## Alternatives
 
-Keep the current architecture with a local correction, or select the next simpler mechanism that satisfies the same quality scenario.
+Compare the current design and the named options—Single agent with tools, Manager with specialist tools, Peer handoffs—against the same
+quality scenarios; do not compare feature lists without operating consequences.
 
 ## Migration and exit
 
-Introduce the new behavior behind a compatible boundary, observe a bounded cohort, preserve rollback, and remove the old path only after consumers and data are verified.
+Benchmark the single agent first, extract the highest-confusion capability as one typed specialist, shadow its routing, compare quality/cost/latency, and stop if the gain is not material.
 
 ## Evidence to inspect
 
-Inspect the product scenario, owning code and configuration, consumers, persisted contracts, tests, runtime evidence when applicable, team capability, and cost boundary.
+Tool confusion matrix, instruction length, task clusters, context sensitivity, single-agent baseline, routing accuracy, hop count, cost, latency, and failure traces.
 
 ## Evidence that changes the recommendation
 
-A simpler option meeting the same measurable outcome, missing operational ownership, incompatible consumers, or contrary runtime evidence changes the recommendation.
+Keep one agent until evaluation shows a specific specialization or permission boundary that outweighs orchestration cost.
 
 ## Quality trade-offs
 
-Prioritize maintainability while explicitly recording effects on reliability, security, performance, maintainability, delivery speed, cost, and cognitive load.
+Specialization and isolation trade against latency, cost, context loss, routing errors, and accountability.
+
+## Claim map
+
+- SINGLE-FIRST: A single agent can gain capability incrementally by adding tools.
+- MULTI-PATTERNS: Multi-agent orchestration commonly uses manager or decentralized handoff patterns.
 
 ## Volatile facts
 
-Versions, support status, compatibility, security advisories, licensing, pricing, and service limits require current official confirmation; they are not timeless architecture facts.
+Product versions, protocol/library support, service limits, pricing, licensing, and
+security advisories must be rechecked in the cited official sources at decision time.
+The mechanisms and decision criteria above are maintained separately from those facts.

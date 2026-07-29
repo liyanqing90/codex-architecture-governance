@@ -34,9 +34,15 @@ time-bound and must not be represented as universal compatibility.
 
 - Schema `1.0` is readable history in 0.3.
 - Trusted schema `1.1` remains enforceable for 0.2 compatibility.
-- Schema `1.2` is the current project, AI-agent, mobile, Decision, and Plan
+- Schema `1.2` remains the current project, AI-agent, mobile, remediation
+  Decision, and Plan
   contract. It binds repository facts, selected Markdown knowledge, critical
   flows, evidence and Finding fingerprints, assumptions, and migrations.
+- Architecture Decision schema `1.3` adds an optional Greenfield path bound to
+  Design Brief schema `1.0`; schema `1.1` and `1.2` remediation artifacts remain
+  readable and enforceable.
+- Knowledge selection schema `1.1` adds context priority and preserves `1.0`
+  selection readability.
 - Aggregate Portfolio Reviews continue to use the trusted `1.1` portfolio
   contract in 0.3; per-project facts and selections are hash-bound evidence.
 - The 128 YAML knowledge entries remain read-only compatibility data. New
@@ -58,6 +64,7 @@ time-bound and must not be represented as universal compatibility.
   `1.0.0`; during `0.x`, they require explicit migration guidance and a minor
   release at minimum.
 
-See [the 0.3 migration guide](migrating-to-0.3.md). The
+See [the 0.4 migration guide](migrating-to-0.4.md) and
+[the 0.3 migration guide](migrating-to-0.3.md). The
 [0.2 migration guide](migrating-to-0.2.md) remains available for older
 artifacts.

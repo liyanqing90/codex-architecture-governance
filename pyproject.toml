@@ -10,6 +10,9 @@ extend-exclude = ["dist"]
 [tool.ruff.lint]
 select = ["B", "C4", "E", "F", "I", "PTH", "RUF", "SIM", "UP"]
 
+[tool.ruff.lint.per-file-ignores]
+"scripts/curate_golden_knowledge.py" = ["E501"]
+
 [tool.ruff.format]
 indent-style = "space"
 line-ending = "lf"

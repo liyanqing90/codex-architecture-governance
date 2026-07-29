@@ -18,17 +18,26 @@ from knowledge_model import KnowledgeEntry, validate_knowledge_tree
 RESOURCE_ROOT = Path(__file__).resolve().parent.parent
 KNOWLEDGE_ROOT = RESOURCE_ROOT / "knowledge"
 SCHEMA_ROOT = RESOURCE_ROOT / "schemas"
-DOMAIN_ID_MAP = {
+CANONICAL_DOMAIN_ID_MAP = {
     "ai-agent": "domain.ai-agent",
     "backend-api": "domain.backend-api",
-    "data": "domain.data-platform",
-    "delivery": "domain.cloud-native-platform",
-    "distributed-systems": "domain.cloud-native-platform",
-    "frontend": "domain.web-frontend",
+    "cloud-native-platform": "domain.cloud-native-platform",
+    "data-platform": "domain.data-platform",
+    "identity": "domain.identity",
     "mobile": "domain.mobile",
-    "reliability": "domain.real-time-system",
-    "security-privacy": "domain.identity",
-    "testing": "domain.test-automation-platform",
+    "plugin-platform": "domain.plugin-platform",
+    "real-time-system": "domain.real-time-system",
+    "test-automation-platform": "domain.test-automation-platform",
+    "web-frontend": "domain.web-frontend",
+}
+# Entry metadata and pre-1.1 profiles used these short domain names.  They are
+# normalized only for compatibility; quality names such as reliability or
+# security are deliberately not coerced into unrelated product domains.
+LEGACY_DOMAIN_ALIASES = {
+    "data": "data-platform",
+    "delivery": "cloud-native-platform",
+    "frontend": "web-frontend",
+    "testing": "test-automation-platform",
 }
 SKILL_REQUIRED = {
     "project-architecture-audit": (
@@ -98,6 +107,7 @@ GENERIC_TRIGGER_TOKENS = {
     "data",
     "design",
     "deterministic",
+    "knowledge",
     "platform",
     "runtime",
     "service",
@@ -135,6 +145,10 @@ def normalized_tokens(value: str) -> set[str]:
 
 def fact_ids(facts: dict[str, Any], field: str) -> set[str]:
     return {str(item["id"]) for item in facts.get(field, [])}
+
+
+def canonical_domain(value: str) -> str:
+    return LEGACY_DOMAIN_ALIASES.get(value, value)
 
 
 def select_knowledge(
@@ -195,28 +209,46 @@ def select_knowledge(
         )
     scores: dict[str, int] = dict.fromkeys(entries, 0)
     reasons: dict[str, set[str]] = {entry_id: set() for entry_id in entries}
+    priorities: dict[str, str] = dict.fromkeys(entries, "recommended")
 
-    def add(entry_id: str, score: int, reason: str) -> None:
+    def add(
+        entry_id: str,
+        score: int,
+        reason: str,
+        *,
+        priority: str = "recommended",
+    ) -> None:
         if entry_id not in entries or entry_id in excludes:
             return
         scores[entry_id] += score
         reasons[entry_id].add(reason)
+        priority_rank = {"optional": 0, "recommended": 1, "required": 2}
+        if priority_rank[priority] > priority_rank[priorities[entry_id]]:
+            priorities[entry_id] = priority
 
     for entry_id in SKILL_REQUIRED.get(skill, ()):
-        add(entry_id, 100, f"Required foundation or lens for {skill}.")
+        add(
+            entry_id,
+            100,
+            f"Required foundation or lens for {skill}.",
+            priority="required",
+        )
     for entry_id in includes:
-        add(entry_id, 1000, "Explicit caller include.")
+        add(entry_id, 1000, "Explicit caller include.", priority="required")
 
-    project_domains = set()
+    profile_domains: set[str] = set()
     if profile is not None:
-        project_domains.update(profile["project"].get("required_knowledge_domains", []))
-        project_domains.update(profile["project"].get("type", []))
+        profile_domains.update(
+            canonical_domain(str(item))
+            for item in profile["project"].get("required_knowledge_domains", [])
+        )
+    project_domains = set(profile_domains)
     frameworks = fact_ids(facts, "frameworks")
     storage = fact_ids(facts, "storage")
     infrastructure = fact_ids(facts, "infrastructure")
     languages = fact_ids(facts, "languages")
     if frameworks & {"react", "nextjs", "vue", "astro", "vite"}:
-        project_domains.add("frontend")
+        project_domains.add("web-frontend")
     if frameworks & {
         "aspnet-core",
         "django",
@@ -232,20 +264,22 @@ def select_knowledge(
     }:
         project_domains.add("ai-agent")
     if storage:
-        project_domains.add("data")
+        project_domains.add("data-platform")
     if languages & {"dart", "kotlin", "swift"}:
         project_domains.add("mobile")
     if infrastructure & {
-        "apache-kafka",
         "kubernetes",
-        "nats",
-        "rabbitmq",
     }:
-        project_domains.add("distributed-systems")
+        project_domains.add("cloud-native-platform")
     for domain in sorted(project_domains):
-        mapped = DOMAIN_ID_MAP.get(domain)
+        mapped = CANONICAL_DOMAIN_ID_MAP.get(domain)
         if mapped is not None:
-            add(mapped, 80, f"Project profile or detected facts require {domain}.")
+            add(
+                mapped,
+                80,
+                f"Project profile or detected facts require {domain}.",
+                priority="required" if domain in profile_domains else "recommended",
+            )
 
     for fact_id in sorted(frameworks | storage | infrastructure):
         technology_id = TECHNOLOGY_ALIASES.get(
@@ -275,10 +309,24 @@ def select_knowledge(
             for token in normalized_tokens(str(trigger))
         }
         matched = sorted((task_tokens & trigger_tokens) - negated_tokens)
-        entry_domains = set(entry.metadata["domains"])
+        entry_domains = {
+            canonical_domain(str(domain)) for domain in entry.metadata["domains"]
+        }
         matched_domains = sorted(entry_domains & project_domains)
         distinctive_matches = set(matched) - GENERIC_TRIGGER_TOKENS
-        if matched and (matched_domains or len(matched) >= 2 or distinctive_matches):
+        reference_match = (
+            entry.metadata["kind"] != "reference-architecture"
+            or (
+                bool(matched_domains)
+                and (len(distinctive_matches) >= 1 or len(set(matched)) >= 2)
+            )
+            or len(distinctive_matches) >= 2
+        )
+        if (
+            matched
+            and reference_match
+            and (matched_domains or len(matched) >= 2 or distinctive_matches)
+        ):
             add(
                 entry_id,
                 25 + min(len(matched), 4),
@@ -297,9 +345,18 @@ def select_knowledge(
         if score >= SELECTION_THRESHOLD and entry_id not in excludes
     ]
     candidates.sort(key=lambda item: (-item[1], item[0]))
+    profile_required = {
+        CANONICAL_DOMAIN_ID_MAP[domain]
+        for domain in profile_domains
+        if domain in CANONICAL_DOMAIN_ID_MAP
+    }
     mandatory = {
         entry_id
-        for entry_id in (*SKILL_REQUIRED.get(skill, ()), *includes)
+        for entry_id in (
+            *SKILL_REQUIRED.get(skill, ()),
+            *includes,
+            *profile_required,
+        )
         if entry_id in entries and entry_id not in excludes
     }
     if len(mandatory) > maximum_entries:
@@ -334,6 +391,24 @@ def select_knowledge(
         fallback = "foundation.evidence-reasoning"
         selected_ids = [fallback]
         reasons[fallback].add("Default evidence discipline fallback.")
+        priorities[fallback] = "required"
+
+    # Expand one hop only. Related entries are useful context, but never displace
+    # explicitly required or normally relevant entries and never bypass excludes.
+    seed_ids = list(selected_ids)
+    for seed_id in seed_ids:
+        if len(selected_ids) >= maximum_entries:
+            break
+        for related_id in entries[seed_id].metadata["related"]:
+            if (
+                related_id in excludes
+                or related_id in selected_ids
+                or len(selected_ids) >= maximum_entries
+            ):
+                continue
+            selected_ids.append(related_id)
+            priorities[related_id] = "optional"
+            reasons[related_id].add(f"One-hop relation from {seed_id}.")
 
     selected: list[dict[str, Any]] = []
     for entry_id in selected_ids:
@@ -344,6 +419,7 @@ def select_knowledge(
                 "version": entry.metadata["version"],
                 "path": entry.path.relative_to(KNOWLEDGE_ROOT).as_posix(),
                 "sha256": entry.sha256,
+                "priority": priorities[entry_id],
                 "reasons": sorted(reasons[entry_id]),
             }
         )
@@ -362,7 +438,7 @@ def select_knowledge(
             )
         excluded_records.append({"id": entry_id, "reason": reason})
     result = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "selection": selected,
         "excluded": excluded_records,
         "inputs": {

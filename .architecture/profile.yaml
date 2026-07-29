@@ -102,13 +102,13 @@ project:
       - Read legacy 1.0 and trusted 1.1 artifacts; require 1.2 for new project review chains.
   required_knowledge_domains:
     - backend-api
-    - data
-    - delivery
+    - data-platform
+    - cloud-native-platform
     - plugin-platform
-    - testing
+    - test-automation-platform
   repository_facts:
     path: .architecture/repository-facts.yaml
-    sha256: 04c165095edae6dd42d920bf69bb3ef229fabdcb32648d12e1e64a152f5805ea
+    sha256: bc5c2f3503938438a1ca81ae285142b1a444552b979af472028f17ebc6a12547
   profile_sources:
     detected:
       - .architecture/repository-facts.yaml
@@ -120,7 +120,7 @@ project:
         confidence: 1.0
         basis:
           - resources/scripts/architecture_tool.py
-          - benchmarks/fixtures/server-cache-mobile/Repository.swift
+          - benchmarks/fixtures/mobile-record-editor/Repository.swift
       - inference: Plugin, test automation, and architecture governance are declared product domains rather than dependency-derived technology facts.
         confidence: 1.0
         basis:

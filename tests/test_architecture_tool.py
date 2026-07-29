@@ -328,7 +328,7 @@ class ArchitectureToolTests(unittest.TestCase):
             "rationale": supplied["findings"][0]["verification"]["rationale"],
             "verified_by": verifier_identity,
             "verified_at": "2026-07-28T10:00:00+00:00",
-            "level": "V1",
+            "level": "V2",
             "verifier": {
                 "type": "agent",
                 "identity": verifier_identity,
@@ -646,7 +646,7 @@ class ArchitectureToolTests(unittest.TestCase):
 
     def test_repository_dogfood_configuration_is_valid(self) -> None:
         validated = architecture_tool.validate_project(ROOT)
-        self.assertEqual(len(validated), 8)
+        self.assertEqual(len(validated), 12)
 
     def test_evidence_provider_run_binds_and_revalidates_output(self) -> None:
         self.init_project()
@@ -881,6 +881,108 @@ class ArchitectureToolTests(unittest.TestCase):
         validated = architecture_tool.validate_plan(plan_path)
         self.assertEqual(validated["items"][0]["id"], "PLAN-DATA-001")
 
+    def test_greenfield_decision_binds_design_brief_without_fake_review(
+        self,
+    ) -> None:
+        config_root = self.init_project()
+        brief = architecture_tool.load_yaml(
+            ROOT / "resources" / "templates" / "architecture-design-brief.yaml"
+        )
+        brief["brief"].update(
+            {
+                "id": "DESIGN-BRIEF-TEST-001",
+                "authors": ["architecture-owner"],
+                "status": "approved",
+            }
+        )
+        brief["quality_scenarios"][0]["attribute"] = "recoverability"
+        brief_path = config_root / "architecture-design-brief.yaml"
+        self.write_yaml(brief_path, brief)
+        architecture_tool.validate_design_brief(brief_path)
+
+        facts_path = config_root / "repository-facts.yaml"
+        profile_path = config_root / "profile.yaml"
+        selection = architecture_tool.select_knowledge(
+            facts_path,
+            profile_path=profile_path,
+            task="Design the least-complex recoverable service boundary.",
+            skill="architecture-solution-advisor",
+            maximum_entries=16,
+            includes=[
+                "style.modular-monolith",
+                "pattern.feature-flag",
+                "technology.import-linter",
+                "migration.layered-monolith-to-modular",
+            ],
+        )
+        selection_path = config_root / "decision-knowledge-selection.yaml"
+        self.write_yaml(selection_path, selection)
+
+        decision = architecture_tool.load_yaml(
+            ROOT / "resources" / "templates" / "architecture-decision.yaml"
+        )
+        decision["schema_version"] = "1.3"
+        decision["decision"].pop("source_review")
+        decision["decision"].pop("source_review_sha256")
+        decision["decision"].update(
+            {
+                "id": "ADR-GREENFIELD-001",
+                "decision_kind": "greenfield",
+                "source_context": str(brief_path.relative_to(self.root)),
+                "source_context_sha256": architecture_tool.file_sha256(brief_path),
+                "knowledge_selection_path": str(selection_path.relative_to(self.root)),
+                "knowledge_selection_sha256": architecture_tool.file_sha256(
+                    selection_path
+                ),
+            }
+        )
+        decision["problem"]["quality_attributes"] = ["recoverability"]
+        decision["problem"]["finding_ids"] = []
+        for option in decision["options"]:
+            option["quality_attribute_effects"] = [
+                {
+                    "attribute": "recoverability",
+                    "effect": "improves",
+                    "rationale": (
+                        "The option has an explicit restart and rollback path."
+                    ),
+                }
+            ]
+        decision["knowledge_snapshot"] = [
+            {
+                "id": item["id"],
+                "version": item["version"],
+                "sha256": item["sha256"],
+            }
+            for item in selection["selection"]
+        ]
+        decision_path = config_root / "reviews" / "greenfield-decision.yaml"
+        self.write_yaml(decision_path, decision)
+
+        validated = architecture_tool.validate_decision(
+            decision_path,
+            design_brief_path=brief_path,
+            repository_root=self.root,
+        )
+        self.assertEqual(
+            validated["decision"]["decision_kind"],
+            "greenfield",
+        )
+
+        stale = copy.deepcopy(decision)
+        stale["decision"]["source_context_sha256"] = "0" * 64
+        stale_path = config_root / "reviews" / "stale-greenfield-decision.yaml"
+        self.write_yaml(stale_path, stale)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "source_context_sha256",
+        ):
+            architecture_tool.validate_decision(
+                stale_path,
+                design_brief_path=brief_path,
+                repository_root=self.root,
+            )
+
     def test_trusted_plan_requires_accepted_bound_decision(self) -> None:
         self.init_project()
         review_path = self.write_review()
@@ -1031,6 +1133,226 @@ class ArchitectureToolTests(unittest.TestCase):
             any(
                 "Public contract changes require" in failure
                 for failure in result["policy_failures"]
+            )
+        )
+
+    def test_base_change_accepts_review_before_governance_only_commits(self) -> None:
+        config_root = self.init_project()
+        policy_path = config_root / "gate-policy.yaml"
+        policy = architecture_tool.load_yaml(policy_path)
+        policy["change_requirements"]["critical_paths"] = ["critical.py"]
+        self.write_yaml(policy_path, policy)
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", str(policy_path)],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Set change policy"],
+            check=True,
+        )
+        base_commit = architecture_tool.current_git_commit(self.root)
+
+        (self.root / "critical.py").write_text("VALUE = 1\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", "critical.py"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Change critical path"],
+            check=True,
+        )
+        review_path = self.write_review(self.review("needs-evidence"))
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", ".architecture/reviews"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Record review"],
+            check=True,
+        )
+        (self.root / "governance-note.md").write_text(
+            "Review record follow-up.\n",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", "governance-note.md"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Document review"],
+            check=True,
+        )
+
+        result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="change",
+            base_commit=base_commit,
+        )
+
+        self.assertEqual(result["status"], "pass")
+        self.assertEqual(result["change_impacts"]["critical"], ["critical.py"])
+        self.assertFalse(
+            any(
+                "changed after the selected review" in failure
+                for failure in result["policy_failures"]
+            )
+        )
+        (self.root / "critical.py").write_text("VALUE = 2\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", "critical.py"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Change after review"],
+            check=True,
+        )
+        stale_result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="change",
+            base_commit=base_commit,
+        )
+        self.assertTrue(
+            any(
+                "changed after the selected review" in failure
+                for failure in stale_result["policy_failures"]
+            )
+        )
+
+    def test_keep_current_decision_covers_compatible_migration(self) -> None:
+        config_root = self.init_project()
+        policy_path = config_root / "gate-policy.yaml"
+        policy = architecture_tool.load_yaml(policy_path)
+        policy["change_requirements"].update(
+            {
+                "critical_paths": [],
+                "public_contract_paths": [],
+                "migration_paths": ["migration.yaml"],
+                "security_paths": [],
+            }
+        )
+        self.write_yaml(policy_path, policy)
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", str(policy_path)],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Set migration policy"],
+            check=True,
+        )
+        base_commit = architecture_tool.current_git_commit(self.root)
+
+        (self.root / "migration.yaml").write_text(
+            "schema_version: '1.1'\n",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", "migration.yaml"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Add migration"],
+            check=True,
+        )
+        review_path = self.write_review(self.review("needs-evidence"))
+        review = architecture_tool.load_yaml(review_path)
+
+        decision = architecture_tool.load_yaml(
+            ROOT / "resources" / "templates" / "architecture-decision.yaml"
+        )
+        decision["schema_version"] = "1.1"
+        decision["decision"].pop("knowledge_selection_path")
+        decision["decision"].pop("knowledge_selection_sha256")
+        decision["decision"].update(
+            {
+                "id": "ADR-TEST-MIGRATION",
+                "source_review": review["review"]["id"],
+                "source_review_sha256": architecture_tool.file_sha256(review_path),
+                "decision_makers": ["architecture-owner"],
+                "status": "accepted",
+            }
+        )
+        decision["problem"]["quality_attributes"] = ["recoverability"]
+        decision["problem"]["finding_ids"] = []
+        decision["migration"]["affected_paths"] = ["migration.yaml"]
+        decision["knowledge_snapshot"] = architecture_tool.decision_knowledge_snapshot()
+        for option in decision["options"]:
+            option["architecture_styles"] = [
+                value.removeprefix("style.") for value in option["architecture_styles"]
+            ]
+            option["quality_attribute_effects"] = [
+                {
+                    "attribute": "recoverability",
+                    "effect": "neutral",
+                    "rationale": (
+                        "The compatible migration retains current recovery behavior."
+                    ),
+                }
+            ]
+        decision_path = config_root / "reviews" / "2026-07-28-migration-decision.yaml"
+        self.write_yaml(decision_path, decision)
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", ".architecture/reviews"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Record migration review"],
+            check=True,
+        )
+
+        result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="change",
+            base_commit=base_commit,
+        )
+
+        self.assertEqual(result["status"], "pass")
+        self.assertEqual(result["change_impacts"]["migration"], ["migration.yaml"])
+        self.assertFalse(
+            any(
+                "Migration changes require" in failure
+                for failure in result["policy_failures"]
+            )
+        )
+        decision["migration"]["affected_paths"] = ["another-migration.yaml"]
+        self.write_yaml(decision_path, decision)
+        uncovered = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="change",
+            base_commit=base_commit,
+        )
+        self.assertTrue(
+            any(
+                "Migration changes require" in failure
+                for failure in uncovered["policy_failures"]
+            )
+        )
+
+        decision["migration"]["affected_paths"] = ["migration.yaml"]
+        decision["selected_option"] = "low-complexity-option"
+        decision["options"][0]["rejected_reasons"] = [
+            "The bounded structural option is now selected."
+        ]
+        decision["options"][1]["rejected_reasons"] = []
+        self.write_yaml(decision_path, decision)
+        non_keep_current = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="change",
+            base_commit=base_commit,
+        )
+        self.assertTrue(
+            any(
+                "Migration changes require" in failure
+                for failure in non_keep_current["policy_failures"]
             )
         )
 
@@ -1235,6 +1557,10 @@ class ArchitectureToolTests(unittest.TestCase):
     def test_accepted_risk_requires_authorized_two_party_registry(self) -> None:
         self.init_project()
         review_path = self.write_review()
+        policy_path = self.root / ".architecture" / "gate-policy.yaml"
+        policy = architecture_tool.load_yaml(policy_path)
+        policy["block"]["verification_levels"]["accepted_risk"] = "V2"
+        self.write_yaml(policy_path, policy)
         review = architecture_tool.load_yaml(review_path)
         review["findings"][0]["status"] = "accepted-risk"
         self.write_yaml(review_path, review)
@@ -1275,6 +1601,25 @@ class ArchitectureToolTests(unittest.TestCase):
             "separate accepter and approver",
         ):
             architecture_tool.validate_risk_acceptances(acceptance_path)
+
+    def test_tiered_policy_requires_v2_for_high_findings(self) -> None:
+        self.init_project()
+        review_path = self.write_review()
+        review = architecture_tool.load_yaml(review_path)
+        review["findings"][0]["verification"]["level"] = "V1"
+        self.write_yaml(review_path, review)
+
+        result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+        )
+
+        self.assertEqual(result["status"], "fail")
+        self.assertIn(
+            "verification level V1 is below required V2",
+            result["blocking"][0]["reason"],
+        )
 
     def test_future_risk_acceptance_does_not_suppress(self) -> None:
         self.init_project()
@@ -1395,13 +1740,22 @@ class ArchitectureToolTests(unittest.TestCase):
         )
 
     def test_empty_benchmark_run_scores_zero_positive_precision(self) -> None:
+        truth = architecture_tool.load_yaml(ROOT / "benchmarks" / "ground-truth.yaml")
+        expected_positive = sum(
+            finding["present"]
+            for case in truth["cases"]
+            for finding in case["expected_findings"]
+        )
         result = architecture_tool.score_benchmark(
             ROOT / "benchmarks" / "ground-truth.yaml",
             ROOT / "benchmarks" / "run-template.yaml",
         )
         self.assertEqual(result["precision"], 0.0)
         self.assertEqual(result["recall"], 0.0)
-        self.assertEqual(result["false_negative"], 10)
+        self.assertEqual(result["false_negative"], expected_positive)
+        self.assertEqual(result["usage_trials"], 0)
+        self.assertIsNone(result["input_tokens"])
+        self.assertIsNone(result["cost_usd"])
 
     def test_benchmark_scores_repeated_trial_stability(self) -> None:
         run = architecture_tool.load_yaml(ROOT / "benchmarks" / "run-template.yaml")
@@ -1422,10 +1776,67 @@ class ArchitectureToolTests(unittest.TestCase):
             ROOT / "benchmarks" / "ground-truth.yaml",
             run_path,
         )
+        truth = architecture_tool.load_yaml(ROOT / "benchmarks" / "ground-truth.yaml")
+        expected_positive = sum(
+            finding["present"]
+            for case in truth["cases"]
+            for finding in case["expected_findings"]
+        )
         self.assertEqual(result["trials"], 20)
-        self.assertEqual(result["false_negative"], 20)
+        self.assertEqual(result["false_negative"], expected_positive * 2)
         self.assertEqual(result["finding_stability"], 1.0)
         self.assertAlmostEqual(result["mean_duration_seconds"], 0.1)
+
+    def test_benchmark_scores_solution_decision_quality(self) -> None:
+        truth = architecture_tool.load_yaml(ROOT / "benchmarks" / "ground-truth.yaml")
+        run = architecture_tool.load_yaml(ROOT / "benchmarks" / "run-template.yaml")
+        expected = {
+            case["id"]: case["expected_decision"]
+            for case in truth["cases"]
+            if "expected_decision" in case
+        }
+        for case in run["cases"]:
+            decision = expected.get(case["id"])
+            if decision is None:
+                continue
+            case["observed_decision"] = {
+                "selected_option": decision["selected_option"],
+                "compared_tradeoffs": decision["required_tradeoffs"],
+                "knowledge_ids": decision["required_knowledge_ids"],
+                "rejected_options": [
+                    {
+                        "id": f"rejected-{index}",
+                        "reason": (
+                            "Current evidence does not justify this added complexity."
+                        ),
+                    }
+                    for index in range(
+                        1,
+                        decision["minimum_rejected_options"] + 1,
+                    )
+                ],
+                "migration_slices": [
+                    (
+                        "Validate the bounded option behind a reversible "
+                        "compatibility seam."
+                    )
+                    for _ in range(decision["minimum_migration_slices"])
+                ],
+            }
+        run_path = self.root / "solution-benchmark-run.yaml"
+        self.write_yaml(run_path, run)
+        result = architecture_tool.score_benchmark(
+            ROOT / "benchmarks" / "ground-truth.yaml",
+            run_path,
+        )
+
+        self.assertEqual(result["recommendation_accuracy"], 1.0)
+        self.assertEqual(result["overdesign_rate"], 0.0)
+        self.assertEqual(result["tradeoff_coverage"], 1.0)
+        self.assertEqual(result["knowledge_citation_validity"], 1.0)
+        self.assertEqual(result["required_knowledge_coverage"], 1.0)
+        self.assertEqual(result["rejection_explanation_coverage"], 1.0)
+        self.assertEqual(result["migration_actionability"], 1.0)
 
     def test_cli_json_preserves_policy_exit_code(self) -> None:
         self.init_project()
@@ -1457,7 +1868,32 @@ class ArchitectureToolTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(process.returncode, 0, process.stderr)
-        self.assertEqual(process.stdout.strip(), "architecture_tool.py 0.3.2")
+        self.assertEqual(process.stdout.strip(), "architecture_tool.py 0.4.0")
+
+    def test_benchmark_score_cli_can_preserve_json_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "score.json"
+            process = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT_PATH),
+                    "benchmark-score",
+                    "--ground-truth",
+                    str(ROOT / "benchmarks" / "ground-truth.yaml"),
+                    "--run",
+                    str(ROOT / "benchmarks" / "run-template.yaml"),
+                    "--output",
+                    str(output),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(process.returncode, 0, process.stderr)
+            self.assertEqual(
+                json.loads(output.read_text(encoding="utf-8")),
+                json.loads(process.stdout),
+            )
 
 
 if __name__ == "__main__":

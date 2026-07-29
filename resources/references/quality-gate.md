@@ -50,8 +50,10 @@ Stages are cumulative:
 - `contract`: schema, identity, provenance, hashes, roles, required review
   workflows, and exact coverage;
 - `finding`: confirmed risk policy and accountable suppressions;
-- `change`: Git ancestry/diff, public-contract governance, clean-tree,
-  signature, and evidence resolution;
+- `change`: Git ancestry/diff, public-contract governance, compatible migration
+  or active remediation planning, clean-tree, signature, and evidence
+  resolution. Governance-only commits may follow a review, but classified
+  critical or security paths may not change after the reviewed commit;
 - `release`: evidence-type quorum, accepted decision authority, and
   SHA-256-bound completion evidence.
 

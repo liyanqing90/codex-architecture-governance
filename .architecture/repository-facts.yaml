@@ -1,25 +1,25 @@
 schema_version: '1.0'
 repository:
   root: .
-  commit: ef23198cb5321187cc1585a1038fc80255a4a8fc
-  dirty: true
-  scanned_at: '2026-07-28T17:01:06.978489+00:00'
+  commit: 4099c61341ed074997c8636c5e6870ee80b0777e
+  dirty: false
+  scanned_at: '2026-07-29T01:25:38.113865+00:00'
   scope:
   - .
 languages:
 - id: python
   evidence:
-  - benchmarks/fixtures/benign-large-sqlite/catalog.py
-  - benchmarks/fixtures/conflicting-writers/store.py
-  - benchmarks/fixtures/document-code-conflict/payment.py
-  - benchmarks/fixtures/durable-approval-workflow/agent.py
-  - benchmarks/fixtures/injected-tool-authority/runtime.py
-  - benchmarks/fixtures/modular-monolith-healthy/app/accounts.py
-  - benchmarks/fixtures/modular-monolith-healthy/app/billing.py
-  - benchmarks/fixtures/queue-worker-sufficient/worker.py
-  - benchmarks/fixtures/shared-database-services/billing.py
-  - benchmarks/fixtures/shared-database-services/orders.py
-  - benchmarks/fixtures/single-agent-sufficient/agent.py
+  - benchmarks/fixtures/account-balance-updates/store.py
+  - benchmarks/fixtures/accounts-billing-application/app/accounts.py
+  - benchmarks/fixtures/accounts-billing-application/app/billing.py
+  - benchmarks/fixtures/desktop-sqlite-catalog/catalog.py
+  - benchmarks/fixtures/orders-billing-services/billing.py
+  - benchmarks/fixtures/orders-billing-services/orders.py
+  - benchmarks/fixtures/payment-approval-process/agent.py
+  - benchmarks/fixtures/payment-design-runtime/payment.py
+  - benchmarks/fixtures/render-job-processing/worker.py
+  - benchmarks/fixtures/research-assistant/agent.py
+  - benchmarks/fixtures/retrieval-payment-runtime/runtime.py
   - resources/scripts/architecture_tool.py
   - resources/scripts/build_project_profile.py
   - resources/scripts/fingerprint_artifact.py
@@ -30,6 +30,8 @@ languages:
   - resources/scripts/validate_coverage.py
   - resources/scripts/validate_knowledge.py
   - scripts/audit_licenses.py
+  - scripts/codex_benchmark_adapter.py
+  - scripts/curate_golden_knowledge.py
   - scripts/generate_sbom.py
   - scripts/generate_target_knowledge.py
   - scripts/migrate_legacy_knowledge.py
@@ -39,13 +41,14 @@ languages:
   - scripts/verify_checksum.py
   - tests/test_architecture_tool.py
   - tests/test_behavior_benchmark.py
+  - tests/test_codex_benchmark_adapter.py
   - tests/test_package_plugin.py
   - tests/test_repository_contract.py
   - tests/test_supply_chain.py
   - tests/test_target_architecture.py
 - id: swift
   evidence:
-  - benchmarks/fixtures/server-cache-mobile/Repository.swift
+  - benchmarks/fixtures/mobile-record-editor/Repository.swift
 frameworks: []
 storage: []
 interfaces: []

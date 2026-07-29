@@ -131,7 +131,12 @@ scorer independently resolve these references inside the fixture; a
 caller-supplied validity assertion is not trusted. Use a clean task per case
 and never include the ground-truth expectations in the model prompt. Each
 repetition launches a new command process; the harness records every trial
-rather than averaging model output before scoring.
+rather than averaging model output before scoring. For schema 1.3 runs it also
+writes a sibling JSONL execution log and binds its hash to the result. Each
+trial records hashes of the rendered command, stdout, stderr, normalized
+observation, and exact log record. Run-level provenance binds the clean source
+commit, execution environment, dependency lock, schemas, Ground Truth,
+Knowledge manifest, fixture trees, and runner/adapter bytes.
 
 The bundled Codex adapter constrains Finding IDs to the bundled machine Rule
 Packs and solution trade-offs to a documented atomic vocabulary. It performs
@@ -142,9 +147,11 @@ never ground truth or expected findings. A second invalid response fails the
 trial instead of being repaired or scored as valid.
 
 For release evidence, run at least two identified models with three fresh
-trials per case. Preserve both run YAML files and their score JSON. A failed or
-interrupted run remains evidence of the environment; it must not be rewritten
-as a passing model result.
+trials per case. Preserve each run YAML, sibling `*.log.jsonl`, and score JSON.
+The scorer resolves every provenance hash against the recorded source commit
+and rejects dirty relevant inputs. A failed or interrupted run leaves a
+hash-only execution-log record and must not be rewritten as a passing model
+result.
 
 ## Release evidence
 

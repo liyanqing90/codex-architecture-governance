@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
 import sys
 import tempfile
 import unittest
@@ -48,10 +50,66 @@ class BehaviorBenchmarkTests(unittest.TestCase):
                 ],
             )
             result = run_behavior_benchmark.run_benchmark(args)
+            log_path = output.with_suffix(".log.jsonl")
             self.assertEqual(len(result["cases"]), 10)
+            self.assertEqual(result["schema_version"], "1.3")
             self.assertEqual(result["benchmark"]["model"], "test-model")
+            provenance = result["benchmark"]["provenance"]
+            self.assertEqual(provenance["execution_log"]["records"], 10)
+            self.assertEqual(
+                provenance["execution_log"]["sha256"],
+                hashlib.sha256(log_path.read_bytes()).hexdigest(),
+            )
+            log_records = [
+                json.loads(line)
+                for line in log_path.read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertEqual(len(log_records), 10)
+            self.assertTrue(
+                all(
+                    "execution" in trial
+                    for case in result["cases"]
+                    for trial in case["trials"]
+                )
+            )
             self.assertTrue(
                 all(case["observed_findings"] == [] for case in result["cases"])
+            )
+
+    def test_failed_trial_preserves_a_hash_only_execution_log(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "failed.yaml"
+            args = Namespace(
+                root=ROOT,
+                ground_truth=ROOT / "benchmarks" / "ground-truth.yaml",
+                output=output,
+                model="test-model",
+                surface="pytest",
+                skill_version="0.4.0",
+                timeout=10,
+                repetitions=1,
+                command=[sys.executable, "-c", "raise SystemExit(7)"],
+            )
+            with self.assertRaisesRegex(RuntimeError, "trial 1 failed"):
+                run_behavior_benchmark.run_benchmark(args)
+            record = json.loads(
+                output.with_suffix(".log.jsonl").read_text(encoding="utf-8")
+            )
+            self.assertEqual(record["exit_code"], 7)
+            self.assertIsNone(record["observation"])
+            self.assertEqual(
+                set(record),
+                {
+                    "schema_version",
+                    "case_id",
+                    "trial_index",
+                    "duration_seconds",
+                    "exit_code",
+                    "command_sha256",
+                    "stdout_sha256",
+                    "stderr_sha256",
+                    "observation",
+                },
             )
 
     def test_command_placeholders_are_argument_safe(self) -> None:

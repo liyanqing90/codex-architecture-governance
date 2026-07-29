@@ -23,6 +23,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - A read-only Codex benchmark adapter with machine Rule IDs, canonical
   decision vocabulary, structured-output validation, and one bounded
   evidence-only correction that never receives ground truth.
+- Benchmark schema `1.3` provenance that binds source, environment,
+  dependencies, configuration, fixtures, runner and adapter bytes, and
+  hash-verified per-trial execution logs.
 - Severity- and stage-aware verification policy: critical V3, high V2,
   medium/low V1, and V4 for risk acceptance and release.
 

@@ -310,7 +310,11 @@ and migration actionability.
 The bundled Codex adapter limits outputs to machine Rule IDs and canonical
 atomic trade-offs. It allows one disclosed evidence-only correction when an
 initial path/line/excerpt citation is not verbatim; it never sends benchmark
-ground truth to the model.
+ground truth to the model. Schema 1.3 run artifacts also bind the source
+commit, relevant dirty state, execution environment, dependency lock,
+configuration schemas, fixture tree hashes, runner and adapter hashes, command
+template, and a hash-verified JSONL execution log. Interrupted trials leave a
+failure log instead of disappearing.
 
 The forward-test runner accepts a caller-supplied agent command:
 
@@ -324,6 +328,10 @@ python3 resources/scripts/architecture_tool.py benchmark-score \
   --ground-truth benchmarks/ground-truth.yaml --run benchmark-run.yaml \
   --output benchmark-score.json
 ```
+
+The runner writes `benchmark-run.log.jsonl` beside the YAML result. Preserve
+both files; the scorer rejects a missing, modified, incomplete, or
+source-inconsistent provenance chain.
 
 Version 0.4.0 preserves 60 real trials from two identified models on
 `codex-cli 0.146.0-alpha.3.1`, including non-perfect results and limitations.

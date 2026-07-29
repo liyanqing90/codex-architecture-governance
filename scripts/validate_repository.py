@@ -82,6 +82,8 @@ REQUIRED_FILES = (
     "resources/knowledge/manifest.yaml",
     "resources/schemas/knowledge-entry.schema.json",
     "resources/schemas/architecture-design-brief.schema.json",
+    "resources/schemas/benchmark.schema.json",
+    "resources/schemas/benchmark-observation.schema.json",
     "resources/schemas/knowledge-manifest.schema.json",
     "resources/schemas/knowledge-selection.schema.json",
     "resources/schemas/repository-facts.schema.json",

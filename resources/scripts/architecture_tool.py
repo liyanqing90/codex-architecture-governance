@@ -4041,6 +4041,222 @@ def benchmark_evidence_valid(fixture: Path, evidence: list[dict[str, Any]]) -> b
     return True
 
 
+def git_blob_bytes(root: Path, commit: str, path: str) -> bytes:
+    process = subprocess.run(
+        ["git", "-C", str(root), "show", f"{commit}:{path}"],
+        capture_output=True,
+        check=False,
+    )
+    if process.returncode != 0:
+        detail = process.stderr.decode("utf-8", errors="replace").strip()
+        raise ArchitectureError(
+            f"Benchmark provenance cannot resolve {path} at {commit}: {detail}"
+        )
+    return process.stdout
+
+
+def git_tree_manifest(
+    root: Path,
+    commit: str,
+    directory: str,
+) -> tuple[str, int]:
+    output = git_output(root, "ls-tree", "-r", "--name-only", commit, "--", directory)
+    paths = [path for path in output.splitlines() if path]
+    if not paths:
+        raise ArchitectureError(
+            f"Benchmark provenance fixture is empty at {commit}: {directory}"
+        )
+    prefix = directory.rstrip("/") + "/"
+    records = []
+    for path in paths:
+        if not path.startswith(prefix):
+            raise ArchitectureError(
+                f"Benchmark provenance fixture path escaped {directory}: {path}"
+            )
+        records.append(
+            {
+                "path": path[len(prefix) :],
+                "sha256": sha256_bytes(git_blob_bytes(root, commit, path)),
+            }
+        )
+    return canonical_sha256(records), len(records)
+
+
+def validate_benchmark_provenance(
+    *,
+    root: Path,
+    run_path: Path,
+    observed: dict[str, Any],
+) -> dict[str, Any] | None:
+    if observed["schema_version"] != "1.3":
+        return None
+    provenance = observed["benchmark"]["provenance"]
+    source = provenance["source"]
+    commit = source["commit"]
+    git_output(root, "cat-file", "-e", f"{commit}^{{commit}}")
+    if source["dirty"]:
+        raise ArchitectureError(
+            "Benchmark release evidence must originate from clean relevant inputs"
+        )
+
+    required_roles = {
+        "ground-truth",
+        "benchmark-schema",
+        "observation-schema",
+        "dependency-lock",
+        "knowledge-manifest",
+    }
+    inputs = provenance["inputs"]
+    roles = [item["role"] for item in inputs]
+    if len(roles) != len(set(roles)):
+        raise ArchitectureError("Benchmark provenance has duplicate input roles")
+    if not required_roles.issubset(roles):
+        missing = ", ".join(sorted(required_roles - set(roles)))
+        raise ArchitectureError(f"Benchmark provenance is missing inputs: {missing}")
+    for item in inputs:
+        actual = sha256_bytes(git_blob_bytes(root, commit, item["path"]))
+        if actual != item["sha256"]:
+            raise ArchitectureError(
+                f"Benchmark provenance input hash mismatch: {item['path']}"
+            )
+
+    tools = provenance["tools"]
+    tool_ids = [item["id"] for item in tools]
+    if len(tool_ids) != len(set(tool_ids)):
+        raise ArchitectureError("Benchmark provenance has duplicate tool IDs")
+    if "benchmark-runner" not in tool_ids:
+        raise ArchitectureError("Benchmark provenance is missing benchmark-runner")
+    if "codex-benchmark-adapter" not in tool_ids:
+        raise ArchitectureError(
+            "Benchmark provenance is missing codex-benchmark-adapter"
+        )
+    for item in tools:
+        actual = sha256_bytes(git_blob_bytes(root, commit, item["path"]))
+        if actual != item["sha256"]:
+            raise ArchitectureError(
+                f"Benchmark provenance tool hash mismatch: {item['path']}"
+            )
+
+    fixture_records = provenance["fixtures"]
+    fixture_ids = [item["case_id"] for item in fixture_records]
+    case_ids = [item["id"] for item in observed["cases"]]
+    if len(fixture_ids) != len(set(fixture_ids)) or set(fixture_ids) != set(case_ids):
+        raise ArchitectureError(
+            "Benchmark provenance fixtures do not match benchmark cases"
+        )
+    for item in fixture_records:
+        digest, file_count = git_tree_manifest(root, commit, item["path"])
+        if digest != item["sha256"] or file_count != item["file_count"]:
+            raise ArchitectureError(
+                f"Benchmark provenance fixture hash mismatch: {item['case_id']}"
+            )
+
+    log = provenance["execution_log"]
+    relative_log = Path(log["path"])
+    if relative_log.is_absolute() or ".." in relative_log.parts:
+        raise ArchitectureError("Benchmark execution log path must be run-relative")
+    log_path = require_within_root(
+        run_path.parent,
+        run_path.parent / relative_log,
+        "benchmark execution log",
+    )
+    if file_sha256(log_path) != log["sha256"]:
+        raise ArchitectureError("Benchmark execution log hash mismatch")
+    lines = log_path.read_text(encoding="utf-8").splitlines()
+    if len(lines) != log["records"]:
+        raise ArchitectureError("Benchmark execution log record count mismatch")
+
+    records: dict[tuple[str, int], tuple[dict[str, Any], str]] = {}
+    for line in lines:
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ArchitectureError(
+                f"Benchmark execution log is invalid JSONL: {exc}"
+            ) from exc
+        key = (record.get("case_id"), record.get("trial_index"))
+        if key in records:
+            raise ArchitectureError(
+                f"Benchmark execution log has duplicate record: {key}"
+            )
+        records[key] = (record, sha256_bytes(line.encode("utf-8")))
+
+    expected_records = sum(len(case.get("trials", [])) for case in observed["cases"])
+    if expected_records != len(records):
+        raise ArchitectureError(
+            "Benchmark execution log does not cover every preserved trial"
+        )
+    for case in observed["cases"]:
+        for trial in case["trials"]:
+            key = (case["id"], trial["index"])
+            if key not in records:
+                raise ArchitectureError(
+                    f"Benchmark execution log is missing {case['id']} trial "
+                    f"{trial['index']}"
+                )
+            record, record_sha256 = records[key]
+            execution = trial["execution"]
+            if record_sha256 != execution["log_record_sha256"]:
+                raise ArchitectureError(
+                    f"Benchmark log record hash mismatch: {case['id']} trial "
+                    f"{trial['index']}"
+                )
+            for field in (
+                "exit_code",
+                "command_sha256",
+                "stdout_sha256",
+                "stderr_sha256",
+            ):
+                if record.get(field) != execution[field]:
+                    raise ArchitectureError(
+                        f"Benchmark execution {field} mismatch: {case['id']} "
+                        f"trial {trial['index']}"
+                    )
+            observation = record.get("observation")
+            if not isinstance(observation, dict):
+                raise ArchitectureError(
+                    f"Benchmark execution observation is missing: {case['id']} "
+                    f"trial {trial['index']}"
+                )
+            if canonical_sha256(observation) != execution["observation_sha256"]:
+                raise ArchitectureError(
+                    f"Benchmark observation hash mismatch: {case['id']} trial "
+                    f"{trial['index']}"
+                )
+            normalized_findings = [
+                {
+                    "rule_id": finding["rule_id"],
+                    "severity": finding["severity"],
+                    "evidence": finding["evidence"],
+                }
+                for finding in trial["observed_findings"]
+            ]
+            if observation["observed_findings"] != normalized_findings:
+                raise ArchitectureError(
+                    f"Benchmark logged findings mismatch: {case['id']} trial "
+                    f"{trial['index']}"
+                )
+            if (
+                observation["observed_recommendations"]
+                != trial["observed_recommendations"]
+                or observation.get("observed_decision")
+                != trial.get("observed_decision")
+                or observation.get("usage") != trial.get("usage")
+            ):
+                raise ArchitectureError(
+                    f"Benchmark logged observation mismatch: {case['id']} trial "
+                    f"{trial['index']}"
+                )
+    return {
+        "valid": True,
+        "source_commit": commit,
+        "source_dirty": source["dirty"],
+        "execution_log_sha256": log["sha256"],
+        "execution_log_records": log["records"],
+        "environment": provenance["environment"],
+    }
+
+
 def score_benchmark(
     ground_truth_path: Path,
     run_path: Path,
@@ -4051,6 +4267,11 @@ def score_benchmark(
         raise ArchitectureError(f"{ground_truth_path} is not ground truth")
     if observed["benchmark"]["kind"] != "run":
         raise ArchitectureError(f"{run_path} is not a benchmark run")
+    provenance_summary = validate_benchmark_provenance(
+        root=ground_truth_path.parent.parent.resolve(),
+        run_path=run_path.resolve(),
+        observed=observed,
+    )
     for field in ("id", "version"):
         if truth["benchmark"][field] != observed["benchmark"][field]:
             raise ArchitectureError(
@@ -4274,7 +4495,7 @@ def score_benchmark(
 
     precision_denominator = true_positive + false_positive
     recall_denominator = true_positive + false_negative
-    return {
+    result = {
         "cases": len(truth_cases),
         "trials": total_trials,
         "true_positive": true_positive,
@@ -4348,6 +4569,9 @@ def score_benchmark(
             else 1.0
         ),
     }
+    if provenance_summary is not None:
+        result["provenance"] = provenance_summary
+    return result
 
 
 def gate_result_to_sarif(result: dict[str, Any]) -> dict[str, Any]:

@@ -488,7 +488,7 @@ inputs:
   task: Audit final 0.4.2 Selector Runtime Manifest, project/plugin commit separation,
     archived trust enforcement, context projection, Profile relevance, and portable
     quality gates.
-  facts_sha256: dd5cb09ba541c6ddfb1dee4b2c85dfb603c9941604d789cfab66a4025a8dd24c
+  facts_sha256: 291cc86d3c0ce3690cc41ea33bc764a0e64da731019fadec272a1a1916a47c3c
   maintainer_mode: false
   includes: []
   excludes:
@@ -499,8 +499,8 @@ inputs:
   - pattern.dead-letter-replay
   - technology.dependency-cruiser
   decision_intents: []
-  project_commit: 532f367a4f427903728f020be655dca694cd7077
-  profile_sha256: a70543dd83d7d4d9741adc821741cad2705fbcb66b9d98c59dc37ac9aa234541
+  project_commit: d48119c17576ce433dd81d7e61bccb366e8ecdc1
+  profile_sha256: 6d4427bcc6e9349b511da3d2707cb92a4e03c282730cc38b1c79ded04351c50d
 budget:
   maximum_entries: 24
   selected_entries: 10
@@ -570,4 +570,4 @@ selector:
   knowledge_tree_sha256: ea5888ea3e93fe76444d0aea171f6e9182878498e3909eaf74a940e69e5423be
   selection_policy_version: '1.0'
   replay_mode: creation-time-lock
-result_sha256: 6a01851ae7d49cbd110a2a3cd0fcb41231e17a0b3fe2a737968ba603676bf428
+result_sha256: fd199f81fac7fb20ab13c723c206a59c6549c05ada9484ad7bb56d7ce26bb2b8

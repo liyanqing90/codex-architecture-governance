@@ -7,7 +7,7 @@ decision:
   decision_makers:
     - architecture-owner
   status: accepted
-  knowledge_selection_path: .architecture/decision-knowledge-selection.yaml
+  knowledge_selection_path: .architecture/reviews/inputs/2026-07-29-legacy-decision-knowledge-selection.yaml
   knowledge_selection_sha256: 568a03be924d4339d7aa974bb67589f0a0577cee4df47591bee06e2aba914864
 problem:
   quality_attributes:

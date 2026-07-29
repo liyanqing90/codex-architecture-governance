@@ -1,183 +1,202 @@
-schema_version: '1.4'
+schema_version: '1.1'
 selection:
-- id: foundation.quality-attributes
-  version: 1.0.0
-  path: foundations/quality-attributes.md
-  sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680
-  kind: foundation
-  maturity: standard
-  priority: required
-  reasons:
-  - Required foundation or lens for project-architecture-audit.
-  - 'Task matches trigger(s): quality'
-- id: domain.plugin-platform
-  version: 1.0.0
-  path: domains/plugin-platform/overview.md
-  sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c
-  kind: domain
-  maturity: standard
-  priority: required
-  reasons:
-  - Project profile or detected facts require plugin-platform.
-  - 'Task matches trigger(s): plugin'
-- id: foundation.data-ownership
-  version: 1.0.0
-  path: foundations/data-ownership.md
-  sha256: 260f240ec9782f5a42a68481652912532cfcd6a0b07fdc5366d44388cc3d0204
-  kind: foundation
-  maturity: standard
-  priority: required
-  reasons:
-  - Required foundation or lens for project-architecture-audit.
-- id: foundation.evidence-reasoning
-  version: 1.0.0
-  path: foundations/evidence-reasoning.md
-  sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f
-  kind: foundation
-  maturity: standard
-  priority: required
-  reasons:
-  - Required foundation or lens for project-architecture-audit.
 - id: foundation.proportional-design
   version: 1.0.0
   path: foundations/proportional-design.md
   sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df
-  kind: foundation
-  maturity: standard
   priority: required
   reasons:
-  - Required foundation or lens for project-architecture-audit.
-- id: foundation.system-boundaries
+  - Explicit caller include.
+  - Required foundation or lens for architecture-solution-advisor.
+- id: migration.layered-monolith-to-modular
   version: 1.0.0
-  path: foundations/system-boundaries.md
-  sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db
-  kind: foundation
-  maturity: standard
+  path: migration-guides/layered-monolith-to-modular.md
+  sha256: 3017c377c06e2d19654ccf0b07f6431a1dfb5854e135ea8c4ec58117aab64bb9
   priority: required
   reasons:
-  - Required foundation or lens for project-architecture-audit.
+  - Explicit caller include.
+  - 'Task matches trigger(s): modular'
+- id: style.modular-monolith
+  version: 1.0.0
+  path: architecture-styles/modular-monolith.md
+  sha256: 3f97c548665d8e6c4159c5f6ecee4a5d099a2ac4def69fba2b0a5d6d6703c3c0
+  priority: required
+  reasons:
+  - Explicit caller include.
+  - 'Task matches trigger(s): modular'
+- id: style.microservices
+  version: 1.0.0
+  path: architecture-styles/microservices.md
+  sha256: 0533dbcda24b99313c8fe8fccd64ea2ce08bd020e60571ad561c04a800ececf6
+  priority: required
+  reasons:
+  - Explicit caller include.
+- id: technology.import-linter
+  version: 1.0.0
+  path: technology-profiles/import-linter.md
+  sha256: 8a1dd4ac1887df7f0236750899809449062448196851b76a86e3bd9979eb17ee
+  priority: required
+  reasons:
+  - Explicit caller include.
+- id: foundation.evolutionary-architecture
+  version: 1.0.0
+  path: foundations/evolutionary-architecture.md
+  sha256: 6f04262de0936a1cffca25b6cadf5e2b0e4b8e7aa6724292ba1d9fd314413f3f
+  priority: required
+  reasons:
+  - 'Entry domain matches project: cloud-native-platform'
+  - Required foundation or lens for architecture-solution-advisor.
+  - 'Task matches trigger(s): migration'
+- id: domain.plugin-platform
+  version: 1.0.0
+  path: domains/plugin-platform/overview.md
+  sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c
+  priority: required
+  reasons:
+  - Project profile or detected facts require plugin-platform.
+  - 'Task matches trigger(s): plugin'
+- id: foundation.quality-attributes
+  version: 1.0.0
+  path: foundations/quality-attributes.md
+  sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680
+  priority: required
+  reasons:
+  - Required foundation or lens for architecture-solution-advisor.
+- id: foundation.technology-selection
+  version: 1.0.0
+  path: foundations/technology-selection.md
+  sha256: 183032d368331cd7a3c47988a8f042be627dd5fd1104596d76516951ea0f5948
+  priority: required
+  reasons:
+  - Required foundation or lens for architecture-solution-advisor.
+- id: foundation.tradeoff-analysis
+  version: 1.0.0
+  path: foundations/tradeoff-analysis.md
+  sha256: 058c9756ba4d9306f42e0fb49365aff3564f3545e103c05812040ce2c9f8b9d5
+  priority: required
+  reasons:
+  - Required foundation or lens for architecture-solution-advisor.
+- id: domain.backend-api
+  version: 1.0.0
+  path: domains/backend-api/overview.md
+  sha256: ea716865510106db441623d39045b2ca26f66c4424ed18fb15383938614ac4b4
+  priority: required
+  reasons:
+  - Project profile or detected facts require backend-api.
+- id: domain.cloud-native-platform
+  version: 1.0.0
+  path: domains/cloud-native-platform/overview.md
+  sha256: 37ee84809a4162ff3e49a04a82433786efe762f7440dc5273232cb7b5b612c9c
+  priority: required
+  reasons:
+  - Project profile or detected facts require cloud-native-platform.
+- id: domain.data-platform
+  version: 1.0.0
+  path: domains/data-platform/overview.md
+  sha256: 72dc109fdb28d74df5f947bf615017bd80d655a7e9c5b3fde7df53cff2fc6364
+  priority: required
+  reasons:
+  - Project profile or detected facts require data-platform.
+- id: domain.mobile
+  version: 1.0.0
+  path: domains/mobile/overview.md
+  sha256: 2ea2e6bc0a933063138793d9e3f657a100605f05411fc8fe4b1235b72f578a2b
+  priority: recommended
+  reasons:
+  - Project profile or detected facts require mobile.
 - id: domain.test-automation-platform
   version: 1.0.0
   path: domains/test-automation-platform/overview.md
   sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016
-  kind: domain
-  maturity: standard
   priority: required
   reasons:
   - Project profile or detected facts require test-automation-platform.
-- id: foundation.quality-attribute-scenario
+- id: case-study.small-team-modular-saas
   version: 1.0.0
-  path: foundations/quality-attribute-scenario.md
-  sha256: 5ac5810dc0f9f168080d03ee43270407bd8ed0945fafd73de32e0447c22ffe42
-  kind: foundation
-  maturity: standard
+  path: case-studies/small-team-modular-saas.md
+  sha256: 358980e0bdd5b0a88b2288bd0e0f7f121bcdfa8d94719cb3de6511c3f2f51e97
   priority: recommended
   reasons:
-  - 'Task matches trigger(s): quality'
-- id: migration.internal-extension-to-plugin
-  version: 1.0.0
-  path: migration-guides/internal-extension-to-plugin.md
-  sha256: a54900d935353aa5f91741743a936e2b7f2967fdbdfaecbce6cde6f7847215f2
-  kind: migration-guide
-  maturity: standard
-  priority: recommended
-  reasons:
-  - 'Task matches trigger(s): plugin'
-- id: style.plugin-architecture
-  version: 1.0.0
-  path: architecture-styles/plugin-architecture.md
-  sha256: 9d72e896b0154e8ee979474c6d47579889705c751a32a172f4b1b72bdef13a8a
-  kind: architecture-style
-  maturity: standard
-  priority: recommended
-  reasons:
-  - 'Task matches trigger(s): plugin'
+  - 'Entry domain matches project: backend-api'
+  - 'Task matches trigger(s): modular'
 excluded:
 - id: anti-pattern.cache-without-invalidation
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: anti-pattern.distributed-monolith
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: anti-pattern.event-sourcing-for-crud
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: anti-pattern.multi-agent-for-workflow
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: anti-pattern.premature-generic-platform
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: anti-pattern.queue-as-default
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: anti-pattern.redis-everywhere
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: anti-pattern.repository-layer-everywhere
-  reason: Explicit caller exclusion.
+  reason: Domain-only relevance is below the selection threshold.
 - id: anti-pattern.shared-database-microservices
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: anti-pattern.websocket-for-rare-updates
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: case-study.queue-worker-before-workflow
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: case-study.server-cache-not-local-first
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: case-study.single-agent-is-sufficient
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: case-study.small-team-modular-saas
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: case-study.sqlite-is-appropriate
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: case-study.sse-task-progress
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.agent-orchestration-selection
-  reason: Explicit caller exclusion.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.build-vs-adopt
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.cache-strategy
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: decision.client-data-model-selection
-  reason: Explicit caller exclusion.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.data-loading-and-refresh
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: decision.data-store-selection
-  reason: Explicit caller exclusion.
-- id: decision.database-selection
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
+- id: decision.database-selection
+  reason: Domain-only relevance is below the selection threshold.
 - id: decision.integration-style-selection
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.layered-vs-modular-monolith
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: decision.local-first-vs-server-first
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: decision.message-system-selection
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.monolith-vs-microservices
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: decision.optimistic-vs-pessimistic-update
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: decision.polling-vs-sse-vs-websocket
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: decision.relational-vs-document-vs-graph
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: decision.request-vs-background-job
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: decision.rest-vs-graphql-vs-grpc
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: decision.single-agent-vs-multi-agent
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.ssr-vs-csr-vs-ssg
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.state-management
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: decision.sync-vs-async
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: decision.system-style-selection
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.workflow-vs-agent
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: domain.ai-agent
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: domain.backend-api
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: domain.cloud-native-platform
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: domain.data-platform
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: domain.desktop-application
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
@@ -188,8 +207,6 @@ excluded:
 - id: domain.iot-edge
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: domain.local-first-application
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: domain.mobile
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: domain.multi-tenant-saas
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
@@ -209,7 +226,9 @@ excluded:
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.compatibility
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: foundation.evolutionary-architecture
+- id: foundation.data-ownership
+  reason: Domain-only relevance is below the selection threshold.
+- id: foundation.evidence-reasoning
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.flexibility
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
@@ -220,8 +239,10 @@ excluded:
 - id: foundation.interaction-capability
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.maintainability
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: foundation.performance-efficiency
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+- id: foundation.quality-attribute-scenario
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.reliability
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
@@ -229,30 +250,28 @@ excluded:
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.security
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: foundation.technology-selection
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: foundation.tradeoff-analysis
+- id: foundation.system-boundaries
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.batch-to-incremental-stream
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: migration.cache-introduction
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.client-only-to-hybrid-rendering
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: migration.direct-write-to-outbox
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: migration.expand-contract-migration
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: migration.layered-monolith-to-modular
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
+- id: migration.internal-extension-to-plugin
+  reason: Relevant but outside the configured context budget.
 - id: migration.offset-to-cursor-pagination
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: migration.polling-to-sse
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: migration.queue-to-durable-workflow
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.server-first-to-offline-capable
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: migration.server-first-to-offline-first
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.shared-database-to-owned-data
@@ -262,15 +281,15 @@ excluded:
 - id: migration.single-region-to-multi-region
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.strangler-migration
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: migration.sync-to-event-integration
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.synchronous-to-background-job
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: pattern.anti-corruption-layer
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.api-aggregation
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: pattern.api-gateway
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.backend-for-frontend
@@ -280,7 +299,7 @@ excluded:
 - id: pattern.bulkhead
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.cache-aside
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: pattern.change-data-capture
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.circuit-breaker
@@ -288,15 +307,15 @@ excluded:
 - id: pattern.compensating-transaction
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.cqrs-event-sourcing
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: pattern.cursor-pagination
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: pattern.dead-letter-replay
-  reason: Explicit caller exclusion.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.expand-contract
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.feature-flag
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: pattern.idempotency-key
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.inbox
@@ -308,11 +327,11 @@ excluded:
 - id: pattern.load-shedding
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.materialized-view
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: pattern.outbox
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.read-replica
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: pattern.retry-timeout
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.retry-with-backoff
@@ -322,9 +341,9 @@ excluded:
 - id: pattern.schema-registry
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.sharding
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: pattern.stale-while-revalidate
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: pattern.strangler
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: reference.cell-based-saas
@@ -338,23 +357,23 @@ excluded:
 - id: reference.modular-monolith-service
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: reference.multi-tenant-knowledge-base
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: reference.multi-tenant-saas
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: reference.offline-first-mobile
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: reference.react-fastapi-postgresql
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: reference.real-time-stream-processing
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: reference.real-time-task-status
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: reference.retrieval-augmented-agent
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: reference.secure-plugin-host
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: reference.server-first-mobile-client
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: reference.web-queue-worker-ai
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.actor-model
@@ -362,7 +381,7 @@ excluded:
 - id: style.cell-based
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.clean-architecture
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: style.data-mesh
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.durable-workflow
@@ -373,16 +392,14 @@ excluded:
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.layered-monolith
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: style.microservices
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: style.modular-monolith
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.multi-tenant-saas
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.offline-first
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.pipe-and-filter
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
+- id: style.plugin-architecture
+  reason: Relevant but outside the configured context budget.
 - id: style.serverless
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.space-based
@@ -396,7 +413,7 @@ excluded:
 - id: technology.archunit
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.aspnet-core
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: technology.astro
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.aws-sqs
@@ -406,24 +423,22 @@ excluded:
 - id: technology.azure-durable-functions
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.caddy
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: technology.dapr
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.dapr-workflow
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.dependency-cruiser
-  reason: Explicit caller exclusion.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.django
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: technology.docker
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: technology.elasticsearch-opensearch
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.fastapi
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: technology.google-workflows
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: technology.import-linter
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.kubernetes
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
@@ -442,11 +457,11 @@ excluded:
 - id: technology.neo4j
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.nestjs
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: technology.nextjs
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.nginx
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: technology.openai-agents-sdk
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.opentelemetry
@@ -462,112 +477,34 @@ excluded:
 - id: technology.react
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.redis
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: technology.redis-streams
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: technology.redis-valkey
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.service-mesh
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.spring-boot
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: technology.spring-modulith
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.sqlite
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: technology.temporal
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.timescaledb
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.vite
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Domain-only relevance is below the selection threshold.
 - id: technology.vue
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 inputs:
-  skill: project-architecture-audit
-  task: Audit final 0.4.2 Selector Runtime Manifest, project/plugin commit separation,
-    archived trust enforcement, context projection, Profile relevance, and portable
-    quality gates.
+  skill: architecture-solution-advisor
+  task: Decide whether the local-first plugin architecture should remain, become more
+    modular internally, or move to hosted services; compare proportionality, maintainability,
+    operations, migration, and evolution.
   facts_sha256: dd5cb09ba541c6ddfb1dee4b2c85dfb603c9941604d789cfab66a4025a8dd24c
-  maintainer_mode: false
-  includes: []
-  excludes:
-  - anti-pattern.repository-layer-everywhere
-  - decision.agent-orchestration-selection
-  - decision.client-data-model-selection
-  - decision.data-store-selection
-  - pattern.dead-letter-replay
-  - technology.dependency-cruiser
-  decision_intents: []
-  project_commit: 532f367a4f427903728f020be655dca694cd7077
-  profile_sha256: a70543dd83d7d4d9741adc821741cad2705fbcb66b9d98c59dc37ac9aa234541
+  profile_sha256: 2ca1261674fef49fbae433a0c356e6857db7019dc91bd79f532a8671fd4bf0f1
 budget:
-  maximum_entries: 24
-  selected_entries: 10
-  per_kind:
-    foundation:
-      maximum_entries: 6
-      selected_entries: 6
-    domain:
-      maximum_entries: 10
-      selected_entries: 2
-    decision-guide:
-      maximum_entries: 3
-      selected_entries: 0
-    architecture-style:
-      maximum_entries: 2
-      selected_entries: 1
-    pattern:
-      maximum_entries: 2
-      selected_entries: 0
-    technology-profile:
-      maximum_entries: 3
-      selected_entries: 0
-    reference-architecture:
-      maximum_entries: 1
-      selected_entries: 0
-    migration-guide:
-      maximum_entries: 1
-      selected_entries: 1
-    anti-pattern:
-      maximum_entries: 1
-      selected_entries: 0
-    case-study:
-      maximum_entries: 1
-      selected_entries: 0
-selector:
-  contract_version: '1.1'
-  source:
-    repository: https://github.com/liyanqing90/codex-architecture-governance
-    commit: d48119c17576ce433dd81d7e61bccb366e8ecdc1
-    plugin_version: 0.4.2
-    plugin_manifest_sha256: 506dcb27f7f24cebb97f651455e37b942f8d516d0f3918ee9642fcb253ec8756
-  implementation_inputs:
-  - path: requirements-runtime.lock
-    sha256: 864b51ef5337742809db5eb96f2edd602799d364d4e076072d4b28f6f562cecb
-  - path: resources/scripts/select_knowledge.py
-    sha256: 9080a6bc34904333d4c1d4c8a4440b10f875a19dd393d5a0ed03348c1b00b47a
-  - path: resources/scripts/build_project_profile.py
-    sha256: e9d45d256aa391d49ca4e695778e14b30eb8e7d6828289b74dc0774032c55712
-  - path: resources/scripts/knowledge_model.py
-    sha256: 2e7cea590170e7bfcb6613541f194d6bed1067ebf3288d496bd420d1d768677c
-  - path: resources/schemas/repository-facts.schema.json
-    sha256: d4e95057ac7c0497f1f19d47bffe8d3c68dc165c38b2dee7f56e71b4c4eebd8d
-  - path: resources/schemas/project-profile.schema.json
-    sha256: 5108edc799679eb04e5a1fccf41324d9de295e4fdf78f2b8d0f8cddd72de96a4
-  - path: resources/schemas/knowledge-entry.schema.json
-    sha256: 3d803431f729c580e860f0bfb0fed1d59e9eb37678fd6ec45f6dbb3b86f2f69a
-  - path: resources/schemas/knowledge-manifest.schema.json
-    sha256: 397c1d77934bfb12176bedb35ecc16d1a927a2ad23163e9cea19cd2251db223d
-  - path: resources/schemas/knowledge-context.schema.json
-    sha256: ab48dbdd97d0c4019d1504a81fd4d69b44a087df6649d556edd9bb6e767ac527
-  - path: resources/schemas/knowledge-selection.schema.json
-    sha256: 600347c4ad9c0958f1cacdaa8550bc9e90fe706d6df7fab2938f1287b8c10331
-  - path: resources/schemas/selector-source.schema.json
-    sha256: 465a0f92b2644895b3ab272b5b640c21e29bb9dd311d6253af3e57b6ac13c0a7
-  implementation_bundle_sha256: e47c95fd0b41d82927acf5c47bbfb22d4b41d854832c86b5c913099c46de3b81
-  knowledge_manifest_sha256: 73797e90b8216cf970c13dc08a882e2facd1e6c45e3519d28d29e864a0025189
-  knowledge_tree_sha256: ea5888ea3e93fe76444d0aea171f6e9182878498e3909eaf74a940e69e5423be
-  selection_policy_version: '1.0'
-  replay_mode: creation-time-lock
-result_sha256: 6a01851ae7d49cbd110a2a3cd0fcb41231e17a0b3fe2a737968ba603676bf428
+  maximum_entries: 16
+  selected_entries: 16

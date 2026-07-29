@@ -1,6 +1,6 @@
 <p align="center">
   <img
-    src="docs/assets/brand/en/hengmu-banner.svg"
+    src="docs/assets/brand/en/hengmu-banner.png"
     width="100%"
     alt="Hengmu — evidence-backed architecture decisions, a Qingye open-source project"
   >

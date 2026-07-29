@@ -1,6 +1,6 @@
 <p align="center">
   <img
-    src="docs/assets/brand/zh-CN/hengmu-banner.svg"
+    src="docs/assets/brand/zh-CN/hengmu-banner.png"
     width="100%"
     alt="衡木——让每一个架构判断都有证据、有权衡、有去路；青野开源项目"
   >

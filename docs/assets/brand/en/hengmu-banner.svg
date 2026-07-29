@@ -1,23 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2172" height="724" viewBox="0 0 2172 724" role="img" aria-labelledby="title desc">
   <title id="title">Hengmu project banner</title>
-  <desc id="desc">Hengmu, evidence-backed architecture decisions, presented in the Qingye visual system.</desc>
+  <desc id="desc">Hengmu architecture governance in the Qingye Quiet Measure visual system.</desc>
   <rect width="2172" height="724" fill="#F4F2EC"/>
-  <path d="M0 0h54v724H0z" fill="#173FBE"/>
-  <g transform="translate(170 140)">
-    <rect width="444" height="444" rx="92" fill="#FFFFFF"/>
-    <path d="M92 148h260v56H92z" fill="#173FBE"/>
-    <path d="M205 148h34v56h-34z" fill="#FFFFFF"/>
-    <path d="m222 190 76 146H146z" fill="#161719"/>
-    <path d="m222 224 34 66h-68z" fill="#FFFFFF"/>
-    <path d="M108 126v100M336 126v100" fill="none" stroke="#161719" stroke-width="12"/>
-    <circle cx="222" cy="176" r="15" fill="#161719"/>
+
+  <rect x="154" y="98" width="16" height="16" fill="#173FBE"/>
+  <text x="194" y="116" fill="#173FBE" font-family="Menlo, Monaco, monospace" font-size="22" letter-spacing="3">QINGYE / 青野</text>
+
+  <text x="145" y="360" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="154" font-weight="700" letter-spacing="7">HENGMU</text>
+  <text x="154" y="430" fill="#6D7078" font-family="Songti SC, STSong, serif" font-size="30" letter-spacing="8">衡木 · ARCHITECTURE GOVERNANCE</text>
+
+  <text x="900" y="198" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="42" font-weight="400">Architecture decisions</text>
+  <text x="900" y="258" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="42" font-weight="400">with evidence and trade-offs,</text>
+  <text x="900" y="318" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="42" font-weight="400">and a path forward.</text>
+  <text x="902" y="388" fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="18" letter-spacing="2">LOCAL-FIRST · PROVENANCE-BOUND · DETERMINISTIC</text>
+
+  <path d="M862 490h640" fill="none" stroke="#D9D9D2" stroke-width="2"/>
+  <path d="M862 476v28M1082 480v20M1302 480v20M1502 476v28" fill="none" stroke="#6D7078" stroke-width="2"/>
+  <circle cx="862" cy="490" r="7" fill="#173FBE"/>
+  <circle cx="1082" cy="490" r="5" fill="#161719"/>
+  <circle cx="1302" cy="490" r="5" fill="#161719"/>
+  <circle cx="1502" cy="490" r="7" fill="#173FBE"/>
+  <g fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="17" letter-spacing="1.5">
+    <text x="862" y="544">EVIDENCE</text>
+    <text x="1082" y="544">VERIFY</text>
+    <text x="1302" y="544">DECIDE</text>
+    <text x="1502" y="544" text-anchor="end">REMEDIATE</text>
   </g>
-  <g fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
-    <text x="724" y="255" font-size="42" font-weight="600" letter-spacing="8">QINGYE OPEN SOURCE</text>
-    <text x="714" y="420" font-size="150" font-weight="700" letter-spacing="16">HENGMU</text>
-    <text x="724" y="512" font-size="42" font-weight="400" letter-spacing="1">Evidence-backed architecture decisions.</text>
+
+  <g transform="translate(1680 76)">
+    <path d="M232 250 82 532M232 250 382 532" fill="none" stroke="#161719" stroke-width="46" stroke-linecap="square"/>
+    <path d="M232 64v468" fill="none" stroke="#161719" stroke-width="46"/>
+    <path d="M0 180h464v66H0z" fill="#173FBE"/>
+    <path d="M209 180h46v66h-46z" fill="#161719"/>
   </g>
-  <path d="M724 570h1206" stroke="#D9D9D2" stroke-width="3"/>
-  <path d="M1714 570h216" stroke="#173FBE" stroke-width="12"/>
-  <text x="1930" y="632" text-anchor="end" fill="#6D7078" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="24" letter-spacing="3">MEASURE · VERIFY · DECIDE · REMEDIATE</text>
+
+  <text x="2018" y="650" text-anchor="end" fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="18" letter-spacing="2">HM / 003 · 2026</text>
 </svg>

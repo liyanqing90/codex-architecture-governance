@@ -1,11 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
   <title id="title">Hengmu project icon</title>
-  <desc id="desc">A Qingye-blue measuring beam balanced on an ink-black fulcrum, with a deliberate open joint for evidence and change.</desc>
-  <rect width="1024" height="1024" rx="208" fill="#F4F2EC"/>
-  <path d="M214 352h596v128H214z" fill="#173FBE"/>
-  <path d="M474 352h76v128h-76z" fill="#F4F2EC"/>
-  <path d="M512 448 680 760H344z" fill="#161719"/>
-  <path d="M512 520 588 664H436z" fill="#F4F2EC"/>
-  <path d="M246 304v224M778 304v224" fill="none" stroke="#161719" stroke-width="28" stroke-linecap="square"/>
-  <circle cx="512" cy="416" r="34" fill="#161719"/>
+  <desc id="desc">A Qingye-blue crossbeam joins an ink-black timber spine and two load paths, abstracting Heng and Mu into one structural mark.</desc>
+  <rect width="1024" height="1024" fill="#F4F2EC"/>
+  <path d="M512 410 286 838M512 410 738 838" fill="none" stroke="#161719" stroke-width="78" stroke-linecap="square"/>
+  <path d="M512 176v668" fill="none" stroke="#161719" stroke-width="78"/>
+  <path d="M164 310h696v112H164z" fill="#173FBE"/>
+  <path d="M473 310h78v112h-78z" fill="#161719"/>
 </svg>

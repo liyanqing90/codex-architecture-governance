@@ -33,12 +33,13 @@ redraw, rotate, restack, or alter its paths.
 
 ## Hengmu mark
 
-The Hengmu icon combines four ideas:
+The Hengmu icon combines two written ideas in one structural mark:
 
-1. a blue measuring beam for explicit architectural judgment;
-2. black end marks for scope and constraints;
-3. a dark fulcrum for trade-offs;
-4. an open center joint for evidence-driven change.
+1. the Qingye-blue horizontal member is the explicit measuring beam, `衡`;
+2. the ink-black spine and load paths abstract the timber structure, `木`.
+
+The mark is intentionally joinery rather than a literal scale, shield,
+building, or architecture diagram.
 
 Its visual philosophy is documented in
 [`design-philosophy.md`](design-philosophy.md). The SVG files are the

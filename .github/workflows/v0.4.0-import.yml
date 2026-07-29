@@ -1,0 +1,37 @@
+name: Import verified v0.4.0 history
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout publication bridge
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+
+      - name: Import verified history and remove bridge
+        env:
+          BUNDLE_URL: https://raw.githubusercontent.com/liyanqing90/codex-architecture-governance/v0.4.0-import/cag-v0.4.0.bundle
+          BUNDLE_SHA256: e071ed01bb6460a0327ec1a15ca2d5b8a8cdb879d2d9586c01ce6b56b4fdf4a5
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output /tmp/cag-v0.4.0.bundle "$BUNDLE_URL"
+          echo "$BUNDLE_SHA256  /tmp/cag-v0.4.0.bundle" | sha256sum --check --strict
+          git bundle verify /tmp/cag-v0.4.0.bundle
+          git fetch /tmp/cag-v0.4.0.bundle HEAD:refs/remotes/import/v0.4.0
+
+          bridge_sha="$GITHUB_SHA"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --detach refs/remotes/import/v0.4.0
+          git merge --no-ff "$bridge_sha" -m "chore: merge GitHub publication bridge"
+          git rm .github/workflows/v0.4.0-import.yml
+          git commit -m "chore: remove temporary publication bridge"
+          git push origin HEAD:main

@@ -15,6 +15,14 @@ Read these files completely:
 - `../../resources/references/quality-gate.md`
 - `../../resources/references/evidence-provider-contract.md`
 
+## Operating boundary
+
+Advisory work does not invoke a Gate. Governed and Enforced repositories may
+invoke it locally or in CI. A policy's `product_mode` is descriptive and never
+changes the result of an explicit Gate invocation. Ignore informational
+governance run manifests: they are trajectory metadata, not Reviews, Evidence
+Provider runs, approvals, signatures, or gate inputs.
+
 ## Procedure
 
 1. Locate the project `.architecture/` or portfolio

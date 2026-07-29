@@ -7,6 +7,64 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Consumption-time `validate-knowledge-context` checks for the Selection lock,
+  result hash, and exact ordered selected-entry projection.
+- CI and release ancestry checks for the Selector source and latest reviewed
+  implementation commits.
+
+### Changed
+
+- Git-verified archived Selection locks remain historically readable but can no
+  longer create new trusted Review, Decision, Plan, coverage, or Gate chains;
+  current deterministic replay is required.
+
+## [0.4.2] - 2026-07-29
+
+### Added
+
+- Repository-facts schema `1.1` roles, role-aware Profile/Knowledge routing,
+  and regression coverage so tests, examples, documentation, generated code,
+  vendor trees, and benchmark fixtures cannot infer product architecture.
+- Knowledge-selection schema `1.4` kind/maturity bindings, per-kind budgets,
+  a source-anchored complete Selector Runtime Input Manifest, distinct project
+  and plugin commits, current-runtime replay, safe archived Git-blob
+  verification, and rejection of unverifiable locks from trusted chains.
+- Compact model-facing Knowledge context sidecars that omit the full exclusion
+  ledger while binding its machine-facing selection lock by SHA-256.
+- Decision-intent namespaces for data-authority and plugin-runtime topology,
+  preventing ambiguous `local-first` wording from loading unrelated client
+  state guidance.
+- A schema `1.5` Base/Full/Compressed behavior-benchmark treatment manifest,
+  compact Skill assets, corpus-level declared-context proxy, and condition/
+  manifest-bound execution provenance.
+- Optional informational governance-run manifests and validation for high-risk
+  Governed/Enforced trajectory records. They are deliberately excluded from
+  the trusted Gate evidence chain.
+- Advisory, Governed, and Enforced operating-mode guidance, plus a 0.4.2
+  migration guide.
+- A failure-driven Knowledge curation policy: new Golden knowledge must trace
+  to a concrete decision-quality gap and add a representative regression.
+
+### Changed
+
+- The Solution Advisor Skill now keeps behavioral rules in its lean entry point
+  and moves artifact-command detail into a focused reference.
+- Gate policy schema `1.2` declares `product_mode`; its label cannot weaken or
+  bypass deterministic Gate outcomes.
+- Benchmark scoring reports tool-call telemetry when an invoked surface emits
+  it, and distinguishes missing field-level usage telemetry from zero.
+
+### Fixed
+
+- Historical Knowledge selections are no longer re-evaluated with a future
+  Selector or Knowledge tree; exact deterministic replay occurs only when the
+  recorded creation runtime still matches.
+- Python dependency inspection now parses normalized PEP 508 package names and
+  applies exact aliases, avoiding `nextcloud-client`, `agentscope`, and
+  `pgvector` substring false positives.
+
 ## [0.4.0] - 2026-07-29
 
 ### Added

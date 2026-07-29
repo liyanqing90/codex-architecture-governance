@@ -21,7 +21,15 @@ from typing import Any
 from build_project_profile import ProfileBuildError, build_profile, derive_domains
 from inspect_repository import InspectionError, inspect_repository
 from knowledge_model import KnowledgeError, validate_knowledge_tree
-from select_knowledge import SelectionError, select_knowledge
+from select_knowledge import (
+    SELECTOR_IMPLEMENTATION_PATHS,
+    SelectionError,
+    knowledge_context,
+    parse_kind_budget,
+    select_knowledge,
+    selection_result_sha256,
+    selector_provenance,
+)
 
 try:
     import yaml
@@ -55,7 +63,9 @@ VERIFICATION_LEVEL_ORDER = {
     "V4": 4,
     "V5": 5,
 }
-TOOL_VERSION = "0.4.0"
+TOOL_VERSION = "0.4.2"
+TRUSTED_POLICY_VERSIONS = {"1.1", "1.2"}
+BENCHMARK_TREATMENT_CONDITIONS = ("base", "full", "compressed")
 REVIEW_KIND_CORE_PACK = {
     "project": "project-core",
     "ai-agent": "ai-agent-core",
@@ -205,6 +215,556 @@ def validate_file(path: Path, schema_name: str) -> dict[str, Any]:
     data = load_yaml(path)
     validate_data(data, schema_name, path)
     return data
+
+
+def parse_timestamp(value: str, field: str) -> datetime:
+    """Parse one schema-validated RFC 3339 timestamp with an explicit offset."""
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ArchitectureError(f"Invalid timestamp for {field}: {value}") from exc
+    if parsed.tzinfo is None:
+        raise ArchitectureError(f"Timestamp for {field} must include a timezone")
+    return parsed
+
+
+def validate_governance_run(
+    path: Path,
+    *,
+    project_root: Path | None = None,
+) -> dict[str, Any]:
+    """Validate an informational governance run record.
+
+    A run manifest documents the surrounding high-risk workflow. It is never
+    a substitute for a Review, an Evidence Provider run, an acceptance, a
+    signature, or any other gate input. Consequently this validation checks
+    shape, chronology, and path containment, but does not promote declared
+    hashes or artifacts into trusted evidence.
+    """
+    payload = validate_file(path, "governance-run-manifest.schema.json")
+    run = payload["run"]
+    started_at = parse_timestamp(run["started_at"], "run.started_at")
+    completed_at = parse_timestamp(run["completed_at"], "run.completed_at")
+    if completed_at < started_at:
+        raise ArchitectureError(f"{path} completes before it starts")
+
+    path_records: list[tuple[str, str]] = [
+        ("run.source.scope", scoped_path) for scoped_path in run["source"]["scope"]
+    ]
+    path_records.extend(
+        ("run.selected_knowledge", item["path"]) for item in run["selected_knowledge"]
+    )
+    path_records.extend(("run.tools_used", item["path"]) for item in run["tools_used"])
+    path_records.extend(
+        ("run.artifacts_written", item["path"]) for item in run["artifacts_written"]
+    )
+    for field, relative_path in path_records:
+        candidate = Path(relative_path)
+        if candidate.is_absolute() or ".." in candidate.parts or "\\" in relative_path:
+            raise ArchitectureError(
+                f"{path} {field} path escapes repository: {relative_path}"
+            )
+        if project_root is not None:
+            require_within_root(
+                project_root,
+                project_root.resolve() / candidate,
+                f"{path}:{field}",
+            )
+
+    for field, records in (
+        ("run.selected_knowledge", run["selected_knowledge"]),
+        ("run.tools_used", run["tools_used"]),
+    ):
+        ids = [item["id"] for item in records]
+        if len(ids) != len(set(ids)):
+            raise ArchitectureError(f"{path} repeats an ID in {field}")
+        paths = [item["path"] for item in records]
+        if len(paths) != len(set(paths)):
+            raise ArchitectureError(f"{path} repeats a path in {field}")
+    artifact_paths = [item["path"] for item in run["artifacts_written"]]
+    if len(artifact_paths) != len(set(artifact_paths)):
+        raise ArchitectureError(f"{path} repeats a path in run.artifacts_written")
+    return payload
+
+
+def normalize_git_repository(value: str) -> str:
+    normalized = value.strip().rstrip("/")
+    if normalized.startswith("git@") and ":" in normalized:
+        host, path = normalized[4:].split(":", 1)
+        normalized = f"https://{host}/{path}"
+    elif normalized.startswith("ssh://git@"):
+        normalized = "https://" + normalized.removeprefix("ssh://git@")
+    if normalized.endswith(".git"):
+        normalized = normalized[:-4]
+    return normalized.lower()
+
+
+def selector_source_git_root(expected_repository: str) -> Path:
+    configured = os.environ.get("CAG_SELECTOR_SOURCE_ROOT")
+    candidate = (
+        Path(configured).expanduser().resolve()
+        if configured
+        else SHARED_ROOT.parent.resolve()
+    )
+    process = git_process(candidate, "rev-parse", "--show-toplevel")
+    if process.returncode != 0:
+        raise ArchitectureError(
+            "Selector Runtime Manifest is not current and its historical Git "
+            "source is unavailable; set CAG_SELECTOR_SOURCE_ROOT to a clone of "
+            f"{expected_repository}"
+        )
+    root = Path(process.stdout.strip()).resolve()
+    origin = git_output(root, "remote", "get-url", "origin")
+    if normalize_git_repository(origin) != normalize_git_repository(
+        expected_repository
+    ):
+        raise ArchitectureError(
+            "Selector historical source repository does not match the Runtime "
+            f"Manifest: {origin}"
+        )
+    return root
+
+
+def archived_knowledge_index(
+    root: Path,
+    commit: str,
+) -> dict[str, dict[str, str]]:
+    manifest_path = "resources/knowledge/manifest.yaml"
+    try:
+        manifest = yaml.safe_load(
+            git_blob_bytes(root, commit, manifest_path).decode("utf-8")
+        )
+    except (UnicodeDecodeError, yaml.YAMLError) as exc:
+        raise ArchitectureError(
+            f"Selector historical Knowledge manifest is invalid at {commit}: {exc}"
+        ) from exc
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("packs"), list):
+        raise ArchitectureError(
+            f"Selector historical Knowledge manifest is invalid at {commit}"
+        )
+    index: dict[str, dict[str, str]] = {}
+    seen_paths: set[str] = set()
+    for pack in manifest["packs"]:
+        if not isinstance(pack, dict) or not isinstance(pack.get("path"), str):
+            raise ArchitectureError(
+                "Selector historical Knowledge manifest has an invalid pack at "
+                f"{commit}"
+            )
+        relative_pack = Path(pack["path"])
+        if (
+            relative_pack.is_absolute()
+            or ".." in relative_pack.parts
+            or "\\" in pack["path"]
+        ):
+            raise ArchitectureError(
+                "Selector historical Knowledge pack escapes the Knowledge root: "
+                + pack["path"]
+            )
+        prefix = f"resources/knowledge/{relative_pack.as_posix()}".rstrip("/")
+        output = git_output(
+            root,
+            "ls-tree",
+            "-r",
+            "--name-only",
+            commit,
+            "--",
+            prefix,
+        )
+        paths = [
+            item
+            for item in output.splitlines()
+            if item.endswith(".md") and item.startswith(prefix + "/")
+        ]
+        for git_path in paths:
+            knowledge_path = git_path.removeprefix("resources/knowledge/")
+            if knowledge_path in seen_paths:
+                raise ArchitectureError(
+                    "Selector historical Knowledge manifest repeats path "
+                    + knowledge_path
+                )
+            seen_paths.add(knowledge_path)
+            content = git_blob_bytes(root, commit, git_path)
+            try:
+                lines = content.decode("utf-8").splitlines()
+            except UnicodeDecodeError as exc:
+                raise ArchitectureError(
+                    f"Selector historical Knowledge is not UTF-8: {git_path}"
+                ) from exc
+            if not lines or lines[0] != "---":
+                raise ArchitectureError(
+                    f"Selector historical Knowledge has no frontmatter: {git_path}"
+                )
+            try:
+                closing = lines.index("---", 1)
+                metadata = yaml.safe_load("\n".join(lines[1:closing]))
+            except (ValueError, yaml.YAMLError) as exc:
+                raise ArchitectureError(
+                    f"Selector historical Knowledge frontmatter is invalid: {git_path}"
+                ) from exc
+            required = ("id", "version", "kind")
+            if not isinstance(metadata, dict) or any(
+                not isinstance(metadata.get(field), str) for field in required
+            ):
+                raise ArchitectureError(
+                    f"Selector historical Knowledge metadata is incomplete: {git_path}"
+                )
+            entry_id = metadata["id"]
+            if entry_id in index:
+                raise ArchitectureError(
+                    f"Selector historical Knowledge repeats ID {entry_id}"
+                )
+            maturity = metadata.get("maturity", "standard")
+            if not isinstance(maturity, str):
+                raise ArchitectureError(
+                    f"Selector historical Knowledge maturity is invalid: {git_path}"
+                )
+            index[entry_id] = {
+                "version": metadata["version"],
+                "path": knowledge_path,
+                "sha256": sha256_bytes(content),
+                "kind": metadata["kind"],
+                "maturity": maturity,
+            }
+    if not index:
+        raise ArchitectureError(
+            f"Selector historical Knowledge tree is empty at {commit}"
+        )
+    return index
+
+
+def verify_archived_selector_runtime(
+    selection: dict[str, Any],
+    path: Path,
+) -> None:
+    selector = selection["selector"]
+    if selector["contract_version"] != "1.1":
+        raise ArchitectureError(
+            f"{path} has an unverifiable legacy Selector Runtime lock"
+        )
+    source = selector["source"]
+    root = selector_source_git_root(source["repository"])
+    commit = source["commit"]
+    process = git_process(root, "cat-file", "-e", f"{commit}^{{commit}}")
+    if process.returncode != 0:
+        raise ArchitectureError(
+            f"{path} Selector source commit is unreachable: {commit}"
+        )
+
+    implementation_inputs = selector["implementation_inputs"]
+    paths = [item["path"] for item in implementation_inputs]
+    if paths != list(SELECTOR_IMPLEMENTATION_PATHS):
+        raise ArchitectureError(
+            f"{path} Selector implementation input set is incomplete or reordered"
+        )
+    if selector["implementation_bundle_sha256"] != canonical_sha256(
+        implementation_inputs
+    ):
+        raise ArchitectureError(
+            f"{path} Selector implementation bundle hash does not match its inputs"
+        )
+    for item in implementation_inputs:
+        actual = sha256_bytes(git_blob_bytes(root, commit, item["path"]))
+        if actual != item["sha256"]:
+            raise ArchitectureError(
+                f"{path} Selector historical input hash does not match "
+                f"{item['path']} at {commit}"
+            )
+
+    plugin_path = ".codex-plugin/plugin.json"
+    plugin_bytes = git_blob_bytes(root, commit, plugin_path)
+    if sha256_bytes(plugin_bytes) != source["plugin_manifest_sha256"]:
+        raise ArchitectureError(
+            f"{path} Selector plugin manifest hash does not match {commit}"
+        )
+    try:
+        plugin = json.loads(plugin_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ArchitectureError(
+            f"{path} Selector plugin manifest is invalid at {commit}: {exc}"
+        ) from exc
+    if plugin.get("version") != source["plugin_version"] or normalize_git_repository(
+        str(plugin.get("repository", ""))
+    ) != normalize_git_repository(source["repository"]):
+        raise ArchitectureError(
+            f"{path} Selector plugin identity does not match {commit}"
+        )
+
+    knowledge_manifest = git_blob_bytes(
+        root,
+        commit,
+        "resources/knowledge/manifest.yaml",
+    )
+    if sha256_bytes(knowledge_manifest) != selector["knowledge_manifest_sha256"]:
+        raise ArchitectureError(
+            f"{path} Selector historical Knowledge manifest hash does not match"
+        )
+    tree_sha256, _ = git_tree_manifest(
+        root,
+        commit,
+        "resources/knowledge",
+    )
+    if tree_sha256 != selector["knowledge_tree_sha256"]:
+        raise ArchitectureError(
+            f"{path} Selector historical Knowledge tree hash does not match"
+        )
+
+    historical = archived_knowledge_index(root, commit)
+    selected_ids = {item["id"] for item in selection["selection"]}
+    excluded_ids = {item["id"] for item in selection["excluded"]}
+    if selected_ids | excluded_ids != set(historical):
+        raise ArchitectureError(
+            f"{path} does not account for the complete historical Knowledge tree"
+        )
+    for item in selection["selection"]:
+        expected = historical.get(item["id"])
+        if expected is None:
+            raise ArchitectureError(
+                f"{path} selects unknown historical Knowledge {item['id']}"
+            )
+        for field, expected_value in expected.items():
+            if item[field] != expected_value:
+                raise ArchitectureError(
+                    f"{path} historical Knowledge {item['id']} {field} does not "
+                    "match its anchored source"
+                )
+
+
+def validate_knowledge_selection_artifact(
+    path: Path,
+    *,
+    facts_path: Path | None = None,
+    profile_path: Path | None = None,
+    require_trusted_runtime: bool = True,
+    require_current_runtime: bool = False,
+) -> dict[str, Any]:
+    """Validate a selection's source bindings and derived context accounting.
+
+    Schema 1.0/1.1 selections remain readable. Schema 1.2 selections retain
+    their creation-time snapshot semantics. Schema 1.3 remains readable but
+    cannot establish a trusted historical runtime. Schema 1.4 either replays
+    against the exact current Runtime Manifest or verifies every anchored Git
+    blob without executing historical code. Archived verification preserves
+    historical readability, but callers creating a new trusted chain must set
+    ``require_current_runtime`` so the selection is deterministically replayed
+    by the current runtime.
+    """
+    selection = validate_file(path, "knowledge-selection.schema.json")
+    if selection["schema_version"] not in {"1.2", "1.3", "1.4"}:
+        if require_current_runtime:
+            raise ArchitectureError(
+                f"{path} schema {selection['schema_version']} has no replayable "
+                "Selector Runtime Manifest; regenerate the Knowledge Selection "
+                "before creating a new trusted chain"
+            )
+        return selection
+    try:
+        _, entries = validate_knowledge_tree(
+            KNOWLEDGE_ROOT,
+            schema_root=SCHEMA_ROOT,
+        )
+    except KnowledgeError as exc:
+        raise ArchitectureError(str(exc)) from exc
+    replay_with_current_runtime = False
+    if selection["schema_version"] == "1.2" and require_current_runtime:
+        raise ArchitectureError(
+            f"{path} schema 1.2 has no replayable Selector Runtime Manifest; "
+            "regenerate the Knowledge Selection before creating a new trusted chain"
+        )
+    if selection["schema_version"] in {"1.3", "1.4"}:
+        if selection["result_sha256"] != selection_result_sha256(selection):
+            raise ArchitectureError(f"{path} result_sha256 does not match its payload")
+        try:
+            replay_with_current_runtime = selection["selector"] == selector_provenance(
+                entries
+            )
+        except SelectionError as exc:
+            raise ArchitectureError(
+                f"Cannot resolve current Selector Runtime Manifest: {exc}"
+            ) from exc
+        if not replay_with_current_runtime and require_trusted_runtime:
+            if selection["schema_version"] != "1.4":
+                raise ArchitectureError(
+                    f"{path} has an unverifiable legacy Selector Runtime lock"
+                )
+            verify_archived_selector_runtime(selection, path)
+        if not replay_with_current_runtime and require_current_runtime:
+            raise ArchitectureError(
+                f"{path} uses an archived Selector Runtime lock; regenerate the "
+                "Knowledge Selection with the current runtime before creating a "
+                "new trusted Review, Decision, Plan, or Gate chain"
+            )
+
+    selected_ids = [item["id"] for item in selection["selection"]]
+    if len(selected_ids) != len(set(selected_ids)):
+        raise ArchitectureError(f"{path} repeats a selected knowledge ID")
+    excluded_ids = [item["id"] for item in selection["excluded"]]
+    if len(excluded_ids) != len(set(excluded_ids)):
+        raise ArchitectureError(f"{path} repeats an excluded knowledge ID")
+    overlap = sorted(set(selected_ids) & set(excluded_ids))
+    if overlap:
+        raise ArchitectureError(
+            f"{path} selects and excludes the same knowledge: " + ", ".join(overlap)
+        )
+
+    budget = selection["budget"]
+    if budget["selected_entries"] != len(selection["selection"]):
+        raise ArchitectureError(f"{path} selected_entries does not match selection")
+    if budget["selected_entries"] > budget["maximum_entries"]:
+        raise ArchitectureError(f"{path} selected entries exceed the total budget")
+    selected_by_kind = dict.fromkeys(budget["per_kind"], 0)
+    allowed_standard_exceptions = (
+        "Non-Golden exception: skill-required contract dependency.",
+        "Non-Golden exception: explicit caller include.",
+        "Non-Golden exception: maintainer mode.",
+        "Non-Golden exception: profile-required domain has no declared Golden "
+        "replacement.",
+        "Non-Golden exception: detected technology has no declared Golden replacement.",
+        "Non-Golden exception: exact decision-intent match.",
+    )
+    for item in selection["selection"]:
+        if replay_with_current_runtime:
+            entry = entries.get(item["id"])
+            if entry is None:
+                raise ArchitectureError(
+                    f"{path} selects unknown knowledge {item['id']}"
+                )
+            expected = {
+                "version": entry.metadata["version"],
+                "sha256": entry.sha256,
+                "path": entry.path.relative_to(KNOWLEDGE_ROOT).as_posix(),
+                "kind": entry.metadata["kind"],
+                "maturity": entry.metadata.get("maturity", "standard"),
+            }
+            for field, expected_value in expected.items():
+                if item[field] != expected_value:
+                    raise ArchitectureError(
+                        f"{path} knowledge {item['id']} {field} does not match "
+                        "bundled source"
+                    )
+        selected_by_kind[item["kind"]] += 1
+        if (
+            replay_with_current_runtime
+            and selection["inputs"]["skill"] == "architecture-solution-advisor"
+            and item["maturity"] == "standard"
+            and not any(
+                reason in allowed_standard_exceptions for reason in item["reasons"]
+            )
+        ):
+            raise ArchitectureError(
+                f"{path} standard advisor knowledge {item['id']} has no "
+                "approved Golden-only exception"
+            )
+    for kind, actual in selected_by_kind.items():
+        configured = budget["per_kind"][kind]
+        if configured["selected_entries"] != actual:
+            raise ArchitectureError(
+                f"{path} {kind} selected count does not match selection"
+            )
+        if actual > configured["maximum_entries"]:
+            raise ArchitectureError(f"{path} {kind} entries exceed the kind budget")
+
+    inputs = selection["inputs"]
+    if facts_path is None:
+        return selection
+    facts_path = facts_path.resolve()
+    if inputs["facts_sha256"] != file_sha256(facts_path):
+        raise ArchitectureError(
+            f"{path} knowledge selection is bound to different facts"
+        )
+    if selection["schema_version"] in {"1.3", "1.4"}:
+        facts = validate_file(facts_path, "repository-facts.schema.json")
+        project_commit_field = (
+            "project_commit"
+            if selection["schema_version"] == "1.4"
+            else "source_commit"
+        )
+        if inputs[project_commit_field] != facts["repository"]["commit"]:
+            raise ArchitectureError(
+                f"{path} {project_commit_field} does not match repository facts"
+            )
+    if profile_path is not None:
+        profile_path = profile_path.resolve()
+        if inputs.get("profile_sha256") != file_sha256(profile_path):
+            raise ArchitectureError(
+                f"{path} knowledge selection is bound to a different profile"
+            )
+    elif "profile_sha256" in inputs:
+        return selection
+
+    if not replay_with_current_runtime:
+        return selection
+    kind_budgets = {
+        kind: values["maximum_entries"] for kind, values in budget["per_kind"].items()
+    }
+    try:
+        expected_selection = select_knowledge(
+            facts_path,
+            profile_path=profile_path,
+            task=inputs["task"],
+            skill=inputs["skill"],
+            maximum_entries=budget["maximum_entries"],
+            includes=list(inputs["includes"]),
+            excludes=list(inputs["excludes"]),
+            kind_budgets=kind_budgets,
+            maintainer_mode=inputs["maintainer_mode"],
+            decision_intents=list(inputs["decision_intents"]),
+        )
+    except SelectionError as exc:
+        raise ArchitectureError(
+            f"{path} cannot replay deterministic knowledge selection: {exc}"
+        ) from exc
+    if canonical_sha256(expected_selection) != canonical_sha256(selection):
+        raise ArchitectureError(f"{path} does not match its deterministic inputs")
+    return selection
+
+
+def validate_knowledge_context_artifact(
+    path: Path,
+    selection_path: Path,
+    *,
+    facts_path: Path | None = None,
+    profile_path: Path | None = None,
+    require_trusted_runtime: bool = True,
+    require_current_runtime: bool = True,
+) -> dict[str, Any]:
+    """Validate a compact context as the exact projection of its Selection."""
+    context = validate_file(path, "knowledge-context.schema.json")
+    selection = validate_knowledge_selection_artifact(
+        selection_path,
+        facts_path=facts_path,
+        profile_path=profile_path,
+        require_trusted_runtime=require_trusted_runtime,
+        require_current_runtime=require_current_runtime,
+    )
+    expected_lock = file_sha256(selection_path)
+    if context["selection_lock_sha256"] != expected_lock:
+        raise ArchitectureError(
+            f"{path} selection_lock_sha256 does not match {selection_path}"
+        )
+    expected_result = selection.get(
+        "result_sha256",
+        selection_result_sha256(selection),
+    )
+    if context["selection_result_sha256"] != expected_result:
+        raise ArchitectureError(
+            f"{path} selection_result_sha256 does not match {selection_path}"
+        )
+    expected_selected = [
+        {
+            "id": item["id"],
+            "path": item["path"],
+            "sha256": item["sha256"],
+            "priority": item["priority"],
+            "reasons": list(item["reasons"]),
+        }
+        for item in selection["selection"]
+    ]
+    if context["selected"] != expected_selected:
+        raise ArchitectureError(
+            f"{path} selected entries are not the exact ordered projection of "
+            f"{selection_path}"
+        )
+    return context
 
 
 def git_process(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -844,6 +1404,8 @@ def validate_review(
     rule_pack_ids: list[str] | None = None,
     strict_trust: bool = False,
     repository_root: Path | None = None,
+    allow_unverifiable_historical: bool = False,
+    require_current_selection: bool = False,
 ) -> dict[str, Any]:
     data = validate_file(path, "review.schema.json")
     finding_ids: set[str] = set()
@@ -1229,24 +1791,16 @@ def validate_review(
                 root / selection_binding["path"],
                 "review.knowledge_selection.path",
             )
-            selection = validate_file(
+            selection = validate_knowledge_selection_artifact(
                 selection_path,
-                "knowledge-selection.schema.json",
+                facts_path=facts_path,
+                profile_path=profile_path,
+                require_trusted_runtime=not allow_unverifiable_historical,
+                require_current_runtime=require_current_selection,
             )
             if selection_binding["sha256"] != file_sha256(selection_path):
                 raise ArchitectureError(
                     f"{path} knowledge selection hash does not match {selection_path}"
-                )
-            if selection["inputs"]["facts_sha256"] != facts_binding["sha256"]:
-                raise ArchitectureError(
-                    f"{path} knowledge selection is bound to different facts"
-                )
-            if (
-                selection["inputs"].get("profile_sha256")
-                != data["review"]["profile_sha256"]
-            ):
-                raise ArchitectureError(
-                    f"{path} knowledge selection is bound to a different profile"
                 )
             selected = {
                 item["id"]: {
@@ -1415,6 +1969,8 @@ def validate_review(
                     rule_pack_ids=rule_pack_ids,
                     strict_trust=True,
                     repository_root=root,
+                    allow_unverifiable_historical=allow_unverifiable_historical,
+                    require_current_selection=require_current_selection,
                 )
                 if data["schema_version"] == "1.2"
                 else validate_review(candidate_path)
@@ -1519,6 +2075,8 @@ def validate_decision(
     design_brief_path: Path | None = None,
     require_accepted: bool = False,
     repository_root: Path | None = None,
+    allow_unverifiable_historical: bool = False,
+    require_current_selection: bool = False,
 ) -> dict[str, Any]:
     data = validate_file(path, "architecture-decision.schema.json")
     decision_kind = data["decision"].get("decision_kind", "remediation")
@@ -1698,9 +2256,24 @@ def validate_decision(
                 root / data["decision"]["knowledge_selection_path"],
                 "decision.knowledge_selection_path",
             )
-            selection = validate_file(
+            facts_binding = profile["project"].get("repository_facts")
+            selection_facts_path = (
+                require_within_root(
+                    root,
+                    root / facts_binding["path"],
+                    "profile.project.repository_facts.path",
+                )
+                if facts_binding is not None
+                else None
+            )
+            selection = validate_knowledge_selection_artifact(
                 selection_path,
-                "knowledge-selection.schema.json",
+                facts_path=(
+                    None if allow_unverifiable_historical else selection_facts_path
+                ),
+                profile_path=(None if allow_unverifiable_historical else profile_path),
+                require_trusted_runtime=not allow_unverifiable_historical,
+                require_current_runtime=require_current_selection,
             )
             if data["decision"]["knowledge_selection_sha256"] != file_sha256(
                 selection_path
@@ -1726,9 +2299,12 @@ def validate_decision(
                 raise ArchitectureError(
                     f"{path} knowledge snapshot does not match selection artifact"
                 )
-            if profile_path.is_file() and selection["inputs"].get(
-                "profile_sha256"
-            ) != file_sha256(profile_path):
+            if (
+                not allow_unverifiable_historical
+                and profile_path.is_file()
+                and selection["inputs"].get("profile_sha256")
+                != file_sha256(profile_path)
+            ):
                 raise ArchitectureError(
                     f"{path} knowledge selection is bound to another profile"
                 )
@@ -1771,6 +2347,7 @@ def validate_decision(
                 rule_pack_ids=profile["project"]["rule_packs"],
                 strict_trust=True,
                 repository_root=root,
+                allow_unverifiable_historical=allow_unverifiable_historical,
             )
             if profile is not None and root is not None
             else validate_review(review_path)
@@ -1819,6 +2396,8 @@ def validate_plan(
     review_path: Path | None = None,
     decision_path: Path | None = None,
     repository_root: Path | None = None,
+    allow_unverifiable_historical: bool = False,
+    require_current_selection: bool = False,
 ) -> dict[str, Any]:
     data = validate_file(path, "remediation-plan.schema.json")
     item_ids: set[str] = set()
@@ -1964,6 +2543,8 @@ def validate_plan(
             review_path=review_path,
             require_accepted=True,
             repository_root=repository_root,
+            allow_unverifiable_historical=allow_unverifiable_historical,
+            require_current_selection=require_current_selection,
         )
         if data["plan"].get("source_decision") != decision["decision"]["id"]:
             raise ArchitectureError(
@@ -2200,7 +2781,7 @@ def validate_project(root: Path) -> list[Path]:
     validate_baseline(baseline_path)
     if risk_acceptance_path.is_file():
         validate_risk_acceptances(risk_acceptance_path)
-    elif policy["schema_version"] == "1.1":
+    elif policy["schema_version"] in TRUSTED_POLICY_VERSIONS:
         raise ArchitectureError(f"Missing file: {risk_acceptance_path}")
     validate_evidence_provider_config(provider_config_path)
     rule_packs = load_rule_packs(
@@ -2213,7 +2794,7 @@ def validate_project(root: Path) -> list[Path]:
         profile_path,
     )
 
-    if policy["schema_version"] == "1.1":
+    if policy["schema_version"] in TRUSTED_POLICY_VERSIONS:
         configured_acceptance_path = resolve_from_root(
             root,
             policy["risk_acceptances_file"],
@@ -2258,6 +2839,7 @@ def validate_project(root: Path) -> list[Path]:
                 strict_trust=payload.get("schema_version") in {"1.1", "1.2"}
                 and payload["review"].get("verification_state") == "verified",
                 repository_root=root,
+                allow_unverifiable_historical=True,
             )
             if review["review"].get("repository_identity") not in {
                 None,
@@ -2275,6 +2857,7 @@ def validate_project(root: Path) -> list[Path]:
             decision = validate_decision(
                 artifact,
                 repository_root=root,
+                allow_unverifiable_historical=True,
             )
             decision_id = decision["decision"]["id"]
             if decision_id in decision_records:
@@ -2300,6 +2883,7 @@ def validate_project(root: Path) -> list[Path]:
             artifact,
             review_path=source_review,
             repository_root=root,
+            allow_unverifiable_historical=True,
         )
     for artifact, payload in plan_artifacts:
         source_review = review_records.get(payload["plan"]["source_review"])
@@ -2319,6 +2903,7 @@ def validate_project(root: Path) -> list[Path]:
             review_path=source_review,
             decision_path=source_decision,
             repository_root=root,
+            allow_unverifiable_historical=True,
         )
     return validated
 
@@ -2335,14 +2920,14 @@ def validate_portfolio(root: Path) -> list[Path]:
     validate_baseline(baseline_path)
     if risk_acceptance_path.is_file():
         validate_risk_acceptances(risk_acceptance_path)
-    elif policy["schema_version"] == "1.1":
+    elif policy["schema_version"] in TRUSTED_POLICY_VERSIONS:
         raise ArchitectureError(f"Missing file: {risk_acceptance_path}")
     catalog_schemas = {
         "shared_capabilities": "shared-capabilities.schema.json",
         "technologies": "technology-catalog.schema.json",
         "dependencies": "dependency-map.schema.json",
     }
-    if policy["schema_version"] == "1.1":
+    if policy["schema_version"] in TRUSTED_POLICY_VERSIONS:
         configured_acceptance_path = resolve_from_root(
             root,
             policy["risk_acceptances_file"],
@@ -2509,6 +3094,10 @@ def init_project(args: argparse.Namespace) -> Path:
         staged.mkdir()
         (staged / "reviews").mkdir()
         (staged / "reviews" / ".gitkeep").touch()
+        # Run records are optional, informational trajectory metadata for
+        # high-risk work. They are deliberately separate from trusted reviews.
+        (staged / "runs").mkdir()
+        (staged / "runs" / ".gitkeep").touch()
         (staged / "evidence").mkdir()
         (staged / "rules").mkdir()
         (staged / "rules" / ".gitkeep").touch()
@@ -2589,6 +3178,8 @@ def init_portfolio(args: argparse.Namespace) -> Path:
         staged.mkdir()
         (staged / "reviews").mkdir()
         (staged / "reviews" / ".gitkeep").touch()
+        (staged / "runs").mkdir()
+        (staged / "runs" / ".gitkeep").touch()
 
         portfolio = load_yaml(TEMPLATE_ROOT / "portfolio.yaml")
         portfolio["portfolio"].update(
@@ -2827,6 +3418,53 @@ def find_latest_review(reviews_root: Path) -> Path:
     return candidates[-1][2]
 
 
+def validate_history_anchors(
+    repository_root: Path,
+    review_path: Path | None = None,
+) -> dict[str, Any]:
+    """Require selector and reviewed implementation commits in HEAD history."""
+    root = repository_root.resolve()
+    selector_source_path = root / "resources" / "selector-source.json"
+    selector_source = validate_file(
+        selector_source_path,
+        "selector-source.schema.json",
+    )
+    if review_path is None:
+        review_path = find_latest_review(root / ".architecture" / "reviews")
+    elif not review_path.is_absolute():
+        review_path = root / review_path
+    review_path = require_within_root(root, review_path, "history anchor review")
+    review = validate_review(review_path)
+    reviewed_commit = review["review"].get("commit")
+    if not reviewed_commit or reviewed_commit == "unknown":
+        raise ArchitectureError(
+            f"{review_path} does not identify a reviewed implementation commit"
+        )
+    head = current_git_commit(root)
+    anchors = {
+        "selector_source": selector_source["commit"],
+        "reviewed_implementation": reviewed_commit,
+    }
+    for name, commit in anchors.items():
+        git_output(root, "cat-file", "-e", f"{commit}^{{commit}}")
+        if not git_is_ancestor(root, commit, head):
+            raise ArchitectureError(
+                f"{name} anchor {commit} is not an ancestor of HEAD {head}; "
+                "preserve history and merge with a merge commit"
+            )
+    return {
+        "head": head,
+        "selector_source": {
+            "path": selector_source_path.relative_to(root).as_posix(),
+            "commit": anchors["selector_source"],
+        },
+        "reviewed_implementation": {
+            "review": review_path.relative_to(root).as_posix(),
+            "commit": anchors["reviewed_implementation"],
+        },
+    }
+
+
 def verify_review_signature(
     review_path: Path,
     review: dict[str, Any],
@@ -2990,12 +3628,20 @@ def completed_required_reviews(
                 continue
             if payload["review"].get("workflow") != requirement["id"]:
                 continue
-            review = validate_review(
-                path,
-                rule_pack_ids=profile["project"]["rule_packs"],
-                strict_trust=True,
-                repository_root=root,
-            )
+            try:
+                review = validate_review(
+                    path,
+                    rule_pack_ids=profile["project"]["rule_packs"],
+                    strict_trust=True,
+                    repository_root=root,
+                    require_current_selection=True,
+                )
+            except ArchitectureError:
+                # Historical artifacts remain inspectable project records, but an
+                # invalid or unverifiable record cannot satisfy the current Gate.
+                # Continue searching so one stale record cannot poison a newer,
+                # independently trusted Review for the same workflow.
+                continue
             if review["review"]["kind"] != requirement["kind"]:
                 continue
             declared_packs = {item["id"] for item in review["review"]["rule_packs"]}
@@ -3049,9 +3695,10 @@ def gate_from_config(
     baseline_path = config_root / "baseline.yaml"
     policy = validate_file(policy_path, "gate-policy.schema.json")
     baseline = validate_baseline(baseline_path)
-    if policy["schema_version"] != "1.1":
+    if policy["schema_version"] not in TRUSTED_POLICY_VERSIONS:
         raise ArchitectureError(
-            f"{policy_path} uses legacy schema; migrate policy to 1.1 before gating"
+            f"{policy_path} uses legacy schema; migrate policy to 1.1 or 1.2 "
+            "before gating"
         )
     required_policy_fields = (
         "risk_acceptances_file",
@@ -3123,6 +3770,7 @@ def gate_from_config(
         rule_pack_ids=rule_pack_ids,
         strict_trust=True,
         repository_root=root,
+        require_current_selection=commit_root is not None,
     )
     if review["review"]["repository_identity"] != expected_identity:
         raise ArchitectureError(
@@ -4007,11 +4655,17 @@ def review_bindings(project_root: Path, candidate_path: Path) -> dict[str, Any]:
     if not candidate_path.is_absolute():
         candidate_path = root / candidate_path
     candidate_path = require_within_root(root, candidate_path, "candidate review")
-    candidate = validate_review(candidate_path)
-    if candidate["review"]["verification_state"] != "candidates":
-        raise ArchitectureError("Bindings require a candidate review")
     profile_path = root / ".architecture" / "profile.yaml"
     profile = validate_file(profile_path, "project-profile.schema.json")
+    candidate = validate_review(
+        candidate_path,
+        rule_pack_ids=profile["project"]["rule_packs"],
+        strict_trust=True,
+        repository_root=root,
+        require_current_selection=True,
+    )
+    if candidate["review"]["verification_state"] != "candidates":
+        raise ArchitectureError("Bindings require a candidate review")
     declared = [item["id"] for item in candidate["review"].get("rule_packs", [])]
     pack_ids = declared or [REVIEW_KIND_CORE_PACK[candidate["review"]["kind"]]]
     unknown = sorted(set(pack_ids) - set(profile["project"]["rule_packs"]))
@@ -4086,7 +4740,7 @@ def git_blob_bytes(root: Path, commit: str, path: str) -> bytes:
     if process.returncode != 0:
         detail = process.stderr.decode("utf-8", errors="replace").strip()
         raise ArchitectureError(
-            f"Benchmark provenance cannot resolve {path} at {commit}: {detail}"
+            f"Git provenance cannot resolve {path} at {commit}: {detail}"
         )
     return process.stdout
 
@@ -4100,14 +4754,14 @@ def git_tree_manifest(
     paths = [path for path in output.splitlines() if path]
     if not paths:
         raise ArchitectureError(
-            f"Benchmark provenance fixture is empty at {commit}: {directory}"
+            f"Git provenance tree is empty at {commit}: {directory}"
         )
     prefix = directory.rstrip("/") + "/"
     records = []
     for path in paths:
         if not path.startswith(prefix):
             raise ArchitectureError(
-                f"Benchmark provenance fixture path escaped {directory}: {path}"
+                f"Git provenance tree path escaped {directory}: {path}"
             )
         records.append(
             {
@@ -4118,6 +4772,237 @@ def git_tree_manifest(
     return canonical_sha256(records), len(records)
 
 
+def git_tree_bytes(root: Path, commit: str, directory: str) -> int:
+    output = git_output(root, "ls-tree", "-r", "--name-only", commit, "--", directory)
+    paths = [path for path in output.splitlines() if path]
+    if not paths:
+        raise ArchitectureError(
+            f"Git provenance tree is empty at {commit}: {directory}"
+        )
+    return sum(len(git_blob_bytes(root, commit, path)) for path in paths)
+
+
+def benchmark_context_text_parts(value: str, path: str) -> tuple[str, str]:
+    if not path.endswith(".md") or not value.startswith("---\n"):
+        return "", value
+    closing = value.find("\n---\n", 4)
+    if closing == -1:
+        return "", value
+    closing += len("\n---\n")
+    return value[:closing], value[closing:]
+
+
+def benchmark_context_treatment_map(
+    context_manifest: dict[str, Any],
+) -> dict[tuple[str, str], dict[str, Any]]:
+    treatments: dict[tuple[str, str], dict[str, Any]] = {}
+    for treatment in context_manifest["treatments"]:
+        key = (treatment["condition"], treatment["skill"])
+        if key in treatments:
+            raise ArchitectureError(
+                "Benchmark context manifest repeats treatment " + "/".join(key)
+            )
+        treatments[key] = treatment
+    return treatments
+
+
+def validate_benchmark_ablation_contract(
+    context_manifest: dict[str, Any],
+    *,
+    skills: set[str],
+) -> dict[tuple[str, str], dict[str, Any]]:
+    """Require an unambiguous, comparable A/B/C treatment for every Skill."""
+    treatments = benchmark_context_treatment_map(context_manifest)
+    expected = {
+        (condition, skill)
+        for condition in BENCHMARK_TREATMENT_CONDITIONS
+        for skill in skills
+    }
+    if set(treatments) != expected:
+        raise ArchitectureError(
+            "Benchmark context manifest must declare exactly one "
+            "Base/Full/Compressed treatment for every benchmark Skill"
+        )
+    for skill in sorted(skills):
+        base = treatments[("base", skill)]
+        if base["knowledge_basis"] != "none" or any(
+            base[field]
+            for field in ("skill_metadata", "skill_body", "references", "knowledge")
+        ):
+            raise ArchitectureError(
+                f"Benchmark Base treatment for {skill} must not load Skill, "
+                "reference, or Knowledge content"
+            )
+        full = treatments[("full", skill)]
+        compressed = treatments[("compressed", skill)]
+        if (
+            full["knowledge_basis"] != "workflow-required"
+            or compressed["knowledge_basis"] != "workflow-required"
+        ):
+            raise ArchitectureError(
+                f"Benchmark Full and Compressed treatments for {skill} must "
+                "declare workflow-required Knowledge"
+            )
+        if full["knowledge"] != compressed["knowledge"]:
+            raise ArchitectureError(
+                f"Benchmark Full and Compressed treatments for {skill} must "
+                "use identical Knowledge inputs"
+            )
+    return treatments
+
+
+def validate_benchmark_context_budget(
+    *,
+    root: Path,
+    commit: str,
+    observed: dict[str, Any],
+    provenance_inputs: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Verify a declared context proxy without interpreting it as token usage."""
+    benchmark = observed["benchmark"]
+    budget = benchmark["context_budget"]
+    if budget["condition"] != benchmark["condition"]:
+        raise ArchitectureError("Benchmark context condition does not match benchmark")
+    by_role = {item["role"]: item for item in provenance_inputs}
+    manifest_input = by_role.get("context-manifest")
+    schema_input = by_role.get("benchmark-context-schema")
+    if manifest_input is None or schema_input is None:
+        raise ArchitectureError("Benchmark context proxy lacks manifest provenance")
+    if (
+        budget["manifest_path"] != manifest_input["path"]
+        or budget["manifest_sha256"] != manifest_input["sha256"]
+    ):
+        raise ArchitectureError("Benchmark context manifest binding does not match")
+    try:
+        context_schema = json.loads(
+            git_blob_bytes(root, commit, schema_input["path"]).decode("utf-8")
+        )
+        context_manifest = yaml.safe_load(
+            git_blob_bytes(root, commit, manifest_input["path"]).decode("utf-8")
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, yaml.YAMLError) as exc:
+        raise ArchitectureError(
+            "Benchmark context manifest or schema is invalid"
+        ) from exc
+    if not isinstance(context_manifest, dict):
+        raise ArchitectureError("Benchmark context manifest must be a mapping")
+    errors = sorted(
+        Draft202012Validator(context_schema).iter_errors(context_manifest),
+        key=lambda error: list(error.path),
+    )
+    if errors:
+        raise ArchitectureError(
+            "Benchmark context manifest fails its schema: " + errors[0].message
+        )
+    expected_by_role: dict[str, set[str]] = {
+        "skill-metadata": set(),
+        "skill-body": set(),
+        "references": set(),
+        "knowledge": set(),
+        "tool-descriptions": set(),
+        "artifact-input": set(),
+    }
+    treatments = validate_benchmark_ablation_contract(
+        context_manifest,
+        skills={str(case["skill"]) for case in observed["cases"]},
+    )
+    for case in observed["cases"]:
+        key = (benchmark["condition"], case["skill"])
+        treatment = treatments.get(key)
+        if treatment is None:
+            raise ArchitectureError(
+                "Benchmark context manifest lacks treatment " + "/".join(key)
+            )
+        for source_key, target_key in (
+            ("skill_metadata", "skill-metadata"),
+            ("skill_body", "skill-body"),
+            ("references", "references"),
+            ("knowledge", "knowledge"),
+            ("tool_descriptions", "tool-descriptions"),
+        ):
+            expected_by_role[target_key].update(treatment[source_key])
+        if "$fixture-tree" in treatment["artifact_inputs"]:
+            expected_by_role["artifact-input"].add(case["fixture"])
+    actual_by_role: dict[str, set[str]] = {role: set() for role in expected_by_role}
+    totals = {
+        "skill_metadata_chars": 0,
+        "skill_body_chars": 0,
+        "reference_chars": 0,
+        "knowledge_chars": 0,
+        "tool_description_chars": 0,
+        "artifact_input_bytes": 0,
+    }
+    total_by_role = {
+        "skill-metadata": "skill_metadata_chars",
+        "skill-body": "skill_body_chars",
+        "references": "reference_chars",
+        "knowledge": "knowledge_chars",
+        "tool-descriptions": "tool_description_chars",
+    }
+    seen: set[tuple[str, str]] = set()
+    for record in budget["inputs"]:
+        role = record["role"]
+        key = (role, record["path"])
+        if key in seen:
+            raise ArchitectureError(
+                "Benchmark context proxy repeats input " + "/".join(key)
+            )
+        seen.add(key)
+        if role not in expected_by_role:
+            raise ArchitectureError(f"Benchmark context proxy has unknown role: {role}")
+        actual_by_role[role].add(record["path"])
+        if role == "artifact-input":
+            digest, file_count = git_tree_manifest(root, commit, record["path"])
+            byte_count = git_tree_bytes(root, commit, record["path"])
+            if (
+                record["sha256"] != digest
+                or record.get("file_count") != file_count
+                or record.get("bytes") != byte_count
+            ):
+                raise ArchitectureError(
+                    f"Benchmark context artifact input is stale: {record['path']}"
+                )
+            totals["artifact_input_bytes"] += byte_count
+            continue
+        try:
+            text = git_blob_bytes(root, commit, record["path"]).decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise ArchitectureError(
+                f"Benchmark context input is not UTF-8: {record['path']}"
+            ) from exc
+        if sha256_bytes(text.encode("utf-8")) != record["sha256"]:
+            raise ArchitectureError(
+                f"Benchmark context input hash mismatch: {record['path']}"
+            )
+        metadata, body = benchmark_context_text_parts(text, record["path"])
+        characters = (
+            len(metadata)
+            if role == "skill-metadata"
+            else len(body)
+            if role == "skill-body"
+            else len(text)
+        )
+        if record.get("characters") != characters:
+            raise ArchitectureError(
+                f"Benchmark context input character count is stale: {record['path']}"
+            )
+        totals[total_by_role[role]] += characters
+    if actual_by_role != expected_by_role:
+        raise ArchitectureError(
+            "Benchmark context proxy inputs do not match the declared treatment"
+        )
+    for field, actual in totals.items():
+        if budget[field] != actual:
+            raise ArchitectureError(f"Benchmark context proxy total is stale: {field}")
+    return {
+        "metric_kind": budget["metric_kind"],
+        "condition": budget["condition"],
+        "scope": budget["scope"],
+        "character_unit": budget["character_unit"],
+        **totals,
+    }
+
+
 def validate_benchmark_provenance(
     *,
     root: Path,
@@ -4126,9 +5011,9 @@ def validate_benchmark_provenance(
     runtime_verification: str = "strict",
     artifact_commit: str | None = None,
 ) -> dict[str, Any] | None:
-    if observed["schema_version"] not in {"1.3", "1.4"}:
+    if observed["schema_version"] not in {"1.3", "1.4", "1.5"}:
         return None
-    extended_provenance = observed["schema_version"] == "1.4"
+    extended_provenance = observed["schema_version"] in {"1.4", "1.5"}
     provenance = observed["benchmark"]["provenance"]
     source = provenance["source"]
     commit = source["commit"]
@@ -4174,6 +5059,8 @@ def validate_benchmark_provenance(
     }
     if extended_provenance:
         required_roles.add("plugin-manifest")
+    if observed["schema_version"] == "1.5":
+        required_roles.update({"context-manifest", "benchmark-context-schema"})
     inputs = provenance["inputs"]
     roles = [item["role"] for item in inputs]
     if len(roles) != len(set(roles)):
@@ -4210,6 +5097,16 @@ def validate_benchmark_provenance(
         command_template = provenance["command_template"]
         if canonical_sha256(command_template) != provenance["command_template_sha256"]:
             raise ArchitectureError("Benchmark command template hash mismatch")
+        if observed["schema_version"] == "1.5" and (
+            not any("{condition}" in argument for argument in command_template)
+            or not any(
+                "{context_manifest}" in argument for argument in command_template
+            )
+        ):
+            raise ArchitectureError(
+                "Benchmark 1.5 command template must bind condition and "
+                "context manifest"
+            )
 
         runtimes = provenance["runtime_executables"]
         runtime_ids = [item["id"] for item in runtimes]
@@ -4302,6 +5199,14 @@ def validate_benchmark_provenance(
             raise ArchitectureError(
                 "Benchmark surface does not match a model runtime version"
             )
+    context_budget = None
+    if observed["schema_version"] == "1.5":
+        context_budget = validate_benchmark_context_budget(
+            root=root,
+            commit=commit,
+            observed=observed,
+            provenance_inputs=inputs,
+        )
 
     tools = provenance["tools"]
     tool_ids = [item["id"] for item in tools]
@@ -4424,6 +5329,27 @@ def validate_benchmark_provenance(
                         f"Benchmark execution command hash mismatch: {case['id']} "
                         f"trial {trial['index']}"
                     )
+                if observed["schema_version"] == "1.5":
+                    if not any(
+                        value == observed["benchmark"]["condition"]
+                        or value.endswith("=" + observed["benchmark"]["condition"])
+                        for value in command
+                    ):
+                        raise ArchitectureError(
+                            f"Benchmark execution does not bind condition: "
+                            f"{case['id']} trial {trial['index']}"
+                        )
+                    manifest_path = (
+                        root / observed["benchmark"]["context_budget"]["manifest_path"]
+                    ).resolve()
+                    if not any(
+                        Path(value.split("=", 1)[-1]).resolve() == manifest_path
+                        for value in command
+                    ):
+                        raise ArchitectureError(
+                            f"Benchmark execution does not bind context manifest: "
+                            f"{case['id']} trial {trial['index']}"
+                        )
             observation = record.get("observation")
             if not isinstance(observation, dict):
                 raise ArchitectureError(
@@ -4481,6 +5407,7 @@ def validate_benchmark_provenance(
             else None
         ),
         "archive_binding": archive_binding,
+        "context_budget_proxy": context_budget,
     }
 
 
@@ -4536,7 +5463,14 @@ def score_benchmark(
     input_tokens = 0
     output_tokens = 0
     cost_usd = 0.0
+    tool_calls = 0
     usage_trials = 0
+    usage_field_trials = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0,
+        "tool_calls": 0,
+    }
     decision_trials = 0
     correct_decisions = 0
     overdesign_decisions = 0
@@ -4653,9 +5587,18 @@ def score_benchmark(
             usage = trial.get("usage")
             if usage is not None:
                 usage_trials += 1
-                input_tokens += usage.get("input_tokens", 0)
-                output_tokens += usage.get("output_tokens", 0)
-                cost_usd += usage.get("cost_usd", 0.0)
+                if "input_tokens" in usage:
+                    input_tokens += usage["input_tokens"]
+                    usage_field_trials["input_tokens"] += 1
+                if "output_tokens" in usage:
+                    output_tokens += usage["output_tokens"]
+                    usage_field_trials["output_tokens"] += 1
+                if "cost_usd" in usage:
+                    cost_usd += usage["cost_usd"]
+                    usage_field_trials["cost_usd"] += 1
+                if "tool_calls" in usage:
+                    tool_calls += usage["tool_calls"]
+                    usage_field_trials["tool_calls"] += 1
             expected_decision = expected_case.get("expected_decision")
             actual_decision = trial.get("observed_decision")
             if expected_decision is not None:
@@ -4760,9 +5703,16 @@ def score_benchmark(
             sum(durations) / len(durations) if durations else 0.0
         ),
         "usage_trials": usage_trials,
-        "input_tokens": input_tokens if usage_trials else None,
-        "output_tokens": output_tokens if usage_trials else None,
-        "cost_usd": cost_usd if usage_trials else None,
+        "input_token_trials": usage_field_trials["input_tokens"],
+        "output_token_trials": usage_field_trials["output_tokens"],
+        "cost_trials": usage_field_trials["cost_usd"],
+        "tool_call_trials": usage_field_trials["tool_calls"],
+        "input_tokens": (input_tokens if usage_field_trials["input_tokens"] else None),
+        "output_tokens": (
+            output_tokens if usage_field_trials["output_tokens"] else None
+        ),
+        "cost_usd": cost_usd if usage_field_trials["cost_usd"] else None,
+        "tool_calls": tool_calls if usage_field_trials["tool_calls"] else None,
         "decision_trials": decision_trials,
         "recommendation_accuracy": (
             correct_decisions / decision_trials if decision_trials else 1.0
@@ -4803,6 +5753,8 @@ def score_benchmark(
     }
     if provenance_summary is not None:
         result["provenance"] = provenance_summary
+        if provenance_summary.get("context_budget_proxy") is not None:
+            result["context_budget_proxy"] = provenance_summary["context_budget_proxy"]
     return result
 
 
@@ -4931,9 +5883,26 @@ def build_parser() -> argparse.ArgumentParser:
     select_parser.add_argument("--task", required=True)
     select_parser.add_argument("--skill", required=True)
     select_parser.add_argument("--max-entries", type=int, default=24)
+    select_parser.add_argument(
+        "--kind-budget",
+        action="append",
+        default=[],
+        type=parse_kind_budget,
+        metavar="KIND=LIMIT",
+    )
+    select_parser.add_argument("--maintainer", action="store_true")
     append_repeatable(select_parser, "--include", "includes")
     append_repeatable(select_parser, "--exclude", "excludes")
+    append_repeatable(
+        select_parser,
+        "--decision-intent",
+        "decision_intents",
+    )
     select_parser.add_argument("--output", required=True)
+    select_parser.add_argument(
+        "--context-output",
+        help="Also write the compact model-facing selected-Knowledge sidecar.",
+    )
     select_parser.add_argument("--force", action="store_true")
 
     portfolio = subparsers.add_parser(
@@ -4964,6 +5933,62 @@ def build_parser() -> argparse.ArgumentParser:
     )
     validate_review_parser.add_argument("path")
     validate_review_parser.add_argument("--project")
+    validate_review_parser.add_argument(
+        "--historical",
+        action="store_true",
+        help=(
+            "Validate an existing historical chain without allowing it to create "
+            "new trusted downstream artifacts."
+        ),
+    )
+
+    validate_selection_parser = subparsers.add_parser(
+        "validate-knowledge-selection",
+        help="Validate one selected-knowledge artifact and optional source bindings.",
+    )
+    validate_selection_parser.add_argument("path")
+    validate_selection_parser.add_argument("--facts")
+    validate_selection_parser.add_argument("--profile")
+    validate_selection_parser.add_argument(
+        "--read-only",
+        action="store_true",
+        help=(
+            "Permit an unresolvable historical Runtime lock for inspection only; "
+            "never use this mode for a trusted Review, Decision, or Gate."
+        ),
+    )
+    validate_selection_parser.add_argument(
+        "--require-current-runtime",
+        action="store_true",
+        help="Require deterministic replay by the current Selector Runtime.",
+    )
+
+    validate_context_parser = subparsers.add_parser(
+        "validate-knowledge-context",
+        help="Validate a compact context as the exact projection of its Selection.",
+    )
+    validate_context_parser.add_argument("path")
+    validate_context_parser.add_argument("--selection", required=True)
+    validate_context_parser.add_argument("--facts")
+    validate_context_parser.add_argument("--profile")
+    validate_context_parser.add_argument(
+        "--historical",
+        action="store_true",
+        help="Permit a Git-verified archived Selection for historical inspection.",
+    )
+
+    validate_governance_run_parser = subparsers.add_parser(
+        "validate-governance-run",
+        help=(
+            "Validate an informational high-risk governance run record; "
+            "it is not gate evidence."
+        ),
+    )
+    validate_governance_run_parser.add_argument("path")
+    validate_governance_run_parser.add_argument(
+        "--project",
+        help="Repository root used only to check declared paths stay contained.",
+    )
 
     coverage_parser = subparsers.add_parser(
         "validate-coverage",
@@ -4972,6 +5997,7 @@ def build_parser() -> argparse.ArgumentParser:
     coverage_parser.add_argument("--project", required=True)
     coverage_parser.add_argument("--review", required=True)
     coverage_parser.add_argument("--allow-candidates", action="store_true")
+    coverage_parser.add_argument("--historical", action="store_true")
 
     fingerprint_parser = subparsers.add_parser(
         "fingerprint-artifact",
@@ -4991,6 +6017,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--project",
         help="Repository root used to resolve completion evidence.",
     )
+    validate_plan_parser.add_argument("--historical", action="store_true")
 
     validate_design_brief_parser = subparsers.add_parser(
         "validate-design-brief",
@@ -5011,6 +6038,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Repository root used to validate Profile quality attributes.",
     )
     validate_decision_parser.add_argument("--require-accepted", action="store_true")
+    validate_decision_parser.add_argument("--historical", action="store_true")
+
+    history_parser = subparsers.add_parser(
+        "validate-history-anchors",
+        help="Require selector-source and reviewed implementation commits in HEAD.",
+    )
+    history_parser.add_argument("root", nargs="?", default=".")
+    history_parser.add_argument("--review")
 
     validate_acceptance_parser = subparsers.add_parser(
         "validate-risk-acceptances",
@@ -5194,6 +6229,21 @@ def run(args: argparse.Namespace) -> int:
             raise ArchitectureError(
                 f"Refusing to overwrite existing output without --force: {output}"
             )
+        context_output = (
+            Path(args.context_output).expanduser().resolve()
+            if args.context_output
+            else None
+        )
+        if context_output is not None and context_output.exists() and not args.force:
+            raise ArchitectureError(
+                "Refusing to overwrite existing context output without --force: "
+                f"{context_output}"
+            )
+        kind_budgets: dict[str, int] = {}
+        for kind, limit in args.kind_budget:
+            if kind in kind_budgets:
+                raise ArchitectureError(f"Duplicate knowledge kind budget: {kind}")
+            kind_budgets[kind] = limit
         payload = select_knowledge(
             Path(args.facts),
             profile_path=Path(args.profile) if args.profile else None,
@@ -5202,13 +6252,27 @@ def run(args: argparse.Namespace) -> int:
             maximum_entries=args.max_entries,
             includes=args.includes,
             excludes=args.excludes,
+            kind_budgets=kind_budgets,
+            maintainer_mode=args.maintainer,
+            decision_intents=args.decision_intents,
         )
         output.parent.mkdir(parents=True, exist_ok=True)
         write_yaml(output, payload)
+        if context_output is not None:
+            context_output.parent.mkdir(parents=True, exist_ok=True)
+            write_yaml(
+                context_output,
+                knowledge_context(
+                    payload,
+                    selection_lock_sha256=file_sha256(output),
+                ),
+            )
         print(
             f"Knowledge selection written: {output} "
             f"({payload['budget']['selected_entries']} entries)"
         )
+        if context_output is not None:
+            print(f"Knowledge context written: {context_output}")
         return 0
     if args.command == "validate-project":
         validated = validate_project(Path(args.root))
@@ -5232,10 +6296,42 @@ def run(args: argparse.Namespace) -> int:
                 rule_pack_ids=profile["project"]["rule_packs"],
                 strict_trust=True,
                 repository_root=project_root,
+                require_current_selection=not args.historical,
             )
         else:
             validate_review(Path(args.path).resolve())
         print("Architecture review is valid.")
+        return 0
+    if args.command == "validate-knowledge-selection":
+        if args.read_only and args.require_current_runtime:
+            raise ArchitectureError(
+                "--read-only and --require-current-runtime are mutually exclusive"
+            )
+        validate_knowledge_selection_artifact(
+            Path(args.path).resolve(),
+            facts_path=Path(args.facts).resolve() if args.facts else None,
+            profile_path=Path(args.profile).resolve() if args.profile else None,
+            require_trusted_runtime=not args.read_only,
+            require_current_runtime=args.require_current_runtime,
+        )
+        print("Knowledge selection is valid.")
+        return 0
+    if args.command == "validate-knowledge-context":
+        validate_knowledge_context_artifact(
+            Path(args.path).resolve(),
+            Path(args.selection).resolve(),
+            facts_path=Path(args.facts).resolve() if args.facts else None,
+            profile_path=Path(args.profile).resolve() if args.profile else None,
+            require_current_runtime=not args.historical,
+        )
+        print("Knowledge context is valid and exactly matches its Selection.")
+        return 0
+    if args.command == "validate-governance-run":
+        validate_governance_run(
+            Path(args.path).resolve(),
+            project_root=(Path(args.project).resolve() if args.project else None),
+        )
+        print("Informational governance run is valid.")
         return 0
     if args.command == "validate-coverage":
         project_root = Path(args.project).resolve()
@@ -5251,6 +6347,7 @@ def run(args: argparse.Namespace) -> int:
             rule_pack_ids=profile["project"]["rule_packs"],
             strict_trust=True,
             repository_root=project_root,
+            require_current_selection=not args.historical,
         )
         if (
             not args.allow_candidates
@@ -5314,6 +6411,7 @@ def run(args: argparse.Namespace) -> int:
             review_path=Path(args.review).resolve() if args.review else None,
             decision_path=Path(args.decision).resolve() if args.decision else None,
             repository_root=(Path(args.project).resolve() if args.project else None),
+            require_current_selection=not args.historical,
         )
         print("Architecture remediation plan is valid.")
         return 0
@@ -5330,8 +6428,16 @@ def run(args: argparse.Namespace) -> int:
             ),
             require_accepted=args.require_accepted,
             repository_root=(Path(args.project).resolve() if args.project else None),
+            require_current_selection=not args.historical,
         )
         print("Architecture decision is valid.")
+        return 0
+    if args.command == "validate-history-anchors":
+        result = validate_history_anchors(
+            Path(args.root),
+            Path(args.review) if args.review else None,
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
     if args.command == "validate-risk-acceptances":
         validate_risk_acceptances(Path(args.path).resolve())
@@ -5450,6 +6556,7 @@ def run(args: argparse.Namespace) -> int:
                 rule_pack_ids=profile["project"]["rule_packs"],
                 strict_trust=True,
                 repository_root=project_root,
+                require_current_selection=True,
             )
         else:
             design_brief_path = Path(args.design_brief)
@@ -5479,9 +6586,21 @@ def run(args: argparse.Namespace) -> int:
                 selection_path,
                 "decision knowledge selection",
             )
-            selection = validate_file(
+            facts_binding = profile["project"].get("repository_facts")
+            selection_facts_path = (
+                require_within_root(
+                    project_root,
+                    project_root / facts_binding["path"],
+                    "profile.project.repository_facts.path",
+                )
+                if facts_binding is not None
+                else None
+            )
+            selection = validate_knowledge_selection_artifact(
                 selection_path,
-                "knowledge-selection.schema.json",
+                facts_path=selection_facts_path,
+                profile_path=project_root / ".architecture" / "profile.yaml",
+                require_current_runtime=True,
             )
             binding_result = {
                 "schema_version": ("1.3" if design_brief_path is not None else "1.2"),

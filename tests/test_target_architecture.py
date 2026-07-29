@@ -16,13 +16,14 @@ ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_ROOT = ROOT / "resources" / "scripts"
 sys.path.insert(0, str(SCRIPT_ROOT))
 
+from build_project_profile import build_profile  # noqa: E402
 from inspect_repository import InspectionError, inspect_repository  # noqa: E402
 from knowledge_model import (  # noqa: E402
     KnowledgeError,
     validate_knowledge_tree,
     validate_markdown_entry,
 )
-from select_knowledge import select_knowledge  # noqa: E402
+from select_knowledge import SelectionError, select_knowledge  # noqa: E402
 
 
 class TargetArchitectureTests(unittest.TestCase):
@@ -56,6 +57,14 @@ class TargetArchitectureTests(unittest.TestCase):
             {"postgresql"},
         )
         serialized = json.dumps(facts, sort_keys=True).lower()
+        self.assertEqual(facts["schema_version"], "1.1")
+        self.assertTrue(
+            all(
+                item["role"] in {"runtime", "production"}
+                for field in ("languages", "frameworks", "storage")
+                for item in facts[field]
+            )
+        )
         self.assertNotIn("recommendation", serialized)
         self.assertNotIn("finding", serialized)
         self.assertNotIn("severity", serialized)
@@ -63,6 +72,348 @@ class TargetArchitectureTests(unittest.TestCase):
     def test_inspector_rejects_scope_escape(self) -> None:
         with self.assertRaisesRegex(InspectionError, "escapes repository root"):
             inspect_repository(self.root, scope_values=["../outside"])
+
+    def test_fixture_only_swift_is_observable_but_does_not_infer_mobile(
+        self,
+    ) -> None:
+        fixture = self.root / "benchmarks" / "fixtures" / "mobile-editor"
+        fixture.mkdir(parents=True)
+        (fixture / "Repository.swift").write_text(
+            "struct Repository {}\n",
+            encoding="utf-8",
+        )
+        fixture_facts = inspect_repository(
+            self.root,
+            scanned_at=datetime(2026, 7, 29, tzinfo=UTC),
+        )
+        swift = [item for item in fixture_facts["languages"] if item["id"] == "swift"]
+        self.assertEqual(
+            swift,
+            [
+                {
+                    "id": "swift",
+                    "role": "benchmark-fixture",
+                    "evidence": ["benchmarks/fixtures/mobile-editor/Repository.swift"],
+                }
+            ],
+        )
+        facts_path = self.root / "fixture-facts.yaml"
+        facts_path.write_text(
+            yaml.safe_dump(fixture_facts, sort_keys=False),
+            encoding="utf-8",
+        )
+        fixture_profile = build_profile(facts_path)
+        self.assertEqual(
+            fixture_profile["project"]["required_knowledge_domains"],
+            [],
+        )
+        self.assertEqual(
+            fixture_profile["project"]["required_reviews"],
+            ["project-architecture"],
+        )
+        self.assertEqual(
+            fixture_profile["project"]["rule_packs"],
+            ["project-core"],
+        )
+        fixture_selection = select_knowledge(
+            facts_path,
+            profile_path=None,
+            task="Review the repository architecture.",
+            skill="project-architecture-audit",
+            maximum_entries=16,
+        )
+        self.assertNotIn(
+            "domain.mobile",
+            {item["id"] for item in fixture_selection["selection"]},
+        )
+
+        (self.root / "Application.swift").write_text(
+            "struct Application {}\n",
+            encoding="utf-8",
+        )
+        mixed_facts = inspect_repository(
+            self.root,
+            scanned_at=datetime(2026, 7, 29, tzinfo=UTC),
+        )
+        self.assertEqual(
+            {
+                item["role"]
+                for item in mixed_facts["languages"]
+                if item["id"] == "swift"
+            },
+            {"production", "benchmark-fixture"},
+        )
+        mixed_path = self.root / "mixed-facts.yaml"
+        mixed_path.write_text(
+            yaml.safe_dump(mixed_facts, sort_keys=False),
+            encoding="utf-8",
+        )
+        mixed_profile = build_profile(mixed_path)
+        self.assertIn(
+            "mobile",
+            mixed_profile["project"]["required_knowledge_domains"],
+        )
+
+    def test_noncontributing_roles_remain_observable_and_legacy_facts_contribute(
+        self,
+    ) -> None:
+        example = self.root / "examples"
+        example.mkdir()
+        (example / "package.json").write_text(
+            json.dumps({"dependencies": {"react": "1.0.0"}}),
+            encoding="utf-8",
+        )
+        facts = inspect_repository(
+            self.root,
+            scanned_at=datetime(2026, 7, 29, tzinfo=UTC),
+        )
+        self.assertEqual(
+            next(item for item in facts["frameworks"] if item["id"] == "react")["role"],
+            "example",
+        )
+        facts_path = self.root / "role-facts.yaml"
+        facts_path.write_text(
+            yaml.safe_dump(facts, sort_keys=False),
+            encoding="utf-8",
+        )
+        profile = build_profile(facts_path)
+        self.assertNotIn(
+            "frontend",
+            profile["project"]["required_knowledge_domains"],
+        )
+        selection = select_knowledge(
+            facts_path,
+            profile_path=None,
+            task="Review a bounded architecture.",
+            skill="unregistered-test-skill",
+            maximum_entries=8,
+        )
+        self.assertNotIn(
+            "technology.react",
+            {item["id"] for item in selection["selection"]},
+        )
+
+        legacy = copy.deepcopy(facts)
+        legacy["schema_version"] = "1.0"
+        legacy_path = self.root / "legacy-facts.yaml"
+        legacy_path.write_text(
+            yaml.safe_dump(legacy, sort_keys=False),
+            encoding="utf-8",
+        )
+        legacy_profile = build_profile(legacy_path)
+        self.assertIn(
+            "frontend",
+            legacy_profile["project"]["required_knowledge_domains"],
+        )
+
+    def test_all_noncontributing_file_roles_do_not_infer_product_domains(
+        self,
+    ) -> None:
+        role_paths = {
+            "test": "tests/Repository.swift",
+            "benchmark-fixture": "benchmarks/fixtures/sample/Repository.swift",
+            "example": "examples/Repository.swift",
+            "documentation": "docs/Repository.swift",
+            "generated": "generated_client.swift",
+        }
+        for relative in role_paths.values():
+            path = self.root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("struct Repository {}\n", encoding="utf-8")
+        # Generated and vendor trees are deliberately pruned before traversal.
+        # Their files cannot become product facts merely because they are large
+        # or contain a familiar framework name.
+        for relative in (
+            "generated/Repository.swift",
+            "vendor/Repository.swift",
+            "third_party/Repository.swift",
+        ):
+            path = self.root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("struct Repository {}\n", encoding="utf-8")
+
+        facts = inspect_repository(
+            self.root,
+            scanned_at=datetime(2026, 7, 29, tzinfo=UTC),
+        )
+        swift_roles = {
+            item["role"] for item in facts["languages"] if item["id"] == "swift"
+        }
+        self.assertEqual(swift_roles, set(role_paths))
+        observed_paths = {
+            path for item in facts["languages"] for path in item["evidence"]
+        }
+        self.assertTrue(
+            observed_paths.isdisjoint(
+                {
+                    "generated/Repository.swift",
+                    "vendor/Repository.swift",
+                    "third_party/Repository.swift",
+                }
+            )
+        )
+
+        facts_path = self.root / "noncontributing-facts.yaml"
+        facts_path.write_text(
+            yaml.safe_dump(facts, sort_keys=False),
+            encoding="utf-8",
+        )
+        profile = build_profile(facts_path)
+        self.assertEqual(
+            profile["project"]["required_knowledge_domains"],
+            [],
+        )
+        selection = select_knowledge(
+            facts_path,
+            profile_path=None,
+            task="Review only product architecture facts.",
+            skill="unregistered-test-skill",
+            maximum_entries=8,
+        )
+        self.assertNotIn(
+            "domain.mobile",
+            {item["id"] for item in selection["selection"]},
+        )
+
+    def test_generated_role_has_deterministic_precedence_over_example_path(
+        self,
+    ) -> None:
+        path = self.root / "examples" / "generated_client.swift"
+        path.parent.mkdir()
+        path.write_text("struct Client {}\n", encoding="utf-8")
+        facts = inspect_repository(
+            self.root,
+            scanned_at=datetime(2026, 7, 29, tzinfo=UTC),
+        )
+        self.assertEqual(
+            facts["languages"],
+            [
+                {
+                    "id": "swift",
+                    "role": "generated",
+                    "evidence": ["examples/generated_client.swift"],
+                }
+            ],
+        )
+
+    def test_development_only_dependencies_do_not_create_product_facts(self) -> None:
+        (self.root / "package.json").write_text(
+            json.dumps(
+                {
+                    "devDependencies": {
+                        "react": "1.0.0",
+                        "vite": "1.0.0",
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        (self.root / "requirements-dev.txt").write_text(
+            "fastapi==1.0\n",
+            encoding="utf-8",
+        )
+        facts = inspect_repository(
+            self.root,
+            scanned_at=datetime(2026, 7, 29, tzinfo=UTC),
+        )
+        self.assertEqual(
+            facts["frameworks"],
+            [
+                {
+                    "id": "fastapi",
+                    "category": "backend",
+                    "role": "test",
+                    "evidence": ["requirements-dev.txt"],
+                }
+            ],
+        )
+        self.assertEqual(facts["storage"], [])
+        self.assertIn("requirements-dev.txt", facts["artifacts"]["manifests"])
+        facts_path = self.root / "development-facts.yaml"
+        facts_path.write_text(
+            yaml.safe_dump(facts, sort_keys=False),
+            encoding="utf-8",
+        )
+        profile = build_profile(facts_path)
+        self.assertNotIn(
+            "backend-api",
+            profile["project"]["required_knowledge_domains"],
+        )
+
+    def test_static_setup_py_runtime_dependencies_remain_product_facts(self) -> None:
+        (self.root / "setup.py").write_text(
+            """from setuptools import setup
+
+RUNTIME_REQUIREMENTS = ["fastapi>=0.110", "psycopg[binary]>=3"]
+setup(name="example", install_requires=RUNTIME_REQUIREMENTS)
+""",
+            encoding="utf-8",
+        )
+        facts = inspect_repository(
+            self.root,
+            scanned_at=datetime(2026, 7, 29, tzinfo=UTC),
+        )
+        self.assertIn(
+            {
+                "id": "fastapi",
+                "category": "backend",
+                "role": "production",
+                "evidence": ["setup.py"],
+            },
+            facts["frameworks"],
+        )
+        self.assertIn(
+            {
+                "id": "postgresql",
+                "role": "production",
+                "evidence": ["setup.py"],
+            },
+            facts["storage"],
+        )
+
+    def test_python_dependency_names_are_exact_not_substrings(self) -> None:
+        (self.root / "requirements.txt").write_text(
+            "\n".join(
+                [
+                    "nextcloud-client==1.0",
+                    "agentscope>=0.2",
+                    "pgvector~=0.3",
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        facts = inspect_repository(
+            self.root,
+            scanned_at=datetime(2026, 7, 29, tzinfo=UTC),
+        )
+
+        self.assertEqual(facts["frameworks"], [])
+        self.assertEqual(facts["storage"], [])
+
+        (self.root / "requirements.txt").write_text(
+            "\n".join(
+                [
+                    "fastapi>=0.110",
+                    "openai-agents>=0.2",
+                    "psycopg[binary]>=3",
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        exact = inspect_repository(
+            self.root,
+            scanned_at=datetime(2026, 7, 29, tzinfo=UTC),
+        )
+        self.assertEqual(
+            {item["id"] for item in exact["frameworks"]},
+            {"fastapi", "openai-agents-sdk"},
+        )
+        self.assertEqual(
+            {item["id"] for item in exact["storage"]},
+            {"postgresql"},
+        )
 
     def test_selector_uses_facts_and_respects_negative_scope(self) -> None:
         (self.root / "package.json").write_text(
@@ -130,6 +481,188 @@ class TargetArchitectureTests(unittest.TestCase):
             "required",
         )
         self.assertEqual(priorities["technology.fastapi"], "recommended")
+        self.assertEqual(selection["schema_version"], "1.4")
+        self.assertTrue(
+            all({"kind", "maturity"}.issubset(item) for item in selection["selection"])
+        )
+
+    def test_selector_enforces_per_kind_budgets_and_advisor_golden_policy(
+        self,
+    ) -> None:
+        (self.root / "package.json").write_text(
+            json.dumps({"dependencies": {"react": "1.0.0"}}),
+            encoding="utf-8",
+        )
+        (self.root / "requirements.txt").write_text(
+            "fastapi==1.0\n",
+            encoding="utf-8",
+        )
+        facts = inspect_repository(
+            self.root,
+            scanned_at=datetime(2026, 7, 29, tzinfo=UTC),
+        )
+        facts_path = self.root / "repository-facts.yaml"
+        facts_path.write_text(
+            yaml.safe_dump(facts, sort_keys=False),
+            encoding="utf-8",
+        )
+        selection = select_knowledge(
+            facts_path,
+            profile_path=None,
+            task="Compare React and FastAPI architecture options.",
+            skill="architecture-solution-advisor",
+            maximum_entries=16,
+            includes=["style.modular-monolith"],
+            kind_budgets={
+                "foundation": 6,
+                "domain": 2,
+                "technology-profile": 2,
+            },
+        )
+        selected = {item["id"]: item for item in selection["selection"]}
+
+        self.assertEqual(selected["technology.fastapi"]["maturity"], "golden")
+        self.assertEqual(selected["technology.react"]["maturity"], "standard")
+        self.assertIn(
+            "Non-Golden exception: detected technology has no declared Golden "
+            "replacement.",
+            selected["technology.react"]["reasons"],
+        )
+        self.assertEqual(
+            selected["style.modular-monolith"]["maturity"],
+            "standard",
+        )
+        self.assertIn(
+            "Non-Golden exception: explicit caller include.",
+            selected["style.modular-monolith"]["reasons"],
+        )
+        for record in selected.values():
+            if record["maturity"] != "golden":
+                self.assertTrue(
+                    any(
+                        reason.startswith("Non-Golden exception:")
+                        for reason in record["reasons"]
+                    )
+                )
+        for kind, budget in selection["budget"]["per_kind"].items():
+            self.assertLessEqual(
+                budget["selected_entries"],
+                budget["maximum_entries"],
+                kind,
+            )
+
+        with self.assertRaisesRegex(
+            SelectionError,
+            "foundation=4 is below 5 mandatory entries",
+        ):
+            select_knowledge(
+                facts_path,
+                profile_path=None,
+                task="Compare a bounded architecture.",
+                skill="architecture-solution-advisor",
+                maximum_entries=16,
+                kind_budgets={"foundation": 4},
+            )
+        with self.assertRaisesRegex(
+            SelectionError,
+            "Explicit exclusions remove mandatory knowledge",
+        ):
+            select_knowledge(
+                facts_path,
+                profile_path=None,
+                task="Compare a bounded architecture.",
+                skill="architecture-solution-advisor",
+                maximum_entries=16,
+                excludes=["foundation.tradeoff-analysis"],
+            )
+
+        no_exception = select_knowledge(
+            facts_path,
+            profile_path=None,
+            task="Compare modular monolith architecture options.",
+            skill="architecture-solution-advisor",
+            maximum_entries=16,
+        )
+        self.assertNotIn(
+            "style.modular-monolith",
+            {item["id"] for item in no_exception["selection"]},
+        )
+        maintainer = select_knowledge(
+            facts_path,
+            profile_path=None,
+            task="Compare modular monolith architecture options.",
+            skill="architecture-solution-advisor",
+            maximum_entries=16,
+            maintainer_mode=True,
+        )
+        maintainer_entries = {item["id"]: item for item in maintainer["selection"]}
+        self.assertIn("style.modular-monolith", maintainer_entries)
+        self.assertIn(
+            "Non-Golden exception: maintainer mode.",
+            maintainer_entries["style.modular-monolith"]["reasons"],
+        )
+        self.assertTrue(maintainer["inputs"]["maintainer_mode"])
+
+    def test_selector_uses_decision_intent_to_disambiguate_local_runtime(
+        self,
+    ) -> None:
+        facts = inspect_repository(
+            self.root,
+            scanned_at=datetime(2026, 7, 29, tzinfo=UTC),
+        )
+        facts_path = self.root / "repository-facts.yaml"
+        facts_path.write_text(
+            yaml.safe_dump(facts, sort_keys=False),
+            encoding="utf-8",
+        )
+
+        plugin_runtime = select_knowledge(
+            facts_path,
+            profile_path=None,
+            task="Preserve the local-first plugin runtime.",
+            skill="architecture-solution-advisor",
+            maximum_entries=16,
+            decision_intents=["plugin-runtime-topology"],
+        )
+        selected = {item["id"]: item for item in plugin_runtime["selection"]}
+        self.assertIn("style.plugin-architecture", selected)
+        self.assertEqual(
+            selected["style.plugin-architecture"]["priority"],
+            "required",
+        )
+        self.assertIn(
+            "Non-Golden exception: exact decision-intent match.",
+            selected["style.plugin-architecture"]["reasons"],
+        )
+        self.assertTrue(
+            {
+                "decision.local-first-vs-server-first",
+                "decision.optimistic-vs-pessimistic-update",
+                "decision.state-management",
+            }.isdisjoint(selected)
+        )
+
+        data_authority = select_knowledge(
+            facts_path,
+            profile_path=None,
+            task="Choose local-first data authority and conflict behavior.",
+            skill="architecture-solution-advisor",
+            maximum_entries=16,
+            decision_intents=["data-authority-topology"],
+        )
+        self.assertIn(
+            "decision.local-first-vs-server-first",
+            {item["id"] for item in data_authority["selection"]},
+        )
+        with self.assertRaisesRegex(SelectionError, "Unknown decision intents"):
+            select_knowledge(
+                facts_path,
+                profile_path=None,
+                task="Compare an unknown architecture decision.",
+                skill="architecture-solution-advisor",
+                maximum_entries=16,
+                decision_intents=["unknown-topology"],
+            )
 
     def test_selector_uses_canonical_profile_domains_and_avoids_generic_reference(
         self,
@@ -144,11 +677,13 @@ class TargetArchitectureTests(unittest.TestCase):
         selected = {item["id"]: item["priority"] for item in selection["selection"]}
 
         self.assertEqual(selected["domain.plugin-platform"], "required")
-        self.assertEqual(selected["domain.data-platform"], "required")
         self.assertEqual(
             selected["domain.test-automation-platform"],
             "required",
         )
+        self.assertNotIn("domain.backend-api", selected)
+        self.assertNotIn("domain.data-platform", selected)
+        self.assertNotIn("domain.cloud-native-platform", selected)
         self.assertNotIn("reference.multi-tenant-knowledge-base", selected)
 
     def test_selector_expands_one_hop_as_optional_without_displacing_required(
@@ -167,6 +702,67 @@ class TargetArchitectureTests(unittest.TestCase):
         self.assertEqual(selected["decision.cache-strategy"], "required")
         self.assertEqual(selected["pattern.materialized-view"], "optional")
         self.assertLessEqual(len(selected), 3)
+
+    def test_selector_one_hop_respects_kind_budgets_and_is_deterministic(
+        self,
+    ) -> None:
+        facts_path = self.root / "facts.yaml"
+        facts_path.write_text(
+            yaml.safe_dump(
+                {
+                    "schema_version": "1.1",
+                    "repository": {
+                        "root": ".",
+                        "commit": "unknown",
+                        "dirty": False,
+                        "scanned_at": "2026-07-29T00:00:00+00:00",
+                        "scope": ["."],
+                    },
+                    "languages": [],
+                    "frameworks": [],
+                    "storage": [],
+                    "interfaces": [],
+                    "infrastructure": [],
+                    "artifacts": {
+                        "manifests": [],
+                        "migrations": [],
+                        "api_definitions": [],
+                        "ci": [],
+                        "deployments": [],
+                    },
+                },
+                sort_keys=False,
+            ),
+            encoding="utf-8",
+        )
+        first = select_knowledge(
+            facts_path,
+            profile_path=None,
+            task="Compare a bounded architecture.",
+            skill="unregistered-test-skill",
+            maximum_entries=8,
+            includes=["technology.fastapi"],
+            kind_budgets={"domain": 0},
+        )
+        second = select_knowledge(
+            facts_path,
+            profile_path=None,
+            task="Compare a bounded architecture.",
+            skill="unregistered-test-skill",
+            maximum_entries=8,
+            includes=["technology.fastapi"],
+            kind_budgets={"domain": 0},
+        )
+        self.assertEqual(first, second)
+        self.assertNotIn(
+            "domain.backend-api",
+            {item["id"] for item in first["selection"]},
+        )
+        excluded = {item["id"]: item["reason"] for item in first["excluded"]}
+        self.assertEqual(
+            excluded["domain.backend-api"],
+            "Relevant but outside the configured domain context budget.",
+        )
 
     def test_selector_does_not_route_generic_knowledge_token_to_reference(
         self,

@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
@@ -46,12 +47,78 @@ def within(root: Path, value: Path, label: str) -> Path:
     return resolved
 
 
+def load_context_manifest(root: Path, value: Path) -> dict[str, Any]:
+    path = within(
+        root,
+        value if value.is_absolute() else root / value,
+        "context manifest",
+    )
+    if not path.is_file():
+        raise ValueError(f"Context manifest is missing: {path}")
+    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("Context manifest must contain a mapping")
+    schema_path = within(
+        root,
+        root / "resources" / "schemas" / "benchmark-context-manifest.schema.json",
+        "context manifest schema",
+    )
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    errors = sorted(
+        Draft202012Validator(schema).iter_errors(payload),
+        key=lambda error: list(error.path),
+    )
+    if errors:
+        raise ValueError(
+            "Context manifest is invalid: "
+            + "; ".join(error.message for error in errors)
+        )
+    return payload
+
+
+def treatment_for(
+    manifest: dict[str, Any],
+    *,
+    condition: str,
+    skill: str,
+) -> dict[str, Any]:
+    matches = [
+        item
+        for item in manifest["treatments"]
+        if item["condition"] == condition and item["skill"] == skill
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"Context manifest must define one {condition!r} treatment for {skill!r}"
+        )
+    return matches[0]
+
+
+def resolve_treatment_paths(
+    root: Path,
+    treatment: dict[str, Any],
+    category: str,
+) -> list[Path]:
+    result = []
+    for relative in treatment[category]:
+        path = within(root, root / relative, f"context {category}")
+        if not path.is_file():
+            raise ValueError(f"Context {category} input is missing: {relative}")
+        result.append(path)
+    return result
+
+
 def build_prompt(
     *,
     skill_path: Path,
     knowledge_root: Path,
     fixture: Path,
     task: str,
+    condition: str = "full",
+    compact_skill_paths: list[Path] | None = None,
+    reference_paths: list[Path] | None = None,
+    knowledge_paths: list[Path] | None = None,
+    tool_description_paths: list[Path] | None = None,
 ) -> str:
     solution_output = ""
     if skill_path.parent.name == "architecture-solution-advisor":
@@ -75,27 +142,59 @@ This is a solution-advisor case. Also return observed_decision with:
 This is not a solution-advisor case. Return observed_decision with
 selected_option set to "not-applicable" and all four array fields empty.
 """
-    return f"""Read and follow the Skill completely:
+    if condition == "full":
+        treatment_instructions = f"""Read and follow the Skill completely:
 {skill_path}
+"""
+        if reference_paths:
+            treatment_instructions += (
+                "\nRead these declared references before reaching a conclusion:\n"
+                + "\n".join(f"- {path}" for path in reference_paths)
+                + "\n"
+            )
+        if knowledge_paths:
+            treatment_instructions += (
+                "\nUse only these declared knowledge entries when needed:\n"
+                + "\n".join(f"- {path}" for path in knowledge_paths)
+                + "\n"
+            )
+    elif condition == "compressed":
+        compact_skill_paths = compact_skill_paths or []
+        reference_paths = reference_paths or []
+        knowledge_paths = knowledge_paths or []
+        if not compact_skill_paths:
+            raise ValueError("Compressed benchmark treatment requires a compact Skill")
+        treatment_instructions = (
+            "Read and follow these compact benchmark instructions:\n"
+        )
+        treatment_instructions += "\n".join(f"- {path}" for path in compact_skill_paths)
+        if reference_paths:
+            treatment_instructions += (
+                "\n\nRead these declared references only when needed:\n"
+            )
+            treatment_instructions += "\n".join(f"- {path}" for path in reference_paths)
+        if knowledge_paths:
+            treatment_instructions += (
+                "\n\nUse only these declared knowledge entries when needed:\n"
+            )
+            treatment_instructions += "\n".join(f"- {path}" for path in knowledge_paths)
+    elif condition == "base":
+        treatment_instructions = "Use only the fixture evidence and task below.\n"
+    else:
+        raise ValueError(f"Unsupported benchmark condition: {condition}")
+    tool_text = "\n\n".join(
+        path.read_text(encoding="utf-8").strip()
+        for path in (tool_description_paths or [])
+    )
+    return f"""{treatment_instructions}
 
 Inspect only this benchmark fixture and its files:
 {fixture}
 
-The architecture knowledge catalog is read-only at:
-{knowledge_root}
-
 Task:
 {task}
 
-Return only JSON matching the provided output schema. Report a finding only when
-the fixture directly proves a machine Rule Pack invariant. Use only a Rule ID
-allowed by the output schema; never use a Knowledge or Pattern ID as rule_id.
-Each finding must cite a fixture-relative path and the smallest possible exact
-excerpt. Prefer one line per evidence item, copy every leading space exactly,
-and never insert an ellipsis or join non-contiguous lines. Do not invent
-runtime, scale, team, compliance, or production evidence. Put architecture
-recommendations in observed_recommendations; use an empty list when no change
-is justified.
+{tool_text}
 {solution_output}
 """
 
@@ -208,6 +307,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--prompt", required=True)
     parser.add_argument("--timeout", type=int, default=600)
     parser.add_argument("--codex", default="codex")
+    parser.add_argument(
+        "--condition",
+        choices=["base", "full", "compressed"],
+        default="full",
+    )
+    parser.add_argument(
+        "--context-manifest",
+        type=Path,
+        default=Path("benchmarks/ablation/context-manifest.yaml"),
+    )
     return parser.parse_args()
 
 
@@ -224,6 +333,12 @@ def main() -> int:
         raise ValueError(f"Fixture is not a directory: {fixture}")
     if not skill_path.is_file():
         raise ValueError(f"Skill is missing: {skill_path}")
+    context_manifest = load_context_manifest(root, args.context_manifest)
+    treatment = treatment_for(
+        context_manifest,
+        condition=args.condition,
+        skill=args.skill,
+    )
     schema_path = within(
         root,
         root / "resources" / "schemas" / "benchmark-observation.schema.json",
@@ -242,6 +357,15 @@ def main() -> int:
         knowledge_root=root / "resources" / "knowledge",
         fixture=fixture,
         task=args.prompt,
+        condition=args.condition,
+        compact_skill_paths=resolve_treatment_paths(root, treatment, "skill_body"),
+        reference_paths=resolve_treatment_paths(root, treatment, "references"),
+        knowledge_paths=resolve_treatment_paths(root, treatment, "knowledge"),
+        tool_description_paths=resolve_treatment_paths(
+            root,
+            treatment,
+            "tool_descriptions",
+        ),
     )
     with tempfile.TemporaryDirectory(prefix="architecture-benchmark-") as temporary:
         temporary_root = Path(temporary)

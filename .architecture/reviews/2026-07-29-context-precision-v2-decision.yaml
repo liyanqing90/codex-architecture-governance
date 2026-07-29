@@ -1,0 +1,223 @@
+schema_version: "1.2"
+decision:
+  id: ADR-CAG-007
+  decision_kind: remediation
+  source_review: codex-architecture-governance-20260729-context-precision-v2-verified
+  source_review_sha256: 4560ba94151986fbc7e5230aee44a8ac70854f0a5a2ad566589946a35de04b13
+  decided_at: "2026-07-29T10:38:00+00:00"
+  decision_makers:
+    - architecture-owner
+  status: accepted
+  knowledge_selection_path: .architecture/reviews/inputs/2026-07-29-context-precision-v2-decision-knowledge-selection.yaml
+  knowledge_selection_sha256: d741e9d9d0ce417824e52463394ee07f47d1c402d586b60b977bd2701ccaeac7
+problem:
+  quality_attributes:
+    - compatibility
+    - deterministic-enforcement
+    - traceability
+  constraints:
+    - The eight public Skill identities and the local-first plugin runtime remain compatibility contracts.
+    - Historical artifacts remain readable and cannot be reinterpreted by a future Selector.
+    - The runtime requires no hosted service, credentials, telemetry, or implicit network access.
+    - Public schema and migration changes require a source-bound Review and compatible migration evidence.
+  finding_ids: []
+  assumptions:
+    - Repository-scale selection artifacts remain within ordinary local and CI budgets.
+    - Creation-time replay is the daily validation path; archival replay can remain an explicit high-assurance workflow.
+  known_facts:
+    - The verified Review confirms exact dependency names, role-aware facts, creation-time Selection locking, semantic decision intents, and complete A/B/C treatment contracts.
+    - The reviewed implementation commit is a remotely reachable direct descendant of main and contains all critical code changes.
+    - The decision selection explicitly binds plugin-runtime-topology and includes Plugin Architecture Knowledge.
+    - No client data-authority, optimistic-update, or client-state Knowledge appears in the decision selection.
+  unknowns:
+    - Downstream schema 1.3 adoption and historical migration experience are not yet observed.
+    - No new external-model A/B/C quality, token, cost, or tool-use result is available.
+    - GitHub Dependency Graph enablement remains an external repository setting.
+knowledge_snapshot:
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: foundation.technology-selection, version: "1.0.0", sha256: 183032d368331cd7a3c47988a8f042be627dd5fd1104596d76516951ea0f5948}
+  - {id: foundation.evolutionary-architecture, version: "1.0.0", sha256: 6f04262de0936a1cffca25b6cadf5e2b0e4b8e7aa6724292ba1d9fd314413f3f}
+  - {id: style.plugin-architecture, version: "1.0.0", sha256: 9d72e896b0154e8ee979474c6d47579889705c751a32a172f4b1b72bdef13a8a}
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: foundation.tradeoff-analysis, version: "1.0.0", sha256: 058c9756ba4d9306f42e0fb49365aff3564f3545e103c05812040ce2c9f8b9d5}
+  - {id: domain.backend-api, version: "1.0.0", sha256: ea716865510106db441623d39045b2ca26f66c4424ed18fb15383938614ac4b4}
+  - {id: domain.cloud-native-platform, version: "1.0.0", sha256: 37ee84809a4162ff3e49a04a82433786efe762f7440dc5273232cb7b5b612c9c}
+  - {id: domain.data-platform, version: "1.0.0", sha256: 72dc109fdb28d74df5f947bf615017bd80d655a7e9c5b3fde7df53cff2fc6364}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+options:
+  - id: keep-current
+    title: Keep the local-first plugin and adopt creation-time Selection locking
+    complexity_tier: keep-current
+    architecture_styles:
+      - style.plugin-architecture
+    patterns: []
+    technologies: []
+    benefits:
+      - Preserves the installable local runtime and existing public Skill boundaries.
+      - Keeps current selections fully replayable while preserving historical meaning after future upgrades.
+      - Makes ambiguous decision domains explicit without turning maturity into a relevance override.
+    liabilities:
+      - Maintainers must version decision intents and selection policy when demonstrated collision domains change.
+      - High-assurance reconstruction of an old Selector remains a separate archival operation.
+    assumptions:
+      - The local plugin and repository-scale CLI remain the product boundary.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: improves, rationale: Historical selections retain their creation-time semantics and prior schemas remain readable.}
+      - {attribute: deterministic-enforcement, effect: improves, rationale: Identical provenance invokes exact replay while mismatched future runtimes cannot reinterpret the artifact.}
+      - attribute: traceability
+        effect: improves
+        rationale: Selector, Knowledge, policy, source commit, result, and decision intent are explicit bindings.
+    business_fit: Matches the installable open-source plugin and constrained operating model.
+    team_fit: Uses the existing Python, schema, Knowledge, and regression-test ownership boundaries.
+    evolution_fit: Adds compatible versioned seams without creating a new deployment or service.
+    implementation_complexity: low
+    operational_complexity: low
+    migration_risk: low
+    reversibility: easy
+    cost: low
+    technical_maturity: mature
+    lock_in: none
+    tradeoff_scores:
+      business_fit: 2
+      quality_fit: 2
+      team_fit: 2
+      implementation: 2
+      operations: 2
+      migration: 2
+      reversibility: 2
+      cost: 2
+      maturity: 2
+      lock_in: 2
+      evolution: 2
+    rejected_reasons: []
+
+  - id: future-runtime-replay
+    title: Re-run every historical selection with the installed future Selector
+    complexity_tier: low
+    architecture_styles:
+      - style.plugin-architecture
+    patterns: []
+    technologies: []
+    benefits:
+      - Stores fewer creation-runtime fields and uses one validator code path.
+    liabilities:
+      - New Knowledge, triggers, relationships, maturity, scoring, or budgets can invalidate a previously valid trusted Review.
+      - Validation outcome no longer represents the algorithm that created the historical artifact.
+    assumptions:
+      - Consumers accept retroactive reinterpretation of trusted evidence after every plugin upgrade.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: degrades, rationale: A future implementation can reject an unchanged historical artifact.}
+      - {attribute: deterministic-enforcement, effect: degrades, rationale: The same artifact can change result when unrelated current Knowledge changes.}
+      - {attribute: traceability, effect: degrades, rationale: The creating Selector and policy are absent from the validation decision.}
+    business_fit: Conflicts with the published historical-evidence compatibility promise.
+    team_fit: Appears simpler locally but transfers upgrade failures to maintainers and downstream consumers.
+    evolution_fit: Couples all historical Reviews to every future Selector and Knowledge release.
+    implementation_complexity: low
+    operational_complexity: medium
+    migration_risk: high
+    reversibility: moderate
+    cost: medium
+    technical_maturity: stable
+    lock_in: high
+    tradeoff_scores:
+      business_fit: -2
+      quality_fit: -2
+      team_fit: -1
+      implementation: 2
+      operations: -1
+      migration: -2
+      reversibility: 0
+      cost: 0
+      maturity: 1
+      lock_in: -2
+      evolution: -2
+    rejected_reasons:
+      - It reproduces the verified historical-compatibility defect.
+
+  - id: mandatory-git-bound-replay
+    title: Always check out the recorded Git commit and execute its archived Selector
+    complexity_tier: medium
+    architecture_styles:
+      - style.plugin-architecture
+    patterns: []
+    technologies: []
+    benefits:
+      - Can reconstruct the creating implementation and full Knowledge tree for high-assurance archival review.
+      - Separates old and current runtime code physically during replay.
+    liabilities:
+      - Requires every source commit and dependency environment to remain reachable and safely executable.
+      - Adds worktree isolation, dependency restoration, platform portability, and untrusted-code execution boundaries to routine validation.
+    assumptions:
+      - All repositories preserve source objects and reproducible dependency environments indefinitely.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: improves, rationale: A reachable archive can reproduce the creating runtime exactly.}
+      - {attribute: deterministic-enforcement, effect: improves, rationale: Replay uses the recorded implementation when its environment is reconstructible.}
+      - {attribute: traceability, effect: improves, rationale: The result can be tied to a complete historical source tree.}
+    business_fit: Suitable as an optional V4/V5 archival check, not the default local validation path.
+    team_fit: Requires isolation and reproducible-environment ownership beyond the routine plugin workflow.
+    evolution_fit: Adds a high-assurance path but makes ordinary validation depend on indefinite Git and dependency retention.
+    implementation_complexity: high
+    operational_complexity: high
+    migration_risk: medium
+    reversibility: moderate
+    cost: high
+    technical_maturity: stable
+    lock_in: medium
+    tradeoff_scores:
+      business_fit: 0
+      quality_fit: 2
+      team_fit: -1
+      implementation: -2
+      operations: -2
+      migration: -1
+      reversibility: 0
+      cost: -2
+      maturity: 1
+      lock_in: 0
+      evolution: 1
+    rejected_reasons:
+      - Creation-time locking provides the required daily guarantee without executing archived repository code.
+      - Git-bound replay remains a future high-assurance option when an explicit evidence tier justifies its cost.
+selected_option: keep-current
+rationale: >-
+  The least-complex option keeps the local-first plugin topology and fixes the
+  invariant at the Selection boundary. Creation-time provenance and result
+  locking preserve historical meaning, while exact current-runtime equality
+  retains full deterministic replay for current artifacts. Decision-intent
+  namespaces correct the demonstrated semantic collision without replacing
+  relevant Standard Knowledge with weaker Golden context. Mandatory Git-bound
+  replay adds useful archival assurance but is disproportionate for every
+  local validation and remains a future explicit high-assurance path.
+revisit_triggers:
+  - A V4 or V5 archival workflow requires executable reconstruction of an old Selector rather than creation-time lock validation.
+  - A new verified semantic collision cannot be represented by a bounded decision intent and regression.
+  - Downstream migration evidence shows schema 1.3 cannot preserve a supported historical selection.
+  - A funded hosted product has named security, tenancy, availability, and on-call owners.
+acceptance_evidence:
+  - The repository owner directed implementation and GitHub publication of the confirmed audit repairs.
+  - The verified Review binds four confirmed strengths, ten resolved Git evidence records, 31 rules, six critical flows, and the reachable implementation commit.
+hard_eliminations: []
+migration:
+  affected_paths:
+    - docs/migrating-to-0.4.2.md
+    - resources/schemas/benchmark-context-manifest.schema.json
+    - resources/schemas/benchmark.schema.json
+    - resources/schemas/gate-policy.schema.json
+    - resources/schemas/governance-run-manifest.schema.json
+    - resources/schemas/knowledge-selection.schema.json
+    - resources/schemas/project-profile.schema.json
+    - resources/schemas/repository-facts.schema.json
+  slices:
+    - Preserve legacy Selection schemas as historical snapshots and introduce schema 1.3 for new creation-time-bound selections.
+    - Route ambiguous plugin-runtime and data-authority questions through explicit decision intents with focused negative regressions.
+    - Replace substring dependency evidence with normalized exact Python names and rebuild active role-aware Repository Facts.
+    - Publish only after the reviewed implementation commit is remotely reachable and the final governance commit changes no critical code.
+  rollback: >-
+    Revert the new Selection generation path in a compatible follow-up release
+    while retaining schema 1.3 readers and archived artifacts; never rewrite or
+    delete the reviewed implementation commit or historical evidence.
+  validation:
+    - Validate active and frozen Facts, Profiles, Selection 1.3 artifacts, candidate/verified Review bindings, Git evidence, and this Decision.
+    - Run focused regressions, the full suite, Ruff lint and format checks, repository and Knowledge validation, dependency and license audits, deterministic packaging, checksum verification, and SPDX generation.
+    - Run change and release gates against origin/main, then verify the remote source commit remains an ancestor of the final branch head.

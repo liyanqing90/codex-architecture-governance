@@ -42,7 +42,8 @@ exposes exactly the eight workflows above.
 `resources/` contains the shared runtime:
 
 - JSON Schemas for profiles, reviews, Findings, decisions, plans, policy,
-  baselines, risk acceptance, knowledge, providers, rules, and benchmarks;
+  baselines, risk acceptance, knowledge, providers, rules, behavior
+  benchmarks, context manifests, and informational governance runs;
 - nineteen machine-readable core and domain Rule Packs, plus repository-local
   organization packs, with complete-coverage enforcement;
 - ten Markdown/frontmatter Knowledge Packs containing 205 sourced entries,
@@ -64,6 +65,11 @@ maps every material recommendation to executable capability and evidence.
 The [target architecture](docs/target-architecture.md) and
 [0.3 implementation matrix](docs/target-architecture-implementation.md)
 describe the facts, knowledge, workflow, and trust boundaries.
+See [governance modes](docs/governance-modes.md) for the lightweight Advisory,
+Governed, and Enforced operating tiers.
+The accepted [context-precision decision](docs/decisions/2026-07-29-adopt-context-precision-and-tiered-governance.md)
+records why historical artifacts are preserved and why run records remain
+non-authoritative.
 
 ## Requirements and installation
 
@@ -115,14 +121,27 @@ The command refuses an existing destination and creates:
 ├── evidence-providers.yaml
 ├── evidence/
 ├── rules/
+├── runs/
 └── reviews/
 ```
 
 `profile.yaml` selects project qualities, reviews, and Rule Packs.
 `repository-facts.yaml` contains deterministic observations; it never contains
-a recommendation. Before each audit or decision, `select-knowledge` creates a
-task-scoped `knowledge-selection.yaml` containing exact entry hashes, reasons,
-exclusions, and context budget.
+a recommendation. Fact roles distinguish runtime/production evidence from
+tests, benchmark fixtures, examples, documentation, generated code, and
+vendor trees; only runtime and production facts infer product architecture.
+Before each audit or decision, `select-knowledge` creates a task-scoped
+`knowledge-selection.yaml` containing exact entry hashes, kind/maturity,
+reasons, exclusions, total/per-kind context budgets, and creation-time
+Selector/Knowledge/policy provenance. Schema 1.4 separates the reviewed
+project commit from the plugin source commit and binds the complete Selector
+Runtime Input Manifest. It replays an exact current runtime, verifies archived
+Git blobs without executing historical code, and keeps those archived locks
+readable without allowing them to create a new trusted Review, Decision, Plan,
+or Gate chain. `knowledge-context.yaml` contains only selected entries for
+model context; `validate-knowledge-context` proves its lock hash, result hash,
+and exact ordered projection before consumption. The full exclusion ledger
+remains a machine-facing lock.
 `constraints.md` records real limits. `critical-flows.md` defines protected
 runtime behavior. Findings, decisions, and plans are stored under `reviews/`.
 Organization rules can be versioned as Rule Packs under
@@ -174,7 +193,28 @@ python3 resources/scripts/architecture_tool.py select-knowledge \
   --profile /path/to/repository/.architecture/profile.yaml \
   --task "Current architecture audit" \
   --skill project-architecture-audit \
-  --output /path/to/repository/.architecture/knowledge-selection.yaml
+  --output /path/to/repository/.architecture/knowledge-selection.yaml \
+  --context-output /path/to/repository/.architecture/knowledge-context.yaml
+python3 resources/scripts/architecture_tool.py validate-knowledge-context \
+  /path/to/repository/.architecture/knowledge-context.yaml \
+  --selection /path/to/repository/.architecture/knowledge-selection.yaml \
+  --facts /path/to/repository/.architecture/repository-facts.yaml \
+  --profile /path/to/repository/.architecture/profile.yaml
+```
+
+For an architecture decision whose wording could cross semantic domains, bind
+the decision namespace explicitly. For example, a locally installed plugin
+runtime is not local-first client data authority:
+
+```bash
+python3 resources/scripts/architecture_tool.py select-knowledge \
+  --facts .architecture/repository-facts.yaml \
+  --profile .architecture/profile.yaml \
+  --task "Preserve the local-first plugin runtime" \
+  --skill architecture-solution-advisor \
+  --decision-intent plugin-runtime-topology \
+  --output .architecture/decision-knowledge-selection.yaml \
+  --context-output .architecture/decision-knowledge-context.yaml
 ```
 
 Then validate and resolve evidence:
@@ -187,6 +227,10 @@ python3 resources/scripts/architecture_tool.py verify-evidence \
 python3 resources/scripts/architecture_tool.py verify-review-signature \
   --project /path/to/repository --review /path/to/verified.yaml
 ```
+
+Add `--historical` only to inspect an existing archived Review, Decision, Plan,
+or compact context. New bindings, coverage checks, and Gates require a
+Selection that replays with the current Selector Runtime.
 
 Finding IDs remain readable identifiers. Fingerprints bind baselines, waivers,
 and risk acceptance to finding semantics and evidence identity, preventing an
@@ -296,6 +340,13 @@ input or configuration. SARIF 2.1.0 output can be uploaded with GitHub's
 `github/codeql-action/upload-sarif`. The bundled GitHub workflow template also
 publishes the Check summary and updates a pull-request comment.
 
+`product_mode` is a declared operating tier, not a bypass. A project using
+Advisory mode does not initialize or invoke the gate; an explicitly invoked
+gate evaluates its deterministic policy regardless of that label. High-risk
+Governed/Enforced work may add a validated but non-authoritative trajectory
+record under `.architecture/runs/`; it never substitutes for a Review,
+Evidence Provider run, approval, or gate evidence.
+
 ## Behavior evaluation
 
 `evals/cases.yaml` contains one direct, indirect, incomplete, negative, and
@@ -319,6 +370,15 @@ runner and adapter hashes, the reconstructible command template, exact
 per-trial argument vectors, command/model executable fingerprints and version
 outputs, and a hash-verified JSONL execution log. Interrupted trials leave a
 failure log instead of disappearing.
+
+Schema 1.5 adds a declared `base` / `full` / `compressed` context ablation.
+Base has no Skill, Reference, or Knowledge content. Full uses the public Skill;
+Compressed uses a compact workflow instruction; both share the same
+workflow-required Knowledge per Skill. Each run records a corpus-level
+declared-input character/byte proxy, not tokens or cost. Token, cost, and
+tool-call totals remain `null` unless the executed surface reports them. See
+[evaluation guidance](docs/evaluation.md) before interpreting or publishing an
+A/B/C comparison.
 
 The forward-test runner accepts a caller-supplied agent command:
 
@@ -345,7 +405,8 @@ source-inconsistent provenance chain.
 Version 0.4.0 preserves 60 real trials from two identified models on
 `codex-cli 0.146.0-alpha.3.1`, including non-perfect results and limitations.
 See the [model behavior evidence](benchmarks/reports/0.4.0-model-behavior.md)
-and [evaluation guidance](docs/evaluation.md).
+and [evaluation guidance](docs/evaluation.md). The planned context-precision
+migration is documented in [the 0.4.2 guide](docs/migrating-to-0.4.2.md).
 
 ## Open-source verification
 
@@ -362,8 +423,8 @@ python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/codex-architecture-governance-0.4.0.zip \
-  --output dist/codex-architecture-governance-0.4.0.spdx.json
+  --archive dist/codex-architecture-governance-0.4.2.zip \
+  --output dist/codex-architecture-governance-0.4.2.spdx.json
 ```
 
 CI runs the supported Python boundary on Linux, macOS, and Windows. Tagged

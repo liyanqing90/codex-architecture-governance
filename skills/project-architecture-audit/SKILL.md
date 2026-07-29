@@ -11,6 +11,15 @@ candidates, change production code, or recommend fixes. Use
 `architecture-finding-verifier` for confirmation and
 `architecture-remediation-planner` only after findings are confirmed.
 
+## Choose the persistence level
+
+When the user asks for a read-only assessment, or `.architecture/` is absent
+and initialization was not requested, operate in Advisory mode: inspect only,
+write no repository artifacts, do not run a Gate, and label conclusions as
+observations or candidates in the response. For Governed or Enforced work,
+follow the persistent candidate/verification workflow below. Do not create
+configuration merely to make an Advisory assessment look governed.
+
 ## Load the contract
 
 Read these files completely before auditing:
@@ -67,11 +76,26 @@ python3 ../../resources/scripts/architecture_tool.py select-knowledge \
   --profile <profile.yaml> \
   --task "<current audit request>" \
   --skill project-architecture-audit \
-  --output <repo>/.architecture/knowledge-selection.yaml
+  --output <repo>/.architecture/knowledge-selection.yaml \
+  --context-output <repo>/.architecture/knowledge-context.yaml
 ```
 
-Read every selected entry completely. Do not load the full knowledge tree.
-Treat repository facts as observations, never as risk conclusions.
+Before reading model context, validate the sidecar against the exact lock:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py validate-knowledge-context \
+  <repo>/.architecture/knowledge-context.yaml \
+  --selection <repo>/.architecture/knowledge-selection.yaml \
+  --facts <repo>/.architecture/repository-facts.yaml \
+  --profile <profile.yaml>
+```
+
+Read `knowledge-context.yaml` only after validation succeeds, then read every
+Markdown path it selects
+completely. Do not load the full `knowledge-selection.yaml` exclusion ledger
+into model context; that lock is for scripts, Reviews, and Gates. Do not load
+the full knowledge tree. Treat repository facts as observations, never as risk
+conclusions.
 
 ### 2. Establish scope and provenance
 

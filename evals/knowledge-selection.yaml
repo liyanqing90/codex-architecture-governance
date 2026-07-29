@@ -49,3 +49,52 @@ cases:
     requirements:
       - all required Skill foundations remain selected
       - every omitted entry records an exclusion reason
+      - selected entries record kind and maturity
+      - per-kind selected counts do not exceed their configured limits
+  - id: benchmark-fixture-does-not-route-mobile
+    skill: project-architecture-audit
+    facts: [swift]
+    fact_roles: [benchmark-fixture]
+    task: Review the repository architecture.
+    must_exclude:
+      - domain.mobile
+    requirements:
+      - benchmark fixture evidence remains observable in repository facts
+      - benchmark fixture evidence does not infer a mobile project domain
+  - id: mixed-production-and-fixture-swift-routes-mobile
+    skill: project-architecture-audit
+    facts: [swift]
+    fact_roles: [production, benchmark-fixture]
+    task: Review the repository architecture.
+    must_include:
+      - domain.mobile
+    requirements:
+      - production evidence contributes even when the same fact also has fixture evidence
+  - id: solution-advisor-golden-default
+    skill: architecture-solution-advisor
+    facts: [react, fastapi]
+    fact_roles: [production]
+    task: Compare React and FastAPI architecture options.
+    must_include:
+      - technology.fastapi
+      - technology.react
+    requirements:
+      - discretionary automatic Golden entries require no exception
+      - non-Golden entries retain standard maturity and an auditable exception
+      - mandatory Skill dependencies are never silently dropped by a kind budget
+  - id: plugin-runtime-intent-disambiguates-local-first
+    skill: architecture-solution-advisor
+    facts: []
+    fact_roles: []
+    decision_intents: [plugin-runtime-topology]
+    task: Preserve a local-first plugin runtime without adding a hosted service.
+    must_include:
+      - domain.plugin-platform
+      - style.plugin-architecture
+    must_exclude:
+      - decision.local-first-vs-server-first
+      - decision.optimistic-vs-pessimistic-update
+      - decision.state-management
+    requirements:
+      - exact decision-intent matches remain eligible when the most relevant entry is Standard
+      - ambiguous local-first wording does not activate client data-authority guidance

@@ -50,6 +50,7 @@ REQUIRED_FILES = (
     "SECURITY.md",
     "SUPPORT.md",
     "docs/evaluation.md",
+    "docs/governance-modes.md",
     "docs/assurance-model.md",
     "docs/compatibility.md",
     "docs/comprehensive-review-implementation.md",
@@ -58,6 +59,7 @@ REQUIRED_FILES = (
     "docs/migrating-to-0.2.md",
     "docs/migrating-to-0.3.md",
     "docs/migrating-to-0.4.md",
+    "docs/migrating-to-0.4.2.md",
     "docs/target-architecture.md",
     "docs/target-architecture-implementation.md",
     "evals/cases.yaml",
@@ -68,6 +70,12 @@ REQUIRED_FILES = (
     "evals/routing.yaml",
     "benchmarks/ground-truth.yaml",
     "benchmarks/run-template.yaml",
+    "benchmarks/ablation/context-manifest.yaml",
+    "benchmarks/ablation/tool-description.md",
+    "benchmarks/ablation/skills/ai-agent-architecture-audit.md",
+    "benchmarks/ablation/skills/architecture-finding-verifier.md",
+    "benchmarks/ablation/skills/architecture-solution-advisor.md",
+    "benchmarks/ablation/skills/project-architecture-audit.md",
     "pyproject.toml",
     "requirements-dev.txt",
     "requirements-dev.lock",
@@ -83,10 +91,15 @@ REQUIRED_FILES = (
     "resources/schemas/knowledge-entry.schema.json",
     "resources/schemas/architecture-design-brief.schema.json",
     "resources/schemas/benchmark.schema.json",
+    "resources/schemas/benchmark-context-manifest.schema.json",
     "resources/schemas/benchmark-observation.schema.json",
+    "resources/schemas/knowledge-context.schema.json",
     "resources/schemas/knowledge-manifest.schema.json",
     "resources/schemas/knowledge-selection.schema.json",
     "resources/schemas/repository-facts.schema.json",
+    "resources/schemas/selector-source.schema.json",
+    "resources/schemas/governance-run-manifest.schema.json",
+    "resources/selector-source.json",
     "resources/scripts/build_project_profile.py",
     "resources/scripts/fingerprint_artifact.py",
     "resources/scripts/inspect_repository.py",
@@ -95,6 +108,8 @@ REQUIRED_FILES = (
     "resources/scripts/select_knowledge.py",
     "resources/scripts/validate_coverage.py",
     "resources/scripts/validate_knowledge.py",
+    "resources/templates/governance-run-manifest.yaml",
+    "resources/templates/knowledge-context.yaml",
     "third_party/PAAD-MIT.txt",
     ".github/dependabot.yml",
     ".github/ISSUE_TEMPLATE/bug_report.yml",
@@ -256,6 +271,36 @@ def validate_manifest(root: Path, errors: list[str]) -> dict[str, Any] | None:
                     f"plugin.interface.defaultPrompt[{index}] exceeds 128 characters"
                 )
     return manifest
+
+
+def validate_selector_source(
+    root: Path,
+    manifest: dict[str, Any] | None,
+    errors: list[str],
+) -> None:
+    source_path = root / "resources" / "selector-source.json"
+    schema_path = root / "resources" / "schemas" / "selector-source.schema.json"
+    source = load_json(source_path, errors)
+    schema = load_json(schema_path, errors)
+    if source is None or schema is None:
+        return
+    validator = Draft202012Validator(
+        schema,
+        format_checker=FormatChecker(),
+    )
+    for error in validator.iter_errors(source):
+        location = ".".join(str(part) for part in error.absolute_path)
+        errors.append(
+            f"{source_path} does not match selector-source.schema.json"
+            f"{f' at {location}' if location else ''}: {error.message}"
+        )
+    if manifest is not None and (
+        source.get("repository") != manifest.get("repository")
+        or source.get("plugin_version") != manifest.get("version")
+    ):
+        errors.append(
+            "resources/selector-source.json repository/version must match plugin.json"
+        )
 
 
 def split_frontmatter(path: Path, errors: list[str]) -> tuple[Any, str] | None:
@@ -489,6 +534,8 @@ def validate_schemas_and_yaml(root: Path, errors: list[str]) -> None:
         "dependency-map.yaml": "dependency-map.schema.json",
         "evidence-providers.yaml": "evidence-provider-config.schema.json",
         "gate-policy.yaml": "gate-policy.schema.json",
+        "governance-run-manifest.yaml": "governance-run-manifest.schema.json",
+        "knowledge-context.yaml": "knowledge-context.schema.json",
         "knowledge-selection.yaml": "knowledge-selection.schema.json",
         "portfolio-gate-policy.yaml": "gate-policy.schema.json",
         "portfolio.yaml": "portfolio.schema.json",
@@ -542,6 +589,83 @@ def validate_schemas_and_yaml(root: Path, errors: list[str]) -> None:
                 continue
             if not fixture.is_dir():
                 errors.append(f"benchmark fixture is missing: {fixture}")
+
+
+def validate_benchmark_ablation(root: Path, errors: list[str]) -> None:
+    """Check that the three benchmark treatments remain comparable by design."""
+    manifest_path = root / "benchmarks" / "ablation" / "context-manifest.yaml"
+    schema_path = (
+        root / "resources" / "schemas" / "benchmark-context-manifest.schema.json"
+    )
+    manifest = load_yaml(manifest_path, errors)
+    schema = load_json(schema_path, errors)
+    if not isinstance(manifest, dict) or schema is None:
+        return
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    for error in sorted(
+        validator.iter_errors(manifest),
+        key=lambda item: list(item.path),
+    ):
+        location = ".".join(str(part) for part in error.absolute_path)
+        errors.append(
+            f"{manifest_path} does not match benchmark-context-manifest.schema.json"
+            f"{f' at {location}' if location else ''}: {error.message}"
+        )
+    treatments = manifest.get("treatments")
+    truth = load_yaml(root / "benchmarks" / "ground-truth.yaml", errors)
+    if not isinstance(treatments, list) or not isinstance(truth, dict):
+        return
+    benchmark_skills = {
+        case.get("skill")
+        for case in truth.get("cases", [])
+        if isinstance(case, dict) and isinstance(case.get("skill"), str)
+    }
+    expected = {
+        (condition, skill)
+        for condition in ("base", "full", "compressed")
+        for skill in benchmark_skills
+    }
+    actual = {
+        (item.get("condition"), item.get("skill"))
+        for item in treatments
+        if isinstance(item, dict)
+    }
+    if len(actual) != len(treatments) or actual != expected:
+        errors.append(
+            f"{manifest_path} must declare exactly one Base/Full/Compressed "
+            "treatment for every benchmark Skill"
+        )
+        return
+    by_key = {
+        (item["condition"], item["skill"]): item
+        for item in treatments
+        if isinstance(item, dict)
+    }
+    for skill in sorted(benchmark_skills):
+        base = by_key[("base", skill)]
+        if base["knowledge_basis"] != "none" or any(
+            base[field]
+            for field in ("skill_metadata", "skill_body", "references", "knowledge")
+        ):
+            errors.append(
+                f"{manifest_path} Base treatment for {skill} must not load "
+                "Skill, reference, or Knowledge content"
+            )
+        full = by_key[("full", skill)]
+        compressed = by_key[("compressed", skill)]
+        if (
+            full["knowledge_basis"] != "workflow-required"
+            or compressed["knowledge_basis"] != "workflow-required"
+        ):
+            errors.append(
+                f"{manifest_path} Full and Compressed treatments for {skill} "
+                "must declare workflow-required Knowledge"
+            )
+        if full["knowledge"] != compressed["knowledge"]:
+            errors.append(
+                f"{manifest_path} Full and Compressed treatments for {skill} "
+                "must use identical Knowledge inputs"
+            )
 
 
 def validate_evals(root: Path, errors: list[str]) -> None:
@@ -828,10 +952,12 @@ def validate_repository(root: Path) -> list[str]:
     errors: list[str] = []
     validate_repository_hygiene(root, errors)
     manifest = validate_manifest(root, errors)
+    validate_selector_source(root, manifest, errors)
     validate_skills(root, errors)
     validate_reference_paths(root, errors)
     validate_markdown_links(root, errors)
     validate_schemas_and_yaml(root, errors)
+    validate_benchmark_ablation(root, errors)
     validate_evals(root, errors)
     validate_supplemental_evals(root, errors)
     validate_dependency_locks(root, errors)

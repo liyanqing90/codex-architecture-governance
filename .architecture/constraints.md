@@ -25,9 +25,12 @@ Maintainers review them with every release that changes a public contract.
   validation. Review when the Codex packaging contract changes.
 - Artifact schemas and CLI exit codes are public contracts. Schema `1.0`
   remains readable; trusted `1.1` remains compatible; new project artifacts
-  use facts/selection-bound `1.2`; Greenfield Decisions may use additive schema
-  `1.3` bound to a Design Brief. Compatible additions are preferred;
-  incompatible changes require migration guidance.
+  use facts/selection-bound Review schema `1.2`; Knowledge selections use
+  source-anchored Runtime Manifest schema `1.4`; Greenfield Decisions may use
+  additive schema `1.3` bound to a Design Brief. Schema `1.3` selections remain
+  read-only historical records but cannot enter a new trusted chain when their
+  runtime differs. Compatible additions are preferred; incompatible changes
+  require migration guidance.
 - Generated knowledge is draft-only. Golden active entries require reviewed
   curation provenance, named option or operating-model depth, and source claim
   mappings. Owner: maintainers. Source: the knowledge-entry schema and

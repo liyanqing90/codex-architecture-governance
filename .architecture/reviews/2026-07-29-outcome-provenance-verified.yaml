@@ -1,0 +1,370 @@
+schema_version: "1.2"
+review:
+  id: codex-architecture-governance-20260729-outcome-provenance-verified
+  kind: project
+  workflow: project-architecture
+  subject:
+    id: codex-architecture-governance
+    name: Codex Architecture Governance
+    repository: .
+  performed_at: "2026-07-29T14:02:00+00:00"
+  commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+  scope: [.]
+  verification_state: verified
+  reviewers: [architecture-verifier]
+  verification_run:
+    id: outcome-provenance-verifier-20260729-140100
+    surface: codex-desktop
+    started_at: "2026-07-29T14:01:00+00:00"
+    completed_at: "2026-07-29T14:02:00+00:00"
+  source_candidate:
+    path: .architecture/reviews/2026-07-29-outcome-provenance-candidates.yaml
+    review_id: codex-architecture-governance-20260729-outcome-provenance-candidates
+    sha256: c71d810234a077eb4139f643c8459301aadf34a9d4f6768cbe69c418cbd99ad8
+  profile: .architecture/reviews/inputs/2026-07-29-outcome-provenance-profile.yaml
+  repository_identity: codex-architecture-governance
+  profile_sha256: d8fb7ba29e6507ca293828e8cf5049506f25e3e5a6d17a162564b3b9d4c5104a
+  dirty_tree: false
+  rule_packs:
+    - {id: project-core, version: "1.0.0", sha256: b211d548ad5fe367b9dab8416051c43f3a206da81bd2a8e7596cd788ed3f100c}
+    - {id: plugin-platform, version: "1.0.0", sha256: 7ae17488df7a78ce1b857d3f842bd51b87de4ec30576fbe250cfa991472b3700}
+    - {id: test-automation-platform, version: "1.0.0", sha256: 23efb3c02cd9e4e2ec2cb83d1505b30dd780aff2a9ac7157506b361cb783c5aa}
+  scope_manifest: [.]
+summary:
+  architecture: A local Codex governance plugin whose new trusted chains require current deterministic Selection replay, whose compact model context is validated as an exact lock projection, and whose source anchors are protected by Git ancestry gates.
+  raw_findings: 3
+  confirmed: 3
+  rejected: 0
+  needs_evidence: 0
+coverage:
+  - {rule_id: PROJECT.BOUNDARY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPENDENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.COHESION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.FRONTEND.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DATA.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OWNERSHIP.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONTRACT.001, status: assessed, finding_ids: [CAG-OUTCOME-PROVENANCE-001]}
+  - {rule_id: PROJECT.TRANSACTION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.IDEMPOTENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.RELIABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.STATE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.SECURITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PRIVACY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OBSERVABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONFIG.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PERFORMANCE.001, status: assessed, finding_ids: [CAG-CONTEXT-VALIDATION-001]}
+  - {rule_id: PROJECT.TEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPLOY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CHANGE.001, status: assessed, finding_ids: [CAG-HISTORY-ANCHOR-001]}
+  - {rule_id: PROJECT.DEBT.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DESIGN.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.MANIFEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.AUTHORITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.ISOLATION.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.LIFECYCLE.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.SUPPLYCHAIN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.RUN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.ISOLATION.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.EVIDENCE.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.SCHEDULE.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.FLAKE.001, status: assessed, finding_ids: []}
+findings:
+  - id: CAG-OUTCOME-PROVENANCE-001
+    kind: strength
+    rule_id: PROJECT.CONTRACT.001
+    title: New trusted chains require current deterministic Selection replay
+    invariant: Archived source verification preserves historical readability without attesting a selected/excluded outcome for a new trusted chain.
+    severity: info
+    confidence: 0.99
+    verification:
+      status: confirmed
+      rationale: Independent source tracing and the focused archived-runtime regression confirm historical readability and current-replay enforcement are separate paths.
+      verified_by: architecture-verifier
+      verified_at: "2026-07-29T14:02:00+00:00"
+      level: V2
+      verifier:
+        type: agent
+        identity: architecture-verifier
+        run_id: outcome-provenance-verifier-20260729-140100
+      source_candidate:
+        review_id: codex-architecture-governance-20260729-outcome-provenance-candidates
+        sha256: c71d810234a077eb4139f643c8459301aadf34a9d4f6768cbe69c418cbd99ad8
+    status: open
+    evidence:
+      - type: source
+        location: resources/scripts/architecture_tool.py:532
+        repository: codex-architecture-governance
+        commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        path: resources/scripts/architecture_tool.py
+        line_start: 532
+        line_end: 595
+        blob_sha: e023a5ba8708af57204e34c3cd317d09a44ecf8f
+        observation: The Selection validator separates archived byte verification from the current-runtime requirement and rejects archived locks for new trusted chains.
+        source_commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        freshness: current
+        symbol: validate_knowledge_selection_artifact
+      - type: source
+        location: resources/scripts/architecture_tool.py:3620
+        repository: codex-architecture-governance
+        commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        path: resources/scripts/architecture_tool.py
+        line_start: 3620
+        line_end: 3644
+        blob_sha: e023a5ba8708af57204e34c3cd317d09a44ecf8f
+        observation: Required Review discovery rejects archived selections from current Gate satisfaction while continuing past invalid historical records.
+        source_commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        freshness: current
+        symbol: completed_required_reviews
+      - type: test
+        location: tests/test_architecture_tool.py:740
+        repository: codex-architecture-governance
+        commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        path: tests/test_architecture_tool.py
+        line_start: 740
+        line_end: 830
+        blob_sha: 48cc7a0807af2d8cd9e751eaa895d6db5c28e800
+        observation: The regression proves an anchored archived runtime remains readable but is rejected when current replay is required.
+        source_commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        freshness: current
+        symbol: test_selection_v14_verifies_archived_runtime_without_executing_it
+    impact:
+      affected_components: [selection-validator, trusted-reviews, decisions, plans, gates]
+      failure_mode: A Git-verifiable historical implementation can no longer lend unearned trust to an un-replayed historical partition.
+      blast_radius: New schema 1.2 Review, Decision, Plan, coverage, and Gate chains.
+    counter_evidence:
+      - Existing historical artifacts remain readable through explicit historical validation and project inventory paths.
+    first_seen: "2026-07-29"
+    last_seen: "2026-07-29"
+    found_by: [architecture-auditor]
+    related_findings: []
+    quality_attribute_impacts: [compatibility, deterministic-enforcement, traceability]
+    evidence_level: E3
+    evidence_fingerprint: 661dd03ce40fe8e5d09e3d40d24c5af8cc5d9edbfde46254bd310ccb996c30d6
+    fact_inference_boundary:
+      facts:
+        - Archived validation verifies recorded Git bytes but cannot recompute an old outcome without executing the archived Selector.
+        - New-chain callers set require_current_selection or require_current_runtime.
+      inferences:
+        - The trust boundary now matches the evidence actually available.
+      unknowns:
+        - A future isolated historical replay service could support a stronger archived outcome attestation.
+    applicability:
+      profile_conditions:
+        - Deterministic enforcement, compatibility, and traceability are critical qualities.
+    source_candidate_ids: [codex-architecture-governance-20260729-outcome-provenance-candidates]
+    rule_pack_version: "1.0.0"
+    staleness_state: current
+    decision_references: []
+    tags: [selection, provenance, compatibility]
+    fingerprint: 7dca85dc911b8785155a84a498e175825c7339a35d5a74adea1be8cc5a88c105
+  - id: CAG-CONTEXT-VALIDATION-001
+    kind: strength
+    rule_id: PROJECT.PERFORMANCE.001
+    title: Compact Context is validated as an exact ordered Selection projection
+    invariant: Model-facing selected-only context must remain byte-bound to the authoritative machine Selection and preserve every selected field and order.
+    severity: info
+    confidence: 0.99
+    verification:
+      status: confirmed
+      rationale: Independent source tracing and lock, result, field, and order tamper cases confirm the compact Context cannot diverge from its Selection.
+      verified_by: architecture-verifier
+      verified_at: "2026-07-29T14:02:00+00:00"
+      level: V2
+      verifier:
+        type: agent
+        identity: architecture-verifier
+        run_id: outcome-provenance-verifier-20260729-140100
+      source_candidate:
+        review_id: codex-architecture-governance-20260729-outcome-provenance-candidates
+        sha256: c71d810234a077eb4139f643c8459301aadf34a9d4f6768cbe69c418cbd99ad8
+    status: open
+    evidence:
+      - type: source
+        location: resources/scripts/architecture_tool.py:721
+        repository: codex-architecture-governance
+        commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        path: resources/scripts/architecture_tool.py
+        line_start: 721
+        line_end: 767
+        blob_sha: e023a5ba8708af57204e34c3cd317d09a44ecf8f
+        observation: Consumption validation checks the Selection file hash, canonical result hash, and exact ordered projection of id, path, hash, priority, and reasons.
+        source_commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        freshness: current
+        symbol: validate_knowledge_context_artifact
+      - type: test
+        location: tests/test_architecture_tool.py:832
+        repository: codex-architecture-governance
+        commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        path: tests/test_architecture_tool.py
+        line_start: 832
+        line_end: 922
+        blob_sha: 48cc7a0807af2d8cd9e751eaa895d6db5c28e800
+        observation: Lock, result, field, and ordering tampering fail while the generated context and CLI path pass.
+        source_commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        freshness: current
+        symbol: test_select_knowledge_cli_passes_decision_intent
+      - type: source
+        location: skills/project-architecture-audit/SKILL.md:83
+        repository: codex-architecture-governance
+        commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        path: skills/project-architecture-audit/SKILL.md
+        line_start: 83
+        line_end: 98
+        blob_sha: b8e7d305b38c41c18425c9cfac636dbf09fecd1f
+        observation: The public audit workflow validates the compact Context before reading it.
+        source_commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        freshness: current
+    impact:
+      affected_components: [model-context, public-skills, selection-lock]
+      failure_mode: A stale, reordered, omitted, or altered compact index cannot silently control model evidence.
+      blast_radius: Project, AI-agent, mobile, portfolio, and solution-advisor context consumption.
+    counter_evidence:
+      - The compact sidecar remains intentionally smaller than the exhaustive Selection and does not duplicate exclusions.
+    first_seen: "2026-07-29"
+    last_seen: "2026-07-29"
+    found_by: [architecture-auditor]
+    related_findings: []
+    quality_attribute_impacts: [deterministic-enforcement, performance-efficiency, traceability]
+    evidence_level: E3
+    evidence_fingerprint: 1d38bf70569c2966ca9cfcab7f8c28e00e9ad21ccad619b06525bbb0e4827bd1
+    fact_inference_boundary:
+      facts:
+        - The validator compares the entire selected list rather than only its IDs.
+        - Every public Skill that consumes a compact index now invokes the validator first.
+      inferences:
+        - Prompt-size reduction no longer weakens the consumption-time trust boundary.
+      unknowns:
+        - Production-selected A/B/C quality and token outcomes remain unmeasured.
+    applicability:
+      profile_conditions:
+        - Performance efficiency and deterministic enforcement govern model-context construction.
+    source_candidate_ids: [codex-architecture-governance-20260729-outcome-provenance-candidates]
+    rule_pack_version: "1.0.0"
+    staleness_state: current
+    decision_references: []
+    tags: [context, projection, validation]
+    fingerprint: 3f4acf37cd05402ba371ff38c77eadd714b34cf89a2688d194798ba92f03885f
+  - id: CAG-HISTORY-ANCHOR-001
+    kind: strength
+    rule_id: PROJECT.CHANGE.001
+    title: CI and releases enforce source-anchor ancestry
+    invariant: The Selector source and reviewed implementation commits referenced by governance evidence remain ancestors of every merged and released commit.
+    severity: info
+    confidence: 0.99
+    verification:
+      status: confirmed
+      rationale: Independent Git-path tracing and the reachable versus unmerged regression confirm both anchors are enforced as HEAD ancestors.
+      verified_by: architecture-verifier
+      verified_at: "2026-07-29T14:02:00+00:00"
+      level: V2
+      verifier:
+        type: agent
+        identity: architecture-verifier
+        run_id: outcome-provenance-verifier-20260729-140100
+      source_candidate:
+        review_id: codex-architecture-governance-20260729-outcome-provenance-candidates
+        sha256: c71d810234a077eb4139f643c8459301aadf34a9d4f6768cbe69c418cbd99ad8
+    status: open
+    evidence:
+      - type: source
+        location: resources/scripts/architecture_tool.py:3421
+        repository: codex-architecture-governance
+        commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        path: resources/scripts/architecture_tool.py
+        line_start: 3421
+        line_end: 3465
+        blob_sha: e023a5ba8708af57204e34c3cd317d09a44ecf8f
+        observation: The history validator resolves both commits, requires them to be ancestors of HEAD, and reports the exact anchors.
+        source_commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        freshness: current
+        symbol: validate_history_anchors
+      - type: test
+        location: tests/test_architecture_tool.py:924
+        repository: codex-architecture-governance
+        commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        path: tests/test_architecture_tool.py
+        line_start: 924
+        line_end: 999
+        blob_sha: 48cc7a0807af2d8cd9e751eaa895d6db5c28e800
+        observation: The regression accepts reachable anchors and rejects a valid but unmerged commit.
+        source_commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        freshness: current
+        symbol: test_history_anchors_require_reachable_selector_and_review_commits
+      - type: source
+        location: .github/workflows/ci.yml:30
+        repository: codex-architecture-governance
+        commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        path: .github/workflows/ci.yml
+        line_start: 30
+        line_end: 55
+        blob_sha: 4b21aedfe27c21e7afb144d11bd00ea0dafb6110
+        observation: CI checks out full history and runs the anchor validator on the Linux Python 3.13 lane.
+        source_commit: cf254fafe51844275a8d2dd8e622a8e850703f03
+        freshness: current
+    impact:
+      affected_components: [pull-request-integration, continuous-integration, releases]
+      failure_mode: A squash or rebase merge that discards a referenced commit fails the repository or release check.
+      blast_radius: Main-branch integration and every tagged release.
+    counter_evidence:
+      - Repository settings are not silently mutated; maintainers must choose Merge Commit for the reviewed pull request.
+    first_seen: "2026-07-29"
+    last_seen: "2026-07-29"
+    found_by: [architecture-auditor]
+    related_findings: []
+    quality_attribute_impacts: [compatibility, reproducibility, traceability]
+    evidence_level: E3
+    evidence_fingerprint: 8cc3c8681f182ec49211511acda05a021a10342395477fab75a5cdfcedc1573f
+    fact_inference_boundary:
+      facts:
+        - CI and release checkouts use complete Git history.
+        - Both source anchors must resolve and be ancestors of HEAD.
+      inferences:
+        - The documented Merge Commit requirement is now machine-enforced after integration and before release.
+      unknowns:
+        - GitHub branch settings still permit maintainers to choose an incompatible merge method.
+    applicability:
+      profile_conditions:
+        - Traceability and reproducibility require durable source evidence.
+    source_candidate_ids: [codex-architecture-governance-20260729-outcome-provenance-candidates]
+    rule_pack_version: "1.0.0"
+    staleness_state: current
+    decision_references: []
+    tags: [git, ancestry, release]
+    fingerprint: 5e17386d808e9b226f402748a2d38dcb163934c8737d262ccafca55605dbec7e
+evidence_sources:
+  - resources/scripts/architecture_tool.py
+  - tests/test_architecture_tool.py
+  - skills/project-architecture-audit/SKILL.md
+  - .github/workflows/ci.yml
+  - .github/workflows/release.yml
+limitations:
+  - No human V3 verifier is claimed; the external audit's requested human acceptance remains a merge condition.
+  - Production-selected A/B/C quality, token, cost, and tool-call results remain unmeasured.
+  - GitHub repository merge settings were not changed without explicit repository-settings authorization.
+coverage_complete: true
+repository_facts:
+  path: .architecture/reviews/inputs/2026-07-29-outcome-provenance-repository-facts.yaml
+  sha256: 5370b7cd413b46730156cca878cdfd1dd6139b8a60ff1d29d8c9cf3eb1438383
+knowledge_selection:
+  path: .architecture/reviews/inputs/2026-07-29-outcome-provenance-knowledge-selection.yaml
+  sha256: 435bba84f0fbdfac07d4bb428354704d55e84c9b9366caefd419315d60c5da89
+selected_knowledge:
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: foundation.data-ownership, version: "1.0.0", sha256: 260f240ec9782f5a42a68481652912532cfcd6a0b07fdc5366d44388cc3d0204}
+  - {id: foundation.evidence-reasoning, version: "1.0.0", sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f}
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: foundation.system-boundaries, version: "1.0.0", sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+  - {id: anti-pattern.event-sourcing-for-crud, version: "1.0.0", sha256: 3e5df46fcfddb879c83002933514c0d9a865fca084bc6a177e6a5881ed89e48d}
+  - {id: foundation.compatibility, version: "1.0.0", sha256: 17d8e8c8557969246fe2e9a62e8a645aeac171c9c9d2cbeb5d0bdfc27e51330b}
+critical_flow_coverage:
+  - {id: plugin-discovery-and-skill-execution, status: assessed, reason: "Public Skills validate lock-bound compact Context before reading selected Markdown entries."}
+  - {id: finding-verification-and-policy-enforcement, status: assessed, reason: "Current replay and historical readability paths are separated across Review, Decision, Plan, coverage, and Gate validation."}
+  - {id: architecture-knowledge-and-behavior-evaluation, status: assessed, reason: "Selection locks, exact compact projections, tamper cases, and outcome-evidence limitations were traced."}
+  - {id: greenfield-architecture-decision, status: assessed, reason: "Decision bindings require current replay while historical Decisions remain explicitly inspectable."}
+  - {id: safe-project-initialization, status: assessed, reason: "The change does not alter initialization or overwrite protection and the complete regression suite passes."}
+  - {id: deterministic-release-packaging, status: assessed, reason: "Release validation rejects discarded Selector or reviewed-implementation ancestry."}
+unknowns:
+  - Human V3 review and final merge-method confirmation remain external maintainer actions.
+  - Production-selected behavioral A/B/C outcomes remain unavailable and are not claimed.

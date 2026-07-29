@@ -41,6 +41,7 @@ one bounded function without entering the larger CLI command surface.
 repository-facts.yaml
   └── profile.yaml
       └── knowledge-selection.yaml
+          ├── knowledge-context.yaml
           └── Review 1.2
               └── Architecture Decision 1.2
                   └── Remediation Plan 1.2

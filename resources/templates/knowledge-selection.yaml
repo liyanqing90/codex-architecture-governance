@@ -1,9 +1,12 @@
-schema_version: "1.0"
+schema_version: "1.4"
 selection:
   - id: foundation.evidence-reasoning
     version: "1.0.0"
     path: foundations/evidence-reasoning.md
     sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    kind: foundation
+    maturity: standard
+    priority: required
     reasons:
       - Replace with a deterministic Skill, fact, profile, task, or explicit-include reason.
 excluded:
@@ -14,6 +17,47 @@ inputs:
   task: Replace with the current architecture task.
   facts_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
   profile_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  maintainer_mode: false
+  includes: []
+  excludes: []
+  decision_intents: []
+  project_commit: unknown
 budget:
   maximum_entries: 24
   selected_entries: 1
+  per_kind:
+    foundation: {maximum_entries: 6, selected_entries: 1}
+    domain: {maximum_entries: 10, selected_entries: 0}
+    decision-guide: {maximum_entries: 3, selected_entries: 0}
+    architecture-style: {maximum_entries: 2, selected_entries: 0}
+    pattern: {maximum_entries: 2, selected_entries: 0}
+    technology-profile: {maximum_entries: 3, selected_entries: 0}
+    reference-architecture: {maximum_entries: 1, selected_entries: 0}
+    migration-guide: {maximum_entries: 1, selected_entries: 0}
+    anti-pattern: {maximum_entries: 1, selected_entries: 0}
+    case-study: {maximum_entries: 1, selected_entries: 0}
+selector:
+  contract_version: "1.1"
+  source:
+    repository: https://github.com/liyanqing90/codex-architecture-governance
+    commit: "0000000000000000000000000000000000000000"
+    plugin_version: "0.4.2"
+    plugin_manifest_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  implementation_inputs:
+    - {path: requirements-runtime.lock, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/scripts/select_knowledge.py, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/scripts/build_project_profile.py, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/scripts/knowledge_model.py, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/repository-facts.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/project-profile.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/knowledge-entry.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/knowledge-manifest.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/knowledge-context.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/knowledge-selection.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/selector-source.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+  implementation_bundle_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  knowledge_manifest_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  knowledge_tree_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  selection_policy_version: "1.0"
+  replay_mode: creation-time-lock
+result_sha256: "0000000000000000000000000000000000000000000000000000000000000000"

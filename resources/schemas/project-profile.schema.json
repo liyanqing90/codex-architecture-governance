@@ -193,7 +193,7 @@
         },
         "required_knowledge_domains": {
           "type": "array",
-          "minItems": 1,
+          "description": "May be empty when no runtime or production repository fact justifies a product Domain Pack. Skills still contribute their required foundations.",
           "uniqueItems": true,
           "items": {
             "type": "string",

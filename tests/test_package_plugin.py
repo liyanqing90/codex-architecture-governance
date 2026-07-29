@@ -44,6 +44,8 @@ class PackagePluginTests(unittest.TestCase):
             self.assertEqual(names, sorted(names))
             self.assertIn(".codex-plugin/plugin.json", names)
             self.assertIn("resources/scripts/architecture_tool.py", names)
+            self.assertIn("resources/selector-source.json", names)
+            self.assertIn("resources/templates/knowledge-context.yaml", names)
             self.assertIn("skills/project-architecture-audit/SKILL.md", names)
             self.assertIn("LICENSE", names)
             self.assertIn("NOTICE", names)

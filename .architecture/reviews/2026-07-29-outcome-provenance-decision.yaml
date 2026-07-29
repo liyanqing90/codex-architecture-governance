@@ -1,0 +1,170 @@
+schema_version: "1.2"
+decision:
+  id: ADR-CAG-009
+  decision_kind: remediation
+  source_review: codex-architecture-governance-20260729-outcome-provenance-verified
+  source_review_sha256: 35e2a00250d3b26c057940d3de495c3d6f576ae7cf42e1da6fb248b56c380634
+  decided_at: "2026-07-29T14:03:00+00:00"
+  decision_makers: [architecture-owner]
+  status: accepted
+  knowledge_selection_path: .architecture/reviews/inputs/2026-07-29-outcome-provenance-decision-knowledge-selection.yaml
+  knowledge_selection_sha256: f230d28960f4e30588a4e83ee3597dae9570d927f2ae64f4fe71361fd91c4e53
+problem:
+  quality_attributes: [compatibility, deterministic-enforcement, traceability]
+  constraints:
+    - Existing historical Review, Decision, Plan, and Selection artifacts remain inspectable without being rewritten.
+    - A new trusted chain cannot claim an archived selected/excluded partition as replayed when only source bytes were verified.
+    - Public Skills validate compact model context before consuming it.
+    - Selector and reviewed implementation Git commits remain reachable after merge and release.
+    - Repository settings require separate authorization.
+  finding_ids: []
+  assumptions:
+    - The local Git repository remains the provenance resolver for schema 1.4 archived source bytes.
+    - Merge Commit remains available for integrating the reviewed pull request.
+  known_facts:
+    - The verified Review resolves nine Git-bound evidence records at remote implementation commit cf254fa.
+    - New-chain entry points require current deterministic Selection replay.
+    - Compact Context validation rejects lock, result, field, and order tampering.
+    - CI and release checkouts use full history and validate both source anchors.
+  unknowns:
+    - Human V3 acceptance remains pending and is not represented by the V2 agent Review.
+    - Production-selected A/B/C outcomes remain unmeasured.
+knowledge_snapshot:
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: migration.layered-monolith-to-modular, version: "1.0.0", sha256: 3017c377c06e2d19654ccf0b07f6431a1dfb5854e135ea8c4ec58117aab64bb9}
+  - {id: style.microservices, version: "1.0.0", sha256: 0533dbcda24b99313c8fe8fccd64ea2ce08bd020e60571ad561c04a800ececf6}
+  - {id: style.modular-monolith, version: "1.0.0", sha256: 3f97c548665d8e6c4159c5f6ecee4a5d099a2ac4def69fba2b0a5d6d6703c3c0}
+  - {id: technology.import-linter, version: "1.0.0", sha256: 8a1dd4ac1887df7f0236750899809449062448196851b76a86e3bd9979eb17ee}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: foundation.evolutionary-architecture, version: "1.0.0", sha256: 6f04262de0936a1cffca25b6cadf5e2b0e4b8e7aa6724292ba1d9fd314413f3f}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: foundation.technology-selection, version: "1.0.0", sha256: 183032d368331cd7a3c47988a8f042be627dd5fd1104596d76516951ea0f5948}
+  - {id: foundation.tradeoff-analysis, version: "1.0.0", sha256: 058c9756ba4d9306f42e0fb49365aff3564f3545e103c05812040ce2c9f8b9d5}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+  - {id: style.plugin-architecture, version: "1.0.0", sha256: 9d72e896b0154e8ee979474c6d47579889705c751a32a172f4b1b72bdef13a8a}
+  - {id: decision.optimistic-vs-pessimistic-update, version: "2.0.0", sha256: 935e92047bb3a9ce3b4ba8484b5cecc28c5c981a1c61453aff31bb892854ff64}
+  - {id: decision.state-management, version: "2.0.0", sha256: 486710b4fc5f052821b04c3706c133dac7cd25f6965b8fcf23d9faf2764baa66}
+  - {id: decision.local-first-vs-server-first, version: "2.0.0", sha256: e240200929e13e48276dc33d036e5f2547c00911b712a9a45fe2f2a0012540c8}
+options:
+  - id: keep-current
+    title: Keep the local plugin and separate historical readability from new-chain trust
+    complexity_tier: keep-current
+    architecture_styles: [style.plugin-architecture]
+    patterns: []
+    technologies: [technology.import-linter]
+    benefits:
+      - Restores outcome provenance without executing archived code.
+      - Preserves supported historical readability and the local plugin model.
+      - Makes compact Context and Git ancestry checks deterministic.
+    liabilities:
+      - Maintainers regenerate a Selection after a Selector Runtime change before creating new trust.
+      - Source-anchored pull requests require Merge Commit and full history.
+    assumptions:
+      - Current replay remains the routine new-governance path.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: improves, rationale: "Historical artifacts stay inspectable while new chains fail closed."}
+      - {attribute: deterministic-enforcement, effect: improves, rationale: "New chains require current replay and exact Context projection."}
+      - {attribute: traceability, effect: improves, rationale: "CI and release commits retain both source anchors."}
+    business_fit: Preserves the installable open-source plugin and adds no hosted dependency.
+    team_fit: Uses existing Python validators, Skills, tests, Git, and CI.
+    evolution_fit: Keeps archived replay and attestation resolvers as additive extensions.
+    implementation_complexity: low
+    operational_complexity: low
+    migration_risk: low
+    reversibility: easy
+    cost: low
+    technical_maturity: mature
+    lock_in: none
+    tradeoff_scores: {business_fit: 2, quality_fit: 2, team_fit: 2, implementation: 2, operations: 2, migration: 2, reversibility: 2, cost: 2, maturity: 2, lock_in: 2, evolution: 2}
+    rejected_reasons: []
+  - id: execute-archived-selector
+    title: Reconstruct and execute every archived Selector Runtime
+    complexity_tier: medium
+    architecture_styles: [style.plugin-architecture]
+    patterns: []
+    technologies: []
+    benefits:
+      - Can reproduce an archived partition when the complete environment is reconstructible.
+    liabilities:
+      - Executes old code during validation and expands the security boundary.
+      - Requires long-term dependency and interpreter retention.
+    assumptions:
+      - Every historical runtime remains safely reconstructible.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: improves, rationale: "Exact reconstruction can reproduce old behavior."}
+      - {attribute: deterministic-enforcement, effect: improves, rationale: "Archived execution can attest an old outcome."}
+      - {attribute: traceability, effect: degrades, rationale: "Routine validation depends on host reconstruction and old code."}
+    business_fit: Disproportionate for a repository-scale local plugin.
+    team_fit: Requires sandbox and environment ownership not present today.
+    evolution_fit: Could become an optional high-assurance verifier.
+    implementation_complexity: high
+    operational_complexity: high
+    migration_risk: medium
+    reversibility: moderate
+    cost: high
+    technical_maturity: stable
+    lock_in: medium
+    tradeoff_scores: {business_fit: -1, quality_fit: 1, team_fit: -2, implementation: -2, operations: -2, migration: -1, reversibility: 0, cost: -2, maturity: 1, lock_in: 0, evolution: 1}
+    rejected_reasons:
+      - It is unnecessary for new chains and unsafe for routine historical inspection.
+  - id: enforce-github-settings
+    title: Disable squash and rebase merging in repository settings
+    complexity_tier: low
+    architecture_styles: [style.plugin-architecture]
+    patterns: []
+    technologies: []
+    benefits:
+      - Prevents an incompatible merge choice in the GitHub UI.
+    liabilities:
+      - Mutates repository-wide collaboration policy outside this bounded change.
+      - Does not replace portable ancestry validation.
+    assumptions:
+      - Administrators authorize a global merge-policy change.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: neutral, rationale: "The source contract is unchanged."}
+      - {attribute: deterministic-enforcement, effect: improves, rationale: "The hosted UI prevents one ancestry-loss path."}
+      - {attribute: traceability, effect: improves, rationale: "Reviewed commits are retained by policy."}
+    business_fit: Useful only with explicit settings authorization.
+    team_fit: Simple after maintainers agree on the policy.
+    evolution_fit: Can be added without changing the portable validator.
+    implementation_complexity: low
+    operational_complexity: low
+    migration_risk: medium
+    reversibility: easy
+    cost: low
+    technical_maturity: mature
+    lock_in: low
+    tradeoff_scores: {business_fit: 0, quality_fit: 1, team_fit: 1, implementation: 2, operations: 2, migration: 0, reversibility: 2, cost: 2, maturity: 2, lock_in: 1, evolution: 1}
+    rejected_reasons:
+      - Code and publication authorization does not imply repository-settings authorization.
+selected_option: keep-current
+rationale: The selected option is the smallest compatible correction at the owning trust boundary. It preserves historical artifacts, requires current replay only when creating new trust, validates compact Context before consumption, and protects source anchors in portable CI and release checks.
+revisit_triggers:
+  - Signed attestations can verify archived outcomes without executing old code.
+  - Maintainers authorize repository-wide merge-policy changes.
+  - Downstream evidence shows current replay blocks a supported workflow.
+acceptance_evidence:
+  - The owner requested implementation and GitHub publication of the audit repairs.
+  - The V2 Review resolves nine evidence records at cf254fa.
+  - Ninety-five tests and all available local quality checks pass.
+hard_eliminations: []
+migration:
+  affected_paths:
+    - resources/scripts/architecture_tool.py
+    - skills/project-architecture-audit/SKILL.md
+    - skills/ai-agent-architecture-audit/SKILL.md
+    - skills/mobile-architecture-audit/SKILL.md
+    - skills/portfolio-architecture-audit/SKILL.md
+    - skills/architecture-solution-advisor/references/decision-artifact-workflow.md
+    - docs/migrating-to-0.4.2.md
+    - .github/workflows/ci.yml
+    - .github/workflows/release.yml
+  slices:
+    - Separate archived readability from current-runtime trust at new-chain entry points.
+    - Validate compact Context before public Skill consumption.
+    - Require source-anchor reachability and document Merge Commit integration.
+  rollback: Revert enforcement compatibly while retaining readers and CLI flags; never rewrite historical artifacts or discard published source commits.
+  validation:
+    - Validate current and archived Selection paths, Context projections, Reviews, Decision bindings, and Git evidence.
+    - Run tests, Ruff, repository and Knowledge validation, dependency and license audits, packaging, checksum, SBOM, and both Gates.
+    - Require hosted CI before human V3 acceptance and Merge Commit integration.

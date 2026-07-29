@@ -14,9 +14,9 @@ review:
   verification_state: candidates
   reviewers:
     - architecture-auditor
-  profile: .architecture/profile.yaml
+  profile: .architecture/reviews/inputs/2026-07-29-project-profile.yaml
   repository_identity: codex-architecture-governance
-  profile_sha256: 5c066c97ed692f48e1aa0170dd21e901ee8158af8ccb2e7c211804ea048ec192
+  profile_sha256: 283eeacebea23e0b23c0d310c4218d411909734c8bc75b2ac2acef729cda9d97
   dirty_tree: false
   rule_packs:
     - {id: project-core, version: "1.0.0", sha256: b211d548ad5fe367b9dab8416051c43f3a206da81bd2a8e7596cd788ed3f100c}
@@ -342,11 +342,11 @@ limitations:
   - No independent clean-machine installation has yet been recorded for v0.4.0.
 coverage_complete: true
 repository_facts:
-  path: .architecture/repository-facts.yaml
+  path: .architecture/reviews/inputs/2026-07-29-project-repository-facts.yaml
   sha256: bc5c2f3503938438a1ca81ae285142b1a444552b979af472028f17ebc6a12547
 knowledge_selection:
-  path: .architecture/knowledge-selection.yaml
-  sha256: 6fed3a8a173d44ed0127736c34e628c0e1d562217e7b5dfd32478a7836f9fb4a
+  path: .architecture/reviews/inputs/2026-07-29-project-knowledge-selection.yaml
+  sha256: 7b45131c6f6dbef169874280d1d560c84b95674cf3cefe142f3d02fdde1def21
 selected_knowledge:
   - {id: foundation.evidence-reasoning, version: "1.0.0", sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f}
   - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}

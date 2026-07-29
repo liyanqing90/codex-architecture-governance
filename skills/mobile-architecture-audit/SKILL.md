@@ -26,8 +26,15 @@ Load the project profile, constraints, and critical flows. Pair with `project-ar
    stack, not a conclusion about suitability.
 2. Run `architecture_tool.py select-knowledge` with
    `--skill mobile-architecture-audit`, the exact task, facts, and Profile.
-   Persist `.architecture/knowledge-selection-mobile.yaml`, read every selected
-   Markdown entry completely, and do not load unrelated packs.
+   Persist `.architecture/knowledge-selection-mobile.yaml` and pass
+   `--context-output .architecture/knowledge-context-mobile.yaml`. Run
+   `architecture_tool.py validate-knowledge-context
+   .architecture/knowledge-context-mobile.yaml --selection
+   .architecture/knowledge-selection-mobile.yaml --facts
+   .architecture/repository-facts.yaml --profile .architecture/profile.yaml`.
+   Read the compact context index and every Markdown path it selects only after
+   validation succeeds; reserve the full exclusion ledger for scripts, Reviews,
+   and Gates. Do not load unrelated packs.
 3. Map state ownership across views, domain logic, repositories, local stores, caches, remote APIs, extensions, widgets, and background tasks.
 4. Trace the critical flows through cold launch, foreground/background transitions, offline mode, retries, cancellation, and process termination.
 5. Trace schema and data migrations, including downgrade assumptions, partial failure, backup/restore, and store corruption handling.

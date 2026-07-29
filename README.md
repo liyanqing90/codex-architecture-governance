@@ -285,7 +285,9 @@ Stages are cumulative:
    waiver, and risk acceptance;
 3. `change`: required review workflows, review age,
    exact/ancestor/diff-aware Git freshness, changed public contracts, required
-   decisions, dirty tree, signature policy, and evidence resolution;
+   decisions, compatible migration or active remediation planning, dirty tree,
+   signature policy, and evidence resolution. Governance-only commits may
+   follow a review, but classified critical or security paths may not;
 4. `release`: required evidence, accepted decisions, decision authority, and
    complete remediation with hashed acceptance evidence.
 

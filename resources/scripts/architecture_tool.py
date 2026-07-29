@@ -3383,15 +3383,17 @@ def gate_from_config(
         freshness_sensitive = sorted(
             set(change_impacts["critical"]) | set(change_impacts["security"])
         )
+        stale_freshness_sensitive = sorted(
+            path for path in freshness_sensitive if path in set(changed_paths)
+        )
         if (
-            freshness_sensitive
+            stale_freshness_sensitive
             and change_policy["require_fresh_review_on_critical_change"]
             and commit_root is not None
-            and reviewed_commit != (head or current_git_commit(commit_root))
         ):
             policy_failures.append(
-                "Critical or security-sensitive paths require a review at HEAD: "
-                + ", ".join(freshness_sensitive)
+                "Critical or security-sensitive paths changed after the selected "
+                "review: " + ", ".join(stale_freshness_sensitive)
             )
 
     decisions: list[tuple[Path, dict[str, Any]]] = []
@@ -3418,6 +3420,15 @@ def gate_from_config(
         for path, plan in plans
         if plan["plan"]["status"] in {"accepted", "in-progress", "complete"}
     ]
+    compatible_migration_decisions = [
+        (path, decision)
+        for path, decision in accepted_decisions
+        if decision["selected_option"] == "keep-current"
+        and decision.get("migration")
+        and decision["migration"].get("slices")
+        and decision["migration"].get("validation")
+        and decision["migration"].get("rollback")
+    ]
     if "change" in selected_stages:
         change_policy = policy["change_requirements"]
         if (
@@ -3434,10 +3445,11 @@ def gate_from_config(
             change_impacts["migration"]
             and change_policy["require_plan_on_migration_change"]
             and not active_plans
+            and not compatible_migration_decisions
         ):
             policy_failures.append(
-                "Migration changes require an accepted or active remediation "
-                "plan for the selected review: "
+                "Migration changes require an accepted compatible-migration "
+                "decision or an active remediation plan for the selected review: "
                 + ", ".join(change_impacts["migration"])
             )
 

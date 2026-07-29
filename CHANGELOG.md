@@ -44,6 +44,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   test preventing expected decisions from leaking into model-visible inputs.
 - Benchmark scores distinguish absent usage telemetry from actual zero
   token/cost consumption.
+- Base-commit gates now require re-review only when a classified critical or
+  security path changed after the reviewed commit; later governance-only
+  records no longer create an impossible review/HEAD self-reference.
+- An accepted `keep-current` decision with explicit migration slices,
+  rollback, and validation now satisfies compatible migration governance
+  without manufacturing a remediation plan for a non-risk Finding.
 
 ### Security
 

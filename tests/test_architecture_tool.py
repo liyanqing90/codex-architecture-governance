@@ -1136,6 +1136,167 @@ class ArchitectureToolTests(unittest.TestCase):
             )
         )
 
+    def test_base_change_accepts_review_before_governance_only_commits(self) -> None:
+        config_root = self.init_project()
+        policy_path = config_root / "gate-policy.yaml"
+        policy = architecture_tool.load_yaml(policy_path)
+        policy["change_requirements"]["critical_paths"] = ["critical.py"]
+        self.write_yaml(policy_path, policy)
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", str(policy_path)],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Set change policy"],
+            check=True,
+        )
+        base_commit = architecture_tool.current_git_commit(self.root)
+
+        (self.root / "critical.py").write_text("VALUE = 1\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", "critical.py"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Change critical path"],
+            check=True,
+        )
+        review_path = self.write_review(self.review("needs-evidence"))
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", ".architecture/reviews"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Record review"],
+            check=True,
+        )
+        (self.root / "governance-note.md").write_text(
+            "Review record follow-up.\n",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", "governance-note.md"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Document review"],
+            check=True,
+        )
+
+        result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="change",
+            base_commit=base_commit,
+        )
+
+        self.assertEqual(result["status"], "pass")
+        self.assertEqual(result["change_impacts"]["critical"], ["critical.py"])
+        self.assertFalse(
+            any(
+                "changed after the selected review" in failure
+                for failure in result["policy_failures"]
+            )
+        )
+
+    def test_keep_current_decision_covers_compatible_migration(self) -> None:
+        config_root = self.init_project()
+        policy_path = config_root / "gate-policy.yaml"
+        policy = architecture_tool.load_yaml(policy_path)
+        policy["change_requirements"].update(
+            {
+                "critical_paths": [],
+                "public_contract_paths": [],
+                "migration_paths": ["migration.yaml"],
+                "security_paths": [],
+            }
+        )
+        self.write_yaml(policy_path, policy)
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", str(policy_path)],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Set migration policy"],
+            check=True,
+        )
+        base_commit = architecture_tool.current_git_commit(self.root)
+
+        (self.root / "migration.yaml").write_text(
+            "schema_version: '1.1'\n",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", "migration.yaml"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Add migration"],
+            check=True,
+        )
+        review_path = self.write_review(self.review("needs-evidence"))
+        review = architecture_tool.load_yaml(review_path)
+
+        decision = architecture_tool.load_yaml(
+            ROOT / "resources" / "templates" / "architecture-decision.yaml"
+        )
+        decision["schema_version"] = "1.1"
+        decision["decision"].pop("knowledge_selection_path")
+        decision["decision"].pop("knowledge_selection_sha256")
+        decision["decision"].update(
+            {
+                "id": "ADR-TEST-MIGRATION",
+                "source_review": review["review"]["id"],
+                "source_review_sha256": architecture_tool.file_sha256(review_path),
+                "decision_makers": ["architecture-owner"],
+                "status": "accepted",
+            }
+        )
+        decision["problem"]["quality_attributes"] = ["recoverability"]
+        decision["problem"]["finding_ids"] = []
+        decision["knowledge_snapshot"] = architecture_tool.decision_knowledge_snapshot()
+        for option in decision["options"]:
+            option["architecture_styles"] = [
+                value.removeprefix("style.") for value in option["architecture_styles"]
+            ]
+            option["quality_attribute_effects"] = [
+                {
+                    "attribute": "recoverability",
+                    "effect": "neutral",
+                    "rationale": (
+                        "The compatible migration retains current recovery behavior."
+                    ),
+                }
+            ]
+        decision_path = config_root / "reviews" / "2026-07-28-migration-decision.yaml"
+        self.write_yaml(decision_path, decision)
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", ".architecture/reviews"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Record migration review"],
+            check=True,
+        )
+
+        result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="change",
+            base_commit=base_commit,
+        )
+
+        self.assertEqual(result["status"], "pass")
+        self.assertEqual(result["change_impacts"]["migration"], ["migration.yaml"])
+        self.assertFalse(
+            any(
+                "Migration changes require" in failure
+                for failure in result["policy_failures"]
+            )
+        )
+
     def test_contract_gate_requires_every_profile_review_workflow(self) -> None:
         self.init_project()
         profile_path = self.root / ".architecture" / "profile.yaml"

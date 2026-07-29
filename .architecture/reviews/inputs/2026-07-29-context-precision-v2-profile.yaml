@@ -107,11 +107,11 @@ project:
     - plugin-platform
     - test-automation-platform
   repository_facts:
-    path: .architecture/repository-facts.yaml
+    path: .architecture/reviews/inputs/2026-07-29-context-precision-v2-repository-facts.yaml
     sha256: dd5cb09ba541c6ddfb1dee4b2c85dfb603c9941604d789cfab66a4025a8dd24c
   profile_sources:
     detected:
-      - .architecture/repository-facts.yaml
+      - .architecture/reviews/inputs/2026-07-29-context-precision-v2-repository-facts.yaml
     declared:
       - .architecture/constraints.md
       - .architecture/critical-flows.md

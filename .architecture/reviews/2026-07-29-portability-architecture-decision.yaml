@@ -8,7 +8,7 @@ decision:
     - architecture-owner
   status: accepted
   knowledge_selection_path: .architecture/decision-knowledge-selection.yaml
-  knowledge_selection_sha256: 6f80b46ed1217314a18181f1d1ae5375c6f9c962496fbc2dee3821ce0f714961
+  knowledge_selection_sha256: 568a03be924d4339d7aa974bb67589f0a0577cee4df47591bee06e2aba914864
 problem:
   quality_attributes:
     - maintainability

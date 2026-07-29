@@ -503,8 +503,8 @@ inputs:
   task: Decide whether the local-first plugin architecture should remain, become more
     modular internally, or move to hosted services; compare proportionality, maintainability,
     operations, migration, and evolution.
-  facts_sha256: bc5c2f3503938438a1ca81ae285142b1a444552b979af472028f17ebc6a12547
-  profile_sha256: 5c066c97ed692f48e1aa0170dd21e901ee8158af8ccb2e7c211804ea048ec192
+  facts_sha256: dd5cb09ba541c6ddfb1dee4b2c85dfb603c9941604d789cfab66a4025a8dd24c
+  profile_sha256: 2ca1261674fef49fbae433a0c356e6857db7019dc91bd79f532a8671fd4bf0f1
 budget:
   maximum_entries: 16
   selected_entries: 16

@@ -1,14 +1,13 @@
-schema_version: '1.1'
+schema_version: '1.0'
 repository:
   root: .
-  commit: 532f367a4f427903728f020be655dca694cd7077
+  commit: a290c4632a0974c087fd2dd578238e38a5004e13
   dirty: false
-  scanned_at: '2026-07-29T10:27:51.620705+00:00'
+  scanned_at: '2026-07-29T03:34:40.693045+00:00'
   scope:
   - .
 languages:
 - id: python
-  role: benchmark-fixture
   evidence:
   - benchmarks/fixtures/account-balance-updates/store.py
   - benchmarks/fixtures/accounts-billing-application/app/accounts.py
@@ -21,9 +20,6 @@ languages:
   - benchmarks/fixtures/render-job-processing/worker.py
   - benchmarks/fixtures/research-assistant/agent.py
   - benchmarks/fixtures/retrieval-payment-runtime/runtime.py
-- id: python
-  role: production
-  evidence:
   - resources/scripts/architecture_tool.py
   - resources/scripts/build_project_profile.py
   - resources/scripts/fingerprint_artifact.py
@@ -43,9 +39,6 @@ languages:
   - scripts/run_behavior_benchmark.py
   - scripts/validate_repository.py
   - scripts/verify_checksum.py
-- id: python
-  role: test
-  evidence:
   - tests/test_architecture_tool.py
   - tests/test_behavior_benchmark.py
   - tests/test_codex_benchmark_adapter.py
@@ -54,7 +47,6 @@ languages:
   - tests/test_supply_chain.py
   - tests/test_target_architecture.py
 - id: swift
-  role: benchmark-fixture
   evidence:
   - benchmarks/fixtures/mobile-record-editor/Repository.swift
 frameworks: []
@@ -64,7 +56,6 @@ infrastructure: []
 artifacts:
   manifests:
   - pyproject.toml
-  - requirements-dev.txt
   - requirements.txt
   migrations: []
   api_definitions: []

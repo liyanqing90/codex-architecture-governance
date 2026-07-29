@@ -2,13 +2,13 @@ schema_version: "1.2"
 decision:
   id: ADR-CAG-004
   source_review: codex-architecture-governance-20260729-project-verified
-  source_review_sha256: 83bdf7b96c91a8510908c610f52cee9c4204db3717e5f8e8ee3b30d174d3c491
+  source_review_sha256: de53ff25ddabd116de7eada901d7e13dc7d3ede287763bf5387ceed042162783
   decided_at: "2026-07-29T03:40:00+00:00"
   decision_makers:
     - architecture-owner
   status: accepted
   knowledge_selection_path: .architecture/decision-knowledge-selection.yaml
-  knowledge_selection_sha256: 6f80b46ed1217314a18181f1d1ae5375c6f9c962496fbc2dee3821ce0f714961
+  knowledge_selection_sha256: 568a03be924d4339d7aa974bb67589f0a0577cee4df47591bee06e2aba914864
 problem:
   quality_attributes:
     - maintainability

@@ -507,7 +507,7 @@ inputs:
   - technology.dependency-cruiser
   decision_intents: []
   source_commit: 532f367a4f427903728f020be655dca694cd7077
-  profile_sha256: 2ca1261674fef49fbae433a0c356e6857db7019dc91bd79f532a8671fd4bf0f1
+  profile_sha256: 98ca330c31005b8506ec5f7a813922fbfe0803e78d70a8d202bc955a0c7cbb1e
 budget:
   maximum_entries: 24
   selected_entries: 11
@@ -549,4 +549,4 @@ selector:
   knowledge_tree_sha256: a36ebf6cdec134eb3fe31a44c60002f87607bb4336c01adf795f66a72c593dd0
   selection_policy_version: '1.0'
   replay_mode: creation-time-lock
-result_sha256: a3fea7f7d7c48af414aaa0071ecfd6b69809be5f427cbc9c466335a50e2f7584
+result_sha256: f99ff1c51cb44b21d95288ec1446dd2bdce32292469dde817c046e5ba18dbadb

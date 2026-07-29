@@ -1,4 +1,4 @@
-# Retrieved instructions expand tool authority
+# Retrieval and payment runtime
 
 Retrieved web text is appended to the system instructions. The model may call
 an unrestricted payment tool without deterministic authorization or approval.

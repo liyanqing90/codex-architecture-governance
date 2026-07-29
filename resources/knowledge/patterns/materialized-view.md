@@ -1,7 +1,7 @@
 ---
 id: pattern.materialized-view
 kind: pattern
-version: 1.0.0
+version: 2.0.0
 status: active
 domains:
 - data
@@ -9,82 +9,93 @@ triggers:
 - materialized
 - view
 quality_attributes: []
-related: []
+related:
+- decision.cache-strategy
+- decision.database-selection
 legacy_ids:
 - pattern:materialized-view
 last_reviewed: '2026-07-28'
 review_after_days: 365
 source_policy: stable-principles-plus-official-docs
 sources:
-- title: Azure Cloud Design Patterns
-  url: https://learn.microsoft.com/en-us/azure/architecture/patterns/
+- title: Azure Materialized View pattern
+  url: https://learn.microsoft.com/en-us/azure/architecture/patterns/materialized-view
   authority: official
+  supports:
+  - MV-PRECOMPUTE
+  - MV-CONSISTENCY
+maturity: golden
+curation:
+  method: assisted-reviewed
+  reviewer: Codex Architecture Governance review
+  reviewed_at: '2026-07-28'
 ---
 
 # Materialized View
 
 ## Problem and intent
 
-- Precompute a read model for expensive queries with explicit rebuild and freshness semantics.
+Serve expensive joins, aggregates, search, graph traversal, or dashboard reads without moving write authority into a query-specific structure.
 
 ## Mechanism
 
-- Precompute a read model for expensive queries with explicit rebuild and freshness semantics.
+Define the projection schema and source checkpoint, build snapshots or consume changes idempotently, publish a completed generation atomically, and expose lag and reconciliation results.
+
+## Operating model
+
+A projector derives a query-optimized representation from authoritative records or events. The view stores its source position or generation, can be rebuilt, and is served only within an explicit freshness and completeness contract.
 
 ## Fit when
 
-- Read shapes differ from writes and measured query cost matters.
+A stable high-value query cannot meet latency/load targets directly and bounded projection lag is acceptable.
 
 ## Avoid when
 
-- Direct indexed queries meet targets.
+The authoritative query already meets its scenario, strong read-after-write is mandatory, or no owner can rebuild and reconcile the view.
 
 ## Required capabilities
 
-- rebuild
-- checkpoint
-- freshness-signal
+Source authority, deterministic transform, idempotent update, checkpoint, backfill/rebuild, atomic generation switch, deletion handling, freshness SLO, reconciliation, and authorization-safe fields.
 
 ## Benefits
 
-- Predictable read latency and query isolation.
+Improves read latency and isolates read load while allowing data shape to match the consuming query.
 
 ## Costs and liabilities
 
-- Staleness
-- rebuild
-- ordering
-- and storage.
+Duplicates data, introduces lag, consumes storage/compute, and requires schema coordination and rebuild operations.
 
 ## Failure modes
 
-- no-rebuild-path
-- unknown-lag
+Projector skips or reorders changes, rebuild mixes generations, deleted or permission-revoked data remains visible, and clients treat stale data as authoritative.
 
 ## Alternatives
 
-- cache-aside
-- cqrs
+Add or change an index, optimize the authoritative query, cache the final response, or use an on-demand aggregate for low-frequency reads.
 
 ## Migration and exit
 
-- Introduce the mechanism behind a compatible boundary, verify it, then remove the old path.
+Capture baseline query cost, backfill a versioned projection with counts/checksums, shadow-read and compare, switch a bounded cohort, then retain rebuild and fallback procedures.
 
 ## Evidence to inspect
 
-- Trace the owning boundary, direct configuration or code, affected consumers, failure path, tests, and current operational evidence.
-- For technology capabilities, confirm volatile behavior from the cited official source at decision time.
+Query plan and latency, source change volume, acceptable staleness, projection lag, checkpoint durability, reconciliation mismatches, rebuild time, access-control changes, and storage cost.
 
 ## Evidence that changes the recommendation
 
-- A simpler option meeting the same measurable quality scenario should replace this recommendation.
-- Missing ownership, compatibility, recovery, cost, or operational capability invalidates adoption until resolved.
+Prefer indexing or cache-aside for simpler repeated reads; choose a materialized view when a distinct query model and rebuildable lag are justified.
 
 ## Quality trade-offs
 
-- Balance business fit, reliability, maintainability, cost, and cognitive load.
+Read speed and workload isolation trade against consistency lag, duplicated storage, rebuild complexity, and another observable pipeline.
+
+## Claim map
+
+- MV-PRECOMPUTE: A materialized view precomputes data suited to query needs.
+- MV-CONSISTENCY: The view requires a refresh/update strategy and can lag its sources.
 
 ## Volatile facts
 
-- Product versions, support status, compatibility, security advisories, licensing, pricing, and service limits are time-sensitive and must be rechecked.
-- Stable mechanism guidance remains separate from current vendor or release information.
+Runtime versions, limits, compatibility, security advisories, pricing, and licensing
+must be confirmed from the cited official source at decision time. The stable operating
+mechanism remains distinct from those current facts.

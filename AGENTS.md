@@ -43,6 +43,7 @@ python3 scripts/validate_repository.py
 python3 resources/scripts/architecture_tool.py validate-project .
 python3 resources/scripts/validate_knowledge.py
 python3 -m pytest
+python3 resources/scripts/architecture_tool.py gate --project . --stage change
 python3 -m ruff check .
 python3 -m ruff format --check .
 python3 -m pip_audit -r requirements-runtime.lock
@@ -50,8 +51,8 @@ python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/codex-architecture-governance-0.3.2.zip \
-  --output dist/codex-architecture-governance-0.3.2.spdx.json
+  --archive dist/codex-architecture-governance-0.4.0.zip \
+  --output dist/codex-architecture-governance-0.4.0.spdx.json
 ```
 
 The accepted target boundary is recorded in

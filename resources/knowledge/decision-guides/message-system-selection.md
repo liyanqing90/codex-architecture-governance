@@ -1,7 +1,7 @@
 ---
 id: decision.message-system-selection
 kind: decision-guide
-version: 1.0.0
+version: 2.0.0
 status: active
 domains:
 - distributed-systems
@@ -11,70 +11,115 @@ triggers:
 - pubsub
 quality_attributes:
 - maintainability
-related: []
+related:
+- pattern.outbox
+- decision.sync-vs-async
 last_reviewed: '2026-07-28'
 review_after_days: 365
 source_policy: stable-principles-plus-official-docs
 sources:
-- title: Azure Architecture Center
-  url: https://learn.microsoft.com/en-us/azure/architecture/
+- title: Azure Competing Consumers pattern
+  url: https://learn.microsoft.com/en-us/azure/architecture/patterns/competing-consumers
   authority: official
+  supports:
+  - QUEUE-SEMANTIC
+- title: Azure asynchronous messaging options
+  url: https://learn.microsoft.com/en-us/azure/architecture/guide/technology-choices/messaging
+  authority: official
+  supports:
+  - MESSAGE-CHOICE
+maturity: golden
+curation:
+  method: assisted-reviewed
+  reviewer: Codex Architecture Governance review
+  reviewed_at: '2026-07-28'
 ---
 
 # Message System Selection
 
 ## Problem and intent
 
-Choose queue, pub-sub, or replayable stream from consumer semantics, ordering, retention, throughput, and operations.
+Choose queue, publish/subscribe, or durable stream semantics from ownership, delivery, ordering, replay, fan-out, and recovery needs.
 
 ## Mechanism
 
-Apply the mechanism at its owning boundary, keep authority and contracts explicit, and bind the choice to measurable scenarios rather than technology presence.
+A queue assigns work to one consumer group, pub/sub distributes notifications to subscribers, and a stream retains ordered records for independent cursor-based consumption. The application must still define idempotency and business ordering.
+
+## Options
+
+### Work queue
+
+- Fit: Each command should be processed by one scalable consumer pool.
+- Avoid: Every subscriber needs an independent copy or replay.
+- Cost: Visibility/lease tuning, retries, and dead letters.
+- Failure: Poison work loops or visibility expiry causes concurrent effects.
+### Publish/subscribe
+
+- Fit: Several consumers react independently to an event.
+- Avoid: Consumers need long retention or arbitrary historical replay.
+- Cost: Subscription lifecycle, schema compatibility, and fan-out cost.
+- Failure: A missing subscription silently loses events.
+### Durable event stream
+
+- Fit: Replay, audit, ordered partition history, or many independent consumers are required.
+- Avoid: The workload is a simple task queue with no replay value.
+- Cost: Partition/key design, retention, consumer lag, and heavier operations.
+- Failure: Hot partitions or incorrect offsets cause lag, gaps, or duplication.
 
 ## Fit when
 
-Asynchronous work or integration is proven necessary.
+At least one named option fits a measured quality scenario and the team can own its
+required failure and recovery behavior.
 
 ## Avoid when
 
-A direct owned call or database-backed job satisfies the flow.
+The choice is driven only by a technology name, hypothetical scale, or a problem
+already solved by the current design.
 
 ## Required capabilities
 
-An accountable owner, explicit compatibility and failure semantics, proportional tests, observable outcomes, and an affordable operating model are required.
+Message ownership, schema/version policy, delivery guarantee, idempotent consumers, ordering key, retry and dead-letter policy, retention, backpressure, lag/age monitoring, and access control.
 
 ## Benefits
 
-The choice addresses the stated problem while keeping the reason, protected qualities, and governing evidence reviewable.
+Prevents broker brand selection from substituting for delivery and recovery semantics.
 
 ## Costs and liabilities
 
-It adds implementation, migration, cognitive, and operational costs that must be compared with keeping the current design.
+Durability and fan-out increase storage and operational burden; simple queues limit replay and broadcast.
 
 ## Failure modes
 
-It fails when adopted from naming, popularity, or hypothetical scale without ownership, negative-path behavior, and acceptance evidence.
+Assuming exactly-once business effects, global ordering without partition cost, retry storms, unbounded lag, oversized payloads, and incompatible event changes.
 
 ## Alternatives
 
-Keep the current architecture with a local correction, or select the next simpler mechanism that satisfies the same quality scenario.
+Compare the current design and the named options—Work queue, Publish/subscribe, Durable event stream—against the same
+quality scenarios; do not compare feature lists without operating consequences.
 
 ## Migration and exit
 
-Introduce the new behavior behind a compatible boundary, observe a bounded cohort, preserve rollback, and remove the old path only after consumers and data are verified.
+Document current producer/consumer semantics, introduce an adapter and versioned envelope, shadow-consume without side effects, compare counts and ordering, then migrate one consumer group at a time.
 
 ## Evidence to inspect
 
-Inspect the product scenario, owning code and configuration, consumers, persisted contracts, tests, runtime evidence when applicable, team capability, and cost boundary.
+Producer and consumer graph, throughput/burst, payload size, ordering scope, replay window, retry distribution, poison rate, lag SLO, and team operations.
 
 ## Evidence that changes the recommendation
 
-A simpler option meeting the same measurable outcome, missing operational ownership, incompatible consumers, or contrary runtime evidence changes the recommendation.
+Prefer a queue for work distribution, pub/sub for live fan-out, and a retained stream only when replay or independent history has measurable value.
 
 ## Quality trade-offs
 
-Prioritize maintainability while explicitly recording effects on reliability, security, performance, maintainability, delivery speed, cost, and cognitive load.
+Replay, ordering, delivery isolation, latency, simplicity, and storage cost vary by semantic model.
+
+## Claim map
+
+- QUEUE-SEMANTIC: Competing consumers distribute queued work across a consumer pool.
+- MESSAGE-CHOICE: Message brokers and event streaming platforms expose different delivery and retention trade-offs.
 
 ## Volatile facts
 
-Versions, support status, compatibility, security advisories, licensing, pricing, and service limits require current official confirmation; they are not timeless architecture facts.
+Product versions, protocol/library support, service limits, pricing, licensing, and
+security advisories must be rechecked in the cited official sources at decision time.
+The mechanisms and decision criteria above are maintained separately from those facts.

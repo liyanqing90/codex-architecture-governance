@@ -17,6 +17,15 @@ block:
   require_current_commit: false
   unverified_behavior: warn
   minimum_verification_level: V1
+  verification_levels:
+    by_severity:
+      critical: V3
+      high: V2
+      medium: V1
+      low: V1
+      info: V0
+    accepted_risk: V4
+    release: V4
   freshness_strategy: diff-aware
   require_clean_tree: true
   require_evidence_resolution: true

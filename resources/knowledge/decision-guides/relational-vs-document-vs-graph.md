@@ -1,7 +1,7 @@
 ---
 id: decision.relational-vs-document-vs-graph
 kind: decision-guide
-version: 1.0.0
+version: 2.0.0
 status: active
 domains:
 - data
@@ -11,70 +11,115 @@ triggers:
 - graph
 quality_attributes:
 - maintainability
-related: []
+related:
+- decision.database-selection
+- pattern.materialized-view
 last_reviewed: '2026-07-28'
 review_after_days: 365
 source_policy: stable-principles-plus-official-docs
 sources:
-- title: Azure Architecture Center
-  url: https://learn.microsoft.com/en-us/azure/architecture/
+- title: PostgreSQL transaction isolation
+  url: https://www.postgresql.org/docs/current/transaction-iso.html
   authority: official
+  supports:
+  - RELATIONAL-ISO
+- title: Neo4j database internals and transactions
+  url: https://neo4j.com/docs/operations-manual/current/database-internals/
+  authority: official
+  supports:
+  - GRAPH-TX
+maturity: golden
+curation:
+  method: assisted-reviewed
+  reviewer: Codex Architecture Governance review
+  reviewed_at: '2026-07-28'
 ---
 
-# Relational vs Document vs Graph
+# Relational vs Document vs Graph Data Model
 
 ## Problem and intent
 
-Match storage model to invariants and dominant access paths while preserving authority, migration, and operational simplicity.
+Choose a primary data model from invariants and access paths while avoiding a different authority for every query shape.
 
 ## Mechanism
 
-Apply the mechanism at its owning boundary, keep authority and contracts explicit, and bind the choice to measurable scenarios rather than technology presence.
+Relational models normalize facts and enforce constraints across rows; document models persist aggregates together; graph models make nodes and relationships the traversal surface. Any secondary model should remain a rebuildable projection unless ownership moves deliberately.
+
+## Options
+
+### Relational
+
+- Fit: Cross-entity constraints, transactions, reporting, and evolving queries matter.
+- Avoid: The workload is almost entirely aggregate-local and schema joins dominate cost.
+- Cost: Schema migrations and joins require discipline.
+- Failure: Missing constraints or unindexed joins erode integrity and latency.
+### Document
+
+- Fit: Aggregates are read and written together with bounded document size.
+- Avoid: Many-to-many relations and cross-aggregate invariants dominate.
+- Cost: Duplication, update fan-out, and application-enforced consistency.
+- Failure: Unbounded documents or duplicated facts drift.
+### Graph
+
+- Fit: Variable-depth relationship traversal is a core measured operation.
+- Avoid: Simple key, aggregate, or set queries cover the product.
+- Cost: New query language, operations, projection synchronization, and access control.
+- Failure: A graph is introduced for conceptual elegance but ordinary lookups remain primary.
 
 ## Fit when
 
-Relationships, aggregate documents, or graph traversal create materially different access needs.
+At least one named option fits a measured quality scenario and the team can own its
+required failure and recovery behavior.
 
 ## Avoid when
 
-A relational schema already meets integrity and query needs.
+The choice is driven only by a technology name, hypothetical scale, or a problem
+already solved by the current design.
 
 ## Required capabilities
 
-An accountable owner, explicit compatibility and failure semantics, proportional tests, observable outcomes, and an affordable operating model are required.
+Named aggregates and invariants, representative query corpus, cardinality and growth, transaction scope, index plan, migration/rebuild path, authorization traversal, and operator capability.
 
 ## Benefits
 
-The choice addresses the stated problem while keeping the reason, protected qualities, and governing evidence reviewable.
+Connects model shape to actual correctness and query behavior and permits derived models without confused ownership.
 
 ## Costs and liabilities
 
-It adds implementation, migration, cognitive, and operational costs that must be compared with keeping the current design.
+Specialized models simplify selected paths while making other constraints, joins, or operations harder.
 
 ## Failure modes
 
-It fails when adopted from naming, popularity, or hypothetical scale without ownership, negative-path behavior, and acceptance evidence.
+Choosing from entity diagrams alone, unbounded documents, graph supernodes, duplicated authorities, and application-only constraints without tests.
 
 ## Alternatives
 
-Keep the current architecture with a local correction, or select the next simpler mechanism that satisfies the same quality scenario.
+Compare the current design and the named options—Relational, Document, Graph—against the same
+quality scenarios; do not compare feature lists without operating consequences.
 
 ## Migration and exit
 
-Introduce the new behavior behind a compatible boundary, observe a bounded cohort, preserve rollback, and remove the old path only after consumers and data are verified.
+Keep one authority, project a bounded read model into the candidate, compare query and recovery behavior, and move authority only after constraints and rollback are proven.
 
 ## Evidence to inspect
 
-Inspect the product scenario, owning code and configuration, consumers, persisted contracts, tests, runtime evidence when applicable, team capability, and cost boundary.
+Invariant map, aggregate size, relationship depth/fan-out, query plans, transaction conflicts, schema-change frequency, restore tests, and authorization rules.
 
 ## Evidence that changes the recommendation
 
-A simpler option meeting the same measurable outcome, missing operational ownership, incompatible consumers, or contrary runtime evidence changes the recommendation.
+Use relational by default for broad transactional needs; document or graph should be justified by dominant aggregate-local or traversal workloads.
 
 ## Quality trade-offs
 
-Prioritize maintainability while explicitly recording effects on reliability, security, performance, maintainability, delivery speed, cost, and cognitive load.
+Each model moves complexity among storage shape, query expressiveness, integrity enforcement, duplication, and operations.
+
+## Claim map
+
+- RELATIONAL-ISO: Relational transaction isolation protects concurrent database behavior.
+- GRAPH-TX: Graph database operations execute within transactional boundaries.
 
 ## Volatile facts
 
-Versions, support status, compatibility, security advisories, licensing, pricing, and service limits require current official confirmation; they are not timeless architecture facts.
+Product versions, protocol/library support, service limits, pricing, licensing, and
+security advisories must be rechecked in the cited official sources at decision time.
+The mechanisms and decision criteria above are maintained separately from those facts.

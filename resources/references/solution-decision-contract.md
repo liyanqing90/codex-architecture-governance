@@ -1,13 +1,15 @@
 # Architecture solution decision contract
 
-Use `../schemas/architecture-decision.schema.json` after a verified review and
-before remediation planning.
+Use `../schemas/architecture-decision.schema.json` after a verified review for
+remediation, or after an approved
+`../schemas/architecture-design-brief.schema.json` for Greenfield design.
 
 ## Decision boundary
 
-A decision solves confirmed findings or an explicit quality-attribute
-scenario. It does not discover findings, accept risk, plan implementation, or
-authorize change.
+A remediation decision solves confirmed findings. A Greenfield decision solves
+explicit Design Brief questions and quality scenarios with an empty Finding
+list. A decision does not discover findings, accept risk, plan implementation,
+or authorize change.
 
 Always include a keep-current/local-correction option. Add structural options
 only when current constraints support them. Compare at least three options.
@@ -38,10 +40,12 @@ does not prove project fit.
 - `rejected`: considered but not selected for implementation;
 - `superseded`: replaced by another recorded decision.
 
-Bind the decision to the verified Review ID and file SHA-256. Bind every cited
+Bind remediation to the verified Review ID and file SHA-256. Bind Greenfield
+to the Design Brief path and file SHA-256. Bind every cited
 architecture style, pattern, technology profile, reference architecture, and
 migration guide to the exact selected entry version and SHA-256. Bind the
-selection artifact itself. Include only confirmed, unresolved Finding IDs.
+selection artifact itself. Remediation includes only confirmed, unresolved
+Finding IDs; Greenfield includes none.
 Record known facts, assumptions, unknowns, hard eliminations, why every
 nonselected option was rejected, compatible migration slices, all decision
 makers, and at least one measurable revisit trigger.
@@ -55,9 +59,14 @@ python3 ../scripts/architecture_tool.py decision-bindings \
   --knowledge-selection <decision-knowledge-selection.yaml>
 ```
 
+For Greenfield, replace `--review` with
+`--design-brief <architecture-design-brief.yaml>`.
+
 Validate with:
 
 ```bash
 python3 ../scripts/architecture_tool.py validate-decision \
   <decision.yaml> --review <verified-review.yaml> --project <repository-root>
 ```
+
+For Greenfield validation, replace `--review` with `--design-brief`.

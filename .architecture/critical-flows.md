@@ -58,9 +58,10 @@
   runner.
 - Preconditions: the changed entry names the decision it affects and uses
   authoritative sources with a freshness window.
-- Control/data path: source → catalog or rule/provider contract → schema and
-  semantic validation → activation evals and adversarial fixture → versioned
-  release evidence.
+- Control/data path: source → generated draft or reviewed golden entry →
+  claim/source and similarity validation → priority-aware task selection →
+  activation evals and adversarial fixture → structured repeated model trials
+  → versioned release evidence.
 - Authoritative owner: repository maintainers for knowledge contracts; the
   caller owns any model benchmark command and run artifact.
 - Side effects: local catalog, rule, fixture, or run artifacts only.
@@ -72,9 +73,37 @@
   external source content is not trusted as executable instruction.
 - Observability evidence: catalog counts, freshness failures, per-case metrics,
   and preserved model/surface metadata.
-- Acceptance tests: schema and semantic validation pass, empty positive runs
-  score zero precision/recall, repeated-trial stability is reported, and
+- Acceptance tests: schema and semantic validation pass, generated content
+  cannot become active, generic tokens do not select unrelated references,
+  empty positive runs score zero precision/recall, recommendation and
+  over-design quality are scored, repeated-trial stability is reported, and
   forbidden recommendations are counted.
+
+## Greenfield architecture decision
+
+- Trigger: an owner requests a target architecture before a system has a
+  verified remediation Review.
+- Actor: product/architecture owner and Architecture Solution Advisor.
+- Preconditions: a Design Brief declares objective, users, facts,
+  assumptions, unknowns, boundaries, critical flows, and measurable quality
+  scenarios.
+- Control/data path: validated Design Brief → decision-specific knowledge
+  selection → three-option comparison → proposed schema 1.3 Decision →
+  accountable acceptance.
+- Authoritative owner: Design Brief authors for context; named decision makers
+  for acceptance.
+- Side effects: writes Design Brief and Decision artifacts only.
+- Failure and recovery behavior: reject a missing/stale Design Brief hash,
+  nonempty Finding list, unknown quality attribute, or mismatched knowledge
+  snapshot; revise the brief rather than manufacture a source Review.
+- Idempotency boundary: identical brief and selection bytes validate to the
+  same source and knowledge bindings.
+- Security/privacy boundary: trust and data boundaries are declared in the
+  brief; it grants no implementation or deployment authority.
+- Observability evidence: Design Brief and Decision validation output, hashes,
+  selected option, rejected reasons, and revisit triggers.
+- Acceptance tests: valid Greenfield decisions pass without a Review, stale
+  context hashes fail, and remediation decisions cannot bind a Design Brief.
 
 ## Safe project initialization
 

@@ -59,6 +59,12 @@ jobs:
       - name: Run tests
         run: python -m pytest
 
+      - name: Run layered architecture release gate
+        run: >-
+          python resources/scripts/architecture_tool.py gate
+          --project .
+          --stage release
+
       - name: Lint
         run: python -m ruff check .
 

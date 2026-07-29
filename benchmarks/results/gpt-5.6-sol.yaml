@@ -1,0 +1,1574 @@
+schema_version: '1.2'
+benchmark:
+  id: architecture-governance-core
+  version: 1.0.0
+  kind: run
+  model: gpt-5.6-sol
+  surface: codex-cli-0.146.0-alpha.3.1
+  skill_version: 0.4.0
+  run_at: '2026-07-29T00:49:08.641961+00:00'
+  repetitions: 3
+cases:
+- id: benign-large-sqlite
+  fixture: benchmarks/fixtures/desktop-sqlite-catalog
+  expected_findings: []
+  forbidden_recommendations: []
+  observed_findings: &id001
+  - rule_id: PROJECT.TRANSACTION.001
+    severity: info
+    evidence:
+    - path: catalog.py
+      line_start: 17
+      line_end: 17
+      excerpt: '    with connection:'
+    - path: catalog.py
+      line_start: 18
+      line_end: 18
+      excerpt: '        connection.execute("DELETE FROM generated_lookup")'
+    - path: catalog.py
+      line_start: 19
+      line_end: 22
+      excerpt: "        connection.executemany(\n            \"INSERT INTO generated_lookup(key,\
+        \ value) VALUES (?, ?)\",\n            rows,\n        )"
+    evidence_valid: true
+  observed_recommendations: &id002 []
+  trials:
+  - index: 1
+    duration_seconds: 46.351351249999425
+    observed_findings: *id001
+    observed_recommendations: *id002
+    observed_decision: &id003
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  - index: 2
+    duration_seconds: 50.11409187500249
+    observed_findings: []
+    observed_recommendations: []
+    observed_decision:
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  - index: 3
+    duration_seconds: 62.56117433300096
+    observed_findings:
+    - rule_id: PROJECT.OWNERSHIP.001
+      severity: info
+      evidence:
+      - path: catalog.py
+        line_start: 1
+        line_end: 1
+        excerpt: '"""A deliberately simple, single-owner local catalog."""'
+      - path: README.md
+        line_start: 3
+        line_end: 3
+        excerpt: Single-user desktop catalog. SQLite is the declared authoritative
+          local store.
+      - path: README.md
+        line_start: 5
+        line_end: 5
+        excerpt: atomically. No network sync, concurrent writers, or scale requirement
+          exists.
+      evidence_valid: true
+    - rule_id: PROJECT.TRANSACTION.001
+      severity: info
+      evidence:
+      - path: catalog.py
+        line_start: 17
+        line_end: 17
+        excerpt: '    with connection:'
+      - path: catalog.py
+        line_start: 18
+        line_end: 18
+        excerpt: '        connection.execute("DELETE FROM generated_lookup")'
+      - path: catalog.py
+        line_start: 20
+        line_end: 20
+        excerpt: '            "INSERT INTO generated_lookup(key, value) VALUES (?,
+          ?)",'
+      - path: README.md
+        line_start: 5
+        line_end: 5
+        excerpt: atomically. No network sync, concurrent writers, or scale requirement
+          exists.
+      evidence_valid: true
+    observed_recommendations: []
+    observed_decision:
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  observed_decision: *id003
+- id: conflicting-writers
+  fixture: benchmarks/fixtures/account-balance-updates
+  expected_findings: []
+  forbidden_recommendations: []
+  observed_findings: &id004
+  - rule_id: PROJECT.OWNERSHIP.001
+    severity: high
+    evidence:
+    - path: README.md
+      line_start: 3
+      line_end: 3
+      excerpt: The API and worker independently perform read-modify-write updates
+        to the same
+    - path: store.py
+      line_start: 3
+      line_end: 3
+      excerpt: '    connection.write_balance(account_id, balance + amount)'
+    - path: store.py
+      line_start: 8
+      line_end: 8
+      excerpt: '    connection.write_balance(account_id, balance - amount)'
+    evidence_valid: true
+  - rule_id: PROJECT.TRANSACTION.001
+    severity: high
+    evidence:
+    - path: store.py
+      line_start: 2
+      line_end: 2
+      excerpt: '    balance = connection.read_balance(account_id)'
+    - path: store.py
+      line_start: 3
+      line_end: 3
+      excerpt: '    connection.write_balance(account_id, balance + amount)'
+    - path: store.py
+      line_start: 7
+      line_end: 7
+      excerpt: '    balance = connection.read_balance(account_id)'
+    - path: store.py
+      line_start: 8
+      line_end: 8
+      excerpt: '    connection.write_balance(account_id, balance - amount)'
+    - path: README.md
+      line_start: 4
+      line_end: 4
+      excerpt: account balance without version checks or a shared transaction owner.
+        A retry
+    - path: README.md
+      line_start: 5
+      line_end: 5
+      excerpt: can interleave the operations and silently lose an update. This balance
+        is
+    - path: README.md
+      line_start: 7
+      line_end: 7
+      excerpt: reconstructed from the stored balance and requires manual reconciliation.
+    evidence_valid: true
+  observed_recommendations: &id005 []
+  trials:
+  - index: 1
+    duration_seconds: 63.67024158300046
+    observed_findings: *id004
+    observed_recommendations: *id005
+    observed_decision: &id006
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  - index: 2
+    duration_seconds: 60.451571040997806
+    observed_findings:
+    - rule_id: PROJECT.OWNERSHIP.001
+      severity: high
+      evidence:
+      - path: store.py
+        line_start: 3
+        line_end: 3
+        excerpt: '    connection.write_balance(account_id, balance + amount)'
+      - path: store.py
+        line_start: 8
+        line_end: 8
+        excerpt: '    connection.write_balance(account_id, balance - amount)'
+      - path: README.md
+        line_start: 4
+        line_end: 4
+        excerpt: account balance without version checks or a shared transaction owner.
+          A retry
+      - path: README.md
+        line_start: 6
+        line_end: 6
+        excerpt: authoritative financial state; the overwritten credit or debit cannot
+          be
+      evidence_valid: true
+    - rule_id: PROJECT.TRANSACTION.001
+      severity: high
+      evidence:
+      - path: store.py
+        line_start: 2
+        line_end: 2
+        excerpt: '    balance = connection.read_balance(account_id)'
+      - path: store.py
+        line_start: 3
+        line_end: 3
+        excerpt: '    connection.write_balance(account_id, balance + amount)'
+      - path: store.py
+        line_start: 7
+        line_end: 7
+        excerpt: '    balance = connection.read_balance(account_id)'
+      - path: store.py
+        line_start: 8
+        line_end: 8
+        excerpt: '    connection.write_balance(account_id, balance - amount)'
+      - path: README.md
+        line_start: 5
+        line_end: 5
+        excerpt: can interleave the operations and silently lose an update. This balance
+          is
+      - path: README.md
+        line_start: 7
+        line_end: 7
+        excerpt: reconstructed from the stored balance and requires manual reconciliation.
+      evidence_valid: true
+    observed_recommendations: []
+    observed_decision:
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  - index: 3
+    duration_seconds: 48.18711774999974
+    observed_findings:
+    - rule_id: PROJECT.OWNERSHIP.001
+      severity: high
+      evidence:
+      - path: README.md
+        line_start: 3
+        line_end: 3
+        excerpt: The API and worker independently perform read-modify-write updates
+          to the same
+      - path: README.md
+        line_start: 4
+        line_end: 4
+        excerpt: account balance without version checks or a shared transaction owner.
+      - path: store.py
+        line_start: 3
+        line_end: 3
+        excerpt: '    connection.write_balance(account_id, balance + amount)'
+      - path: store.py
+        line_start: 8
+        line_end: 8
+        excerpt: '    connection.write_balance(account_id, balance - amount)'
+      evidence_valid: true
+    - rule_id: PROJECT.TRANSACTION.001
+      severity: critical
+      evidence:
+      - path: store.py
+        line_start: 2
+        line_end: 2
+        excerpt: '    balance = connection.read_balance(account_id)'
+      - path: store.py
+        line_start: 3
+        line_end: 3
+        excerpt: '    connection.write_balance(account_id, balance + amount)'
+      - path: store.py
+        line_start: 7
+        line_end: 7
+        excerpt: '    balance = connection.read_balance(account_id)'
+      - path: store.py
+        line_start: 8
+        line_end: 8
+        excerpt: '    connection.write_balance(account_id, balance - amount)'
+      - path: README.md
+        line_start: 5
+        line_end: 5
+        excerpt: can interleave the operations and silently lose an update. This balance
+          is
+      - path: README.md
+        line_start: 6
+        line_end: 6
+        excerpt: authoritative financial state; the overwritten credit or debit cannot
+          be
+      - path: README.md
+        line_start: 7
+        line_end: 7
+        excerpt: reconstructed from the stored balance and requires manual reconciliation.
+      evidence_valid: true
+    observed_recommendations: []
+    observed_decision:
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  observed_decision: *id006
+- id: queue-worker-sufficient
+  fixture: benchmarks/fixtures/render-job-processing
+  expected_findings: []
+  forbidden_recommendations: []
+  observed_findings: &id007 []
+  observed_recommendations: &id008 []
+  trials:
+  - index: 1
+    duration_seconds: 65.67854016700585
+    observed_findings: *id007
+    observed_recommendations: *id008
+    observed_decision: &id009
+      selected_option: web-queue-worker
+      compared_tradeoffs:
+      - cost
+      - delivery-semantics
+      - deployment-independence
+      - implementation-complexity
+      - maintainability
+      - migration-risk
+      - operational-complexity
+      - recovery
+      - reliability
+      - reversibility
+      - team-ownership
+      knowledge_ids:
+      - foundation.quality-attribute-scenario
+      - style.web-queue-worker
+      - style.durable-workflow
+      - style.microservices
+      - decision.system-style-selection
+      - decision.integration-style-selection
+      - pattern.idempotency-key
+      - case-study.queue-worker-before-workflow
+      rejected_options:
+      - id: durable-workflow
+        reason: README.md directly states that jobs are short and have no branching,
+          approval, compensation, or pause/resume requirement; the database already
+          owns status and the queue provides durable at-least-once delivery. A workflow
+          runtime would add implementation and operational complexity without a demonstrated
+          recovery requirement beyond the existing queue and database state.
+      - id: microservices
+        reason: README.md directly states that one team operates one API and one worker.
+          It provides no evidence of autonomous teams or additional independent deployment
+          boundaries, so broader service decomposition would add routing, consistency,
+          observability, and ownership costs without demonstrated benefit.
+      - id: inline-request-work
+        reason: Although README.md states that jobs are short, the established queue
+          supplies at-least-once delivery and the database owns task status. Moving
+          rendering into the request path would remove those explicit delivery and
+          recovery properties without evidence that immediate completion is required.
+      migration_slices:
+      - Retain the API-to-queue handoff, database-owned task status, and existing
+        worker as the baseline rollback path.
+      - Add a focused duplicate-delivery test that invokes process twice with the
+        same job ID and verifies that only one result is committed; this validates
+        the existing at-least-once delivery boundary without changing architecture.
+      - Document the job contract as one bounded idempotent render step with database-owned
+        terminal status, then verify the existing producer and worker against that
+        contract before considering any structural change.
+      - Introduce workflow orchestration only behind the existing queue boundary for
+        one bounded cohort if branching, timers, approvals, compensation, or pause/resume
+        requirements emerge; route the cohort back to the current worker to roll back.
+  - index: 2
+    duration_seconds: 66.78675008299615
+    observed_findings: []
+    observed_recommendations: []
+    observed_decision:
+      selected_option: web-queue-worker
+      compared_tradeoffs:
+      - cost
+      - delivery-semantics
+      - deployment-independence
+      - implementation-complexity
+      - maintainability
+      - migration-risk
+      - operational-complexity
+      - reliability
+      - reversibility
+      - team-ownership
+      knowledge_ids:
+      - style.web-queue-worker
+      - style.durable-workflow
+      - style.microservices
+      - decision.system-style-selection
+      - decision.request-vs-background-job
+      - pattern.idempotency-key
+      rejected_options:
+      - id: durable-workflow
+        reason: README.md states that jobs have no branching, approval, compensation,
+          or pause/resume requirement, while the database already owns status and
+          the queue supplies at-least-once delivery. A workflow runtime would add
+          replay, history, versioning, and operational complexity without a demonstrated
+          orchestration need.
+      - id: inline-request-work
+        reason: Although jobs are short, README.md directly establishes an API-to-queue-to-worker
+          architecture with database-owned status and at-least-once delivery. Moving
+          rendering inline would discard those existing delivery and status boundaries
+          without evidence that immediate completion is required, adding migration
+          risk for no demonstrated benefit.
+      - id: microservices
+        reason: README.md identifies one team operating one API and one worker. There
+          is no evidence of autonomous teams or independent release requirements,
+          so broader service decomposition would add distributed operations and contract-governance
+          costs without demonstrated benefit.
+      migration_slices:
+      - Record the existing API-to-queue-to-worker path and database-owned task status
+        as the compatibility baseline; this documentation-only slice is reversible
+        by removing the baseline record.
+      - Add a focused duplicate-delivery test that invokes the worker twice with the
+        same job ID and verifies one committed result; this test-only slice is reversible
+        without changing runtime behavior.
+      - Exercise one render job through the existing queue path and verify its database
+        status and result before making any structural change; retain the current
+        path unless this baseline fails.
+      - If future evidence demonstrates multi-step waits, approvals, compensation,
+        or restart-sensitive orchestration, introduce one workflow-backed job type
+        behind the existing job boundary while retaining queue routing as rollback,
+        then expand only after recovery tests pass.
+  - index: 3
+    duration_seconds: 70.07737320900196
+    observed_findings: []
+    observed_recommendations: []
+    observed_decision:
+      selected_option: web-queue-worker
+      compared_tradeoffs:
+      - delivery-semantics
+      - implementation-complexity
+      - maintainability
+      - migration-risk
+      - operational-complexity
+      - reliability
+      - reversibility
+      knowledge_ids:
+      - style.web-queue-worker
+      - style.durable-workflow
+      - decision.request-vs-background-job
+      - migration.queue-to-durable-workflow
+      - case-study.queue-worker-before-workflow
+      rejected_options:
+      - id: inline-request-work
+        reason: Although jobs are short (README.md:3), moving rendering into the request
+          path would discard the existing queue's at-least-once handoff and couple
+          rendering failure to the API. The current worker already provides idempotent
+          completion through has_result and commit_result_once (worker.py:2-5), so
+          removal adds migration risk without a proven benefit.
+      - id: durable-workflow
+        reason: README.md:3-5 directly states that jobs are short and have no branching,
+          approval, compensation, or pause/resume requirement, while database status
+          and an at-least-once queue already supply the required state and delivery
+          mechanism. A workflow runtime would add orchestration and operational complexity
+          without a demonstrated recovery gap.
+      - id: event-driven-services
+        reason: The fixture has one team, one API, and one worker (README.md:3), with
+          one database-owned task status and no evidence of independently deployed
+          consumers or team boundaries. Additional event-driven service boundaries
+          would increase routing and ownership complexity without a proven requirement.
+      migration_slices:
+      - Retain the existing API-to-queue-to-worker route and database-owned task status
+        for all jobs; rollback requires no action because no runtime boundary changes.
+      - If multi-step waits, approvals, compensation, or pause/resume requirements
+        emerge, model those states in a non-authoritative workflow prototype while
+        the queue remains authoritative; rollback by deleting the prototype route.
+      - Route only newly created jobs from a bounded cohort to a workflow after restart
+        and duplicate-delivery parity is demonstrated; rollback by routing new jobs
+        back to the queue and draining already-started workflow jobs separately.
+  observed_decision: *id009
+- id: durable-approval-workflow
+  fixture: benchmarks/fixtures/payment-approval-process
+  expected_findings: []
+  forbidden_recommendations: []
+  observed_findings: &id010
+  - rule_id: AI.STATE.001
+    severity: high
+    evidence:
+    - path: agent.py
+      line_start: 1
+      line_end: 1
+      excerpt: pending = {}
+    - path: README.md
+      line_start: 3
+      line_end: 3
+      excerpt: The process may wait days for approval. State lives only in memory,
+        approval is
+    evidence_valid: true
+  - rule_id: AI.TOOL.002
+    severity: critical
+    evidence:
+    - path: agent.py
+      line_start: 7
+      line_end: 7
+      excerpt: '    if approver.wait_for_approval(task_id):'
+    - path: agent.py
+      line_start: 8
+      line_end: 8
+      excerpt: '        final_parameters = model.propose_payment()'
+    - path: agent.py
+      line_start: 9
+      line_end: 9
+      excerpt: '        return payment_tool.charge(**final_parameters)'
+    evidence_valid: true
+  - rule_id: AI.IDEMPOTENCY.001
+    severity: critical
+    evidence:
+    - path: README.md
+      line_start: 4
+      line_end: 4
+      excerpt: checked before parameters are later regenerated, and retries can call
+        the
+    - path: README.md
+      line_start: 5
+      line_end: 5
+      excerpt: payment tool twice after a crash. The charge is an immediate, irreversible
+    evidence_valid: true
+  - rule_id: AI.RECOVERY.001
+    severity: high
+    evidence:
+    - path: README.md
+      line_start: 5
+      line_end: 5
+      excerpt: payment tool twice after a crash. The charge is an immediate, irreversible
+    - path: README.md
+      line_start: 6
+      line_end: 6
+      excerpt: 'financial side effect: approval must bind its exact parameters, and
+        recovery'
+    - path: README.md
+      line_start: 7
+      line_end: 7
+      excerpt: must not repeat it.
+    evidence_valid: true
+  observed_recommendations: &id011 []
+  trials:
+  - index: 1
+    duration_seconds: 69.26539249999769
+    observed_findings: *id010
+    observed_recommendations: *id011
+    observed_decision: &id012
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  - index: 2
+    duration_seconds: 51.92500483400363
+    observed_findings:
+    - rule_id: AI.STATE.001
+      severity: high
+      evidence:
+      - path: README.md
+        line_start: 3
+        line_end: 3
+        excerpt: The process may wait days for approval. State lives only in memory,
+          approval is
+      - path: agent.py
+        line_start: 1
+        line_end: 1
+        excerpt: pending = {}
+      evidence_valid: true
+    - rule_id: AI.HUMAN.001
+      severity: critical
+      evidence:
+      - path: agent.py
+        line_start: 7
+        line_end: 7
+        excerpt: '    if approver.wait_for_approval(task_id):'
+      - path: agent.py
+        line_start: 8
+        line_end: 8
+        excerpt: '        final_parameters = model.propose_payment()'
+      - path: README.md
+        line_start: 6
+        line_end: 6
+        excerpt: 'financial side effect: approval must bind its exact parameters,
+          and recovery'
+      evidence_valid: true
+    - rule_id: AI.IDEMPOTENCY.001
+      severity: critical
+      evidence:
+      - path: agent.py
+        line_start: 9
+        line_end: 9
+        excerpt: '        return payment_tool.charge(**final_parameters)'
+      - path: README.md
+        line_start: 4
+        line_end: 4
+        excerpt: checked before parameters are later regenerated, and retries can
+          call the
+      - path: README.md
+        line_start: 5
+        line_end: 5
+        excerpt: payment tool twice after a crash. The charge is an immediate, irreversible
+      evidence_valid: true
+    observed_recommendations: []
+    observed_decision:
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  - index: 3
+    duration_seconds: 63.613883915997576
+    observed_findings:
+    - rule_id: AI.TOOL.002
+      severity: critical
+      evidence:
+      - path: agent.py
+        line_start: 7
+        line_end: 7
+        excerpt: '    if approver.wait_for_approval(task_id):'
+      - path: agent.py
+        line_start: 8
+        line_end: 8
+        excerpt: '        final_parameters = model.propose_payment()'
+      - path: agent.py
+        line_start: 9
+        line_end: 9
+        excerpt: '        return payment_tool.charge(**final_parameters)'
+      - path: README.md
+        line_start: 5
+        line_end: 5
+        excerpt: payment tool twice after a crash. The charge is an immediate, irreversible
+      - path: README.md
+        line_start: 6
+        line_end: 6
+        excerpt: 'financial side effect: approval must bind its exact parameters,
+          and recovery'
+      evidence_valid: true
+    - rule_id: AI.STATE.001
+      severity: medium
+      evidence:
+      - path: README.md
+        line_start: 3
+        line_end: 3
+        excerpt: The process may wait days for approval. State lives only in memory,
+          approval is
+      - path: agent.py
+        line_start: 1
+        line_end: 1
+        excerpt: pending = {}
+      - path: agent.py
+        line_start: 6
+        line_end: 6
+        excerpt: '    pending[task_id] = proposal'
+      evidence_valid: true
+    - rule_id: AI.IDEMPOTENCY.001
+      severity: critical
+      evidence:
+      - path: README.md
+        line_start: 4
+        line_end: 4
+        excerpt: checked before parameters are later regenerated, and retries can
+          call the
+      - path: README.md
+        line_start: 5
+        line_end: 5
+        excerpt: payment tool twice after a crash. The charge is an immediate, irreversible
+      - path: agent.py
+        line_start: 9
+        line_end: 9
+        excerpt: '        return payment_tool.charge(**final_parameters)'
+      evidence_valid: true
+    - rule_id: AI.RECOVERY.001
+      severity: critical
+      evidence:
+      - path: README.md
+        line_start: 4
+        line_end: 4
+        excerpt: checked before parameters are later regenerated, and retries can
+          call the
+      - path: README.md
+        line_start: 5
+        line_end: 5
+        excerpt: payment tool twice after a crash. The charge is an immediate, irreversible
+      - path: README.md
+        line_start: 6
+        line_end: 6
+        excerpt: 'financial side effect: approval must bind its exact parameters,
+          and recovery'
+      - path: README.md
+        line_start: 7
+        line_end: 7
+        excerpt: must not repeat it.
+      evidence_valid: true
+    observed_recommendations: []
+    observed_decision:
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  observed_decision: *id012
+- id: server-cache-mobile
+  fixture: benchmarks/fixtures/mobile-record-editor
+  expected_findings: []
+  forbidden_recommendations: []
+  observed_findings: &id013 []
+  observed_recommendations: &id014 []
+  trials:
+  - index: 1
+    duration_seconds: 71.71684795799956
+    observed_findings: *id013
+    observed_recommendations: *id014
+    observed_decision: &id015
+      selected_option: server-first-with-local-cache
+      compared_tradeoffs:
+      - offline-capability
+      - client-complexity
+      - consistency
+      - latency
+      - reliability
+      - recovery
+      - implementation-complexity
+      - operational-complexity
+      - maintainability
+      - migration-risk
+      - reversibility
+      - cost
+      knowledge_ids:
+      - decision.client-data-model-selection
+      - decision.local-first-vs-server-first
+      - reference.server-first-mobile-client
+      rejected_options:
+      - id: offline-queue-over-server-authority
+        reason: README.md states that edits require a network and offline editing
+          is explicitly not a product requirement, so command durability, ordering,
+          idempotency, expiry, replay, and rejection handling add unsupported complexity.
+      - id: local-first-replicated-data
+        reason: README.md defines the local store as an expiring, discardable display
+          cache and Repository.swift sends updates directly to the API before invalidating
+          cached data; no requirement supports writable replicas, conflict resolution,
+          convergence, tombstones, or synchronization.
+      migration_slices:
+      - 'Retain the current server-authoritative write slice: keep Repository.update
+        calling api.update before cache invalidation; the unchanged implementation
+        remains the rollback point.'
+      - 'Retain the bounded read-cache slice: keep fresh cached items for display,
+        fetch from the API on a miss, and allow the cache to be discarded without
+        affecting authoritative data.'
+      - If offline editing later becomes an explicit requirement, pilot one idempotent
+        queued command behind a reversible feature boundary before adding broader
+        synchronization; disable that boundary to return to server-first writes.
+  - index: 2
+    duration_seconds: 72.49590945900127
+    observed_findings: []
+    observed_recommendations: []
+    observed_decision:
+      selected_option: server-first-with-local-cache
+      compared_tradeoffs:
+      - availability
+      - client-complexity
+      - consistency
+      - cost
+      - implementation-complexity
+      - latency
+      - maintainability
+      - migration-risk
+      - offline-capability
+      - operational-complexity
+      - reliability
+      - reversibility
+      knowledge_ids:
+      - decision.local-first-vs-server-first
+      - pattern.cache-aside
+      - reference.server-first-mobile-client
+      rejected_options:
+      - id: offline-queue-over-server-authority
+        reason: README.md explicitly requires a network for edits and states that
+          offline editing is not a product requirement, so durable queued commands,
+          replay ordering, idempotency, expiry, and rejection handling would add unsupported
+          complexity.
+      - id: local-first-replicated-data
+        reason: README.md defines the local store as an expiring, discardable display
+          cache, while Repository.swift sends updates to the API before invalidating
+          cached data. A writable replica, synchronization protocol, conflict resolution,
+          tombstones, and convergence semantics are therefore unjustified.
+      migration_slices:
+      - Add focused tests that an update reaches API authority before cache invalidation;
+        revert by removing only the tests because runtime behavior remains unchanged.
+      - Add focused tests for fresh-cache reads, cache-miss API fetches, and replacement
+        of cached items; revert independently without changing the repository boundary.
+      - If offline editing later becomes an approved requirement, introduce one idempotent
+        queued command behind a feature flag while preserving the existing online
+        update path as rollback.
+      - Only after queued-command reconnect and recovery tests pass, add versioned
+        conflict handling for a bounded record type; disable the feature flag to return
+        to server-first behavior.
+  - index: 3
+    duration_seconds: 57.74732350000704
+    observed_findings: []
+    observed_recommendations: []
+    observed_decision:
+      selected_option: server-first-with-local-cache
+      compared_tradeoffs:
+      - availability
+      - client-complexity
+      - consistency
+      - cost
+      - implementation-complexity
+      - latency
+      - maintainability
+      - migration-risk
+      - offline-capability
+      - recovery
+      - reversibility
+      knowledge_ids:
+      - decision.local-first-vs-server-first
+      - decision.client-data-model-selection
+      - reference.server-first-mobile-client
+      - style.offline-first
+      rejected_options:
+      - id: offline-queue-over-server-authority
+        reason: README.md states that edits require a network and offline editing
+          is explicitly not a product requirement, so durable offline commands, replay
+          ordering, idempotency, expiry, and rejection handling add unsupported complexity.
+      - id: local-first-replicated-data
+        reason: README.md defines the local store as a discardable display cache,
+          while Repository.swift sends updates to the API before invalidating cached
+          data. Making the device replica authoritative would contradict the stated
+          ownership model and introduce unsupported conflict, convergence, tombstone,
+          migration, and recovery requirements.
+      migration_slices:
+      - Lock the current authority boundary with focused tests proving that a fresh
+        cache may satisfy reads, while cache misses fetch from the API; this test-only
+        slice is reversible by removing the tests without changing runtime behavior.
+      - Lock the write path with a focused test proving that update calls the API
+        before invalidating the cached item; this test-only slice preserves the existing
+        server-first behavior and is independently reversible.
+      - If offline editing later becomes an explicit requirement, introduce one bounded
+        idempotent offline command behind a feature flag, validate replay and rejection
+        behavior, and roll back by disabling the flag while retaining the server-first
+        API path.
+  observed_decision: *id015
+- id: injected-tool-authority
+  fixture: benchmarks/fixtures/retrieval-payment-runtime
+  expected_findings: []
+  forbidden_recommendations: []
+  observed_findings: &id016
+  - rule_id: AI.INJECTION.001
+    severity: critical
+    evidence:
+    - path: runtime.py
+      line_start: 2
+      line_end: 2
+      excerpt: '    retrieved = retriever.search(user_query)'
+    - path: runtime.py
+      line_start: 3
+      line_end: 3
+      excerpt: '    instructions = "Follow policy.\n" + retrieved'
+    - path: runtime.py
+      line_start: 4
+      line_end: 4
+      excerpt: '    action = model.decide(instructions, tools=[payment_tool])'
+    - path: runtime.py
+      line_start: 5
+      line_end: 5
+      excerpt: '    return action.execute()'
+    evidence_valid: true
+  - rule_id: AI.TOOL.001
+    severity: critical
+    evidence:
+    - path: README.md
+      line_start: 4
+      line_end: 4
+      excerpt: an unrestricted payment tool without deterministic authorization or
+        approval.
+    - path: runtime.py
+      line_start: 4
+      line_end: 4
+      excerpt: '    action = model.decide(instructions, tools=[payment_tool])'
+    evidence_valid: true
+  - rule_id: AI.TOOL.002
+    severity: critical
+    evidence:
+    - path: README.md
+      line_start: 4
+      line_end: 4
+      excerpt: an unrestricted payment tool without deterministic authorization or
+        approval.
+    - path: runtime.py
+      line_start: 5
+      line_end: 5
+      excerpt: '    return action.execute()'
+    evidence_valid: true
+  - rule_id: AI.BOUNDARY.001
+    severity: critical
+    evidence:
+    - path: runtime.py
+      line_start: 4
+      line_end: 4
+      excerpt: '    action = model.decide(instructions, tools=[payment_tool])'
+    - path: runtime.py
+      line_start: 5
+      line_end: 5
+      excerpt: '    return action.execute()'
+    evidence_valid: true
+  observed_recommendations: &id017 []
+  trials:
+  - index: 1
+    duration_seconds: 55.0397294170034
+    observed_findings: *id016
+    observed_recommendations: *id017
+    observed_decision: &id018
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  - index: 2
+    duration_seconds: 66.7452990419988
+    observed_findings:
+    - rule_id: AI.INJECTION.001
+      severity: critical
+      evidence:
+      - path: runtime.py
+        line_start: 2
+        line_end: 2
+        excerpt: '    retrieved = retriever.search(user_query)'
+      - path: runtime.py
+        line_start: 3
+        line_end: 3
+        excerpt: '    instructions = "Follow policy.\n" + retrieved'
+      - path: runtime.py
+        line_start: 4
+        line_end: 4
+        excerpt: '    action = model.decide(instructions, tools=[payment_tool])'
+      - path: runtime.py
+        line_start: 5
+        line_end: 5
+        excerpt: '    return action.execute()'
+      evidence_valid: true
+    - rule_id: AI.TOOL.001
+      severity: critical
+      evidence:
+      - path: README.md
+        line_start: 4
+        line_end: 4
+        excerpt: an unrestricted payment tool without deterministic authorization
+          or approval.
+      - path: runtime.py
+        line_start: 4
+        line_end: 4
+        excerpt: '    action = model.decide(instructions, tools=[payment_tool])'
+      evidence_valid: true
+    - rule_id: AI.TOOL.002
+      severity: critical
+      evidence:
+      - path: README.md
+        line_start: 4
+        line_end: 4
+        excerpt: an unrestricted payment tool without deterministic authorization
+          or approval.
+      - path: runtime.py
+        line_start: 5
+        line_end: 5
+        excerpt: '    return action.execute()'
+      evidence_valid: true
+    - rule_id: AI.BOUNDARY.001
+      severity: critical
+      evidence:
+      - path: runtime.py
+        line_start: 4
+        line_end: 4
+        excerpt: '    action = model.decide(instructions, tools=[payment_tool])'
+      - path: runtime.py
+        line_start: 5
+        line_end: 5
+        excerpt: '    return action.execute()'
+      evidence_valid: true
+    observed_recommendations: []
+    observed_decision:
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  - index: 3
+    duration_seconds: 51.673182499995164
+    observed_findings:
+    - rule_id: AI.INJECTION.001
+      severity: critical
+      evidence:
+      - path: runtime.py
+        line_start: 2
+        line_end: 2
+        excerpt: '    retrieved = retriever.search(user_query)'
+      - path: runtime.py
+        line_start: 3
+        line_end: 3
+        excerpt: '    instructions = "Follow policy.\n" + retrieved'
+      - path: runtime.py
+        line_start: 4
+        line_end: 4
+        excerpt: '    action = model.decide(instructions, tools=[payment_tool])'
+      - path: runtime.py
+        line_start: 5
+        line_end: 5
+        excerpt: '    return action.execute()'
+      evidence_valid: true
+    - rule_id: AI.TOOL.001
+      severity: critical
+      evidence:
+      - path: runtime.py
+        line_start: 4
+        line_end: 4
+        excerpt: '    action = model.decide(instructions, tools=[payment_tool])'
+      - path: runtime.py
+        line_start: 5
+        line_end: 5
+        excerpt: '    return action.execute()'
+      evidence_valid: true
+    - rule_id: AI.TOOL.002
+      severity: critical
+      evidence:
+      - path: runtime.py
+        line_start: 4
+        line_end: 4
+        excerpt: '    action = model.decide(instructions, tools=[payment_tool])'
+      - path: runtime.py
+        line_start: 5
+        line_end: 5
+        excerpt: '    return action.execute()'
+      evidence_valid: true
+    observed_recommendations: []
+    observed_decision:
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  observed_decision: *id018
+- id: modular-monolith-healthy
+  fixture: benchmarks/fixtures/accounts-billing-application
+  expected_findings: []
+  forbidden_recommendations: []
+  observed_findings: &id019 []
+  observed_recommendations: &id020 []
+  trials:
+  - index: 1
+    duration_seconds: 62.05975862500054
+    observed_findings: *id019
+    observed_recommendations: *id020
+    observed_decision: &id021
+      selected_option: modular-monolith
+      compared_tradeoffs:
+      - consistency
+      - cost
+      - deployment-independence
+      - implementation-complexity
+      - maintainability
+      - migration-risk
+      - operational-complexity
+      - reliability
+      - reversibility
+      - team-ownership
+      knowledge_ids:
+      - style.modular-monolith
+      - style.layered-monolith
+      - style.microservices
+      - decision.monolith-vs-microservices
+      - decision.layered-vs-modular-monolith
+      - reference.modular-monolith-service
+      - migration.layered-monolith-to-modular
+      - foundation.proportional-design
+      - foundation.tradeoff-analysis
+      rejected_options:
+      - id: layered-monolith
+        reason: The fixture already identifies accounts and billing as modules with
+          public functions and owned internal data access, so replacing domain boundaries
+          with horizontal layers has no evidenced benefit.
+      - id: selective-service-extraction
+        reason: README.md states that one team deploys one process and that no independent
+          deployment, scaling, fault-isolation, or regulatory requirement exists;
+          service extraction would add distributed-operation costs without a demonstrated
+          quality need.
+      - id: broad-microservice-decomposition
+        reason: The single-team ownership and explicit absence of independent deployment,
+          scaling, and isolation requirements do not satisfy the guide's conditions
+          for broad microservices.
+      migration_slices:
+      - Add characterization tests for accounts.credit and billing.apply_refund while
+        retaining the single process; rollback by removing only the new tests.
+      - Add a deterministic dependency check that billing may call the public accounts
+        module but may not access accounts-owned data directly; introduce it as non-blocking
+        first and rollback by disabling that check.
+      - Record measurable revisit triggers for independent release cadence, asymmetric
+        scaling, fault isolation, or regulatory separation; this documentation-only
+        slice is reversible without runtime change.
+  - index: 2
+    duration_seconds: 77.12543820800056
+    observed_findings: []
+    observed_recommendations: []
+    observed_decision:
+      selected_option: modular-monolith
+      compared_tradeoffs:
+      - deployment-independence
+      - implementation-complexity
+      - maintainability
+      - migration-risk
+      - operational-complexity
+      - cost
+      - reliability
+      - reversibility
+      - team-ownership
+      knowledge_ids:
+      - decision.monolith-vs-microservices
+      - style.modular-monolith
+      - style.layered-monolith
+      - style.microservices
+      rejected_options:
+      - id: layered-monolith
+        reason: README.md states that accounts and billing already own internal data
+          access and communicate through public module boundaries. Reorganizing around
+          horizontal layers would not satisfy a proven unmet requirement and could
+          weaken the existing domain ownership.
+      - id: selective-service-extraction
+        reason: README.md directly states that there is no independent deployment,
+          scaling, fault-isolation, or regulatory requirement. Extraction would add
+          a network contract, separate deployment, observability, and distributed
+          failure handling without evidenced value.
+      - id: broad-microservice-decomposition
+        reason: README.md directly states that one team deploys one process and that
+          no independent deployment requirement exists. Broad decomposition lacks
+          the autonomous ownership and deployment needs required to justify its operational
+          and coordination cost.
+      migration_slices:
+      - Keep accounts and billing in the existing single process and preserve their
+        public module boundary; rollback is unnecessary because this slice changes
+        no runtime topology.
+      - Add a focused dependency check that billing may call the public accounts module
+        but may not access account-store internals directly; remove the check to reverse
+        the slice without changing runtime behavior.
+      - If independent deployment, scaling, isolation, or regulatory evidence later
+        emerges, introduce a reversible adapter around the accounts.credit call and
+        validate one refund path through it before creating another deployable; route
+        the call directly again to roll back.
+  - index: 3
+    duration_seconds: 93.22757220800122
+    observed_findings: []
+    observed_recommendations: []
+    observed_decision:
+      selected_option: modular-monolith
+      compared_tradeoffs:
+      - cost
+      - deployment-independence
+      - implementation-complexity
+      - maintainability
+      - migration-risk
+      - operational-complexity
+      - reliability
+      - reversibility
+      - team-ownership
+      knowledge_ids:
+      - style.modular-monolith
+      - style.layered-monolith
+      - style.microservices
+      - decision.monolith-vs-microservices
+      - decision.layered-vs-modular-monolith
+      rejected_options:
+      - id: layered-monolith
+        reason: The fixture already identifies accounts and billing as domain modules
+          with public boundaries and owned internal data access; reorganizing around
+          horizontal layers adds change without a proven quality-attribute need.
+      - id: selective-service-extraction
+        reason: README.md directly states that there is no independent deployment,
+          scaling, fault-isolation, or regulatory requirement, so extraction would
+          add a network and deployment boundary without measurable value.
+      - id: broad-microservice-decomposition
+        reason: README.md directly establishes one team and one process with no independent
+          deployment requirement; broad decomposition would add distributed operational
+          and consistency costs without evidence of autonomous ownership or isolation
+          needs.
+      migration_slices:
+      - Record the current one-process deployment and accounts-to-billing module dependency
+        as a baseline; reverse by removing the baseline artifact.
+      - Add a boundary test that permits billing to use only the public app.accounts
+        module API; reverse by removing the test without changing runtime behavior.
+      - If independent deployment or isolation later becomes measurable, introduce
+        an in-process adapter around one non-transactional boundary before extraction;
+        reverse by routing the caller directly to the existing public module function.
+  observed_decision: *id021
+- id: shared-database-services
+  fixture: benchmarks/fixtures/orders-billing-services
+  expected_findings: []
+  forbidden_recommendations: []
+  observed_findings: &id022
+  - rule_id: PROJECT.OWNERSHIP.001
+    severity: high
+    evidence:
+    - path: README.md
+      line_start: 3
+      line_end: 3
+      excerpt: Orders and billing deploy independently but both perform read-modify-write
+    - path: README.md
+      line_start: 4
+      line_end: 4
+      excerpt: updates against the same account balance table. A coordinated release
+        is not
+    - path: README.md
+      line_start: 5
+      line_end: 5
+      excerpt: required to reproduce the lost update. The balance is authoritative
+        financial
+    - path: README.md
+      line_start: 6
+      line_end: 6
+      excerpt: state; the overwritten reservation or refund cannot be reconstructed
+        from the
+    - path: README.md
+      line_start: 7
+      line_end: 7
+      excerpt: stored balance and crosses both service ownership boundaries.
+    evidence_valid: true
+  - rule_id: PROJECT.TRANSACTION.001
+    severity: high
+    evidence:
+    - path: orders.py
+      line_start: 3
+      line_end: 3
+      excerpt: '        "SELECT balance FROM accounts WHERE id = ?",'
+    - path: orders.py
+      line_start: 7
+      line_end: 7
+      excerpt: '        "UPDATE accounts SET balance = ? WHERE id = ?",'
+    - path: billing.py
+      line_start: 3
+      line_end: 3
+      excerpt: '        "SELECT balance FROM accounts WHERE id = ?",'
+    - path: billing.py
+      line_start: 7
+      line_end: 7
+      excerpt: '        "UPDATE accounts SET balance = ? WHERE id = ?",'
+    - path: README.md
+      line_start: 5
+      line_end: 5
+      excerpt: required to reproduce the lost update. The balance is authoritative
+        financial
+    - path: README.md
+      line_start: 6
+      line_end: 6
+      excerpt: state; the overwritten reservation or refund cannot be reconstructed
+        from the
+    evidence_valid: true
+  observed_recommendations: &id023 []
+  trials:
+  - index: 1
+    duration_seconds: 68.76553949999652
+    observed_findings: *id022
+    observed_recommendations: *id023
+    observed_decision: &id024
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  - index: 2
+    duration_seconds: 114.71636345799925
+    observed_findings:
+    - rule_id: PROJECT.OWNERSHIP.001
+      severity: high
+      evidence:
+      - path: orders.py
+        line_start: 7
+        line_end: 7
+        excerpt: '        "UPDATE accounts SET balance = ? WHERE id = ?",'
+      - path: billing.py
+        line_start: 7
+        line_end: 7
+        excerpt: '        "UPDATE accounts SET balance = ? WHERE id = ?",'
+      - path: README.md
+        line_start: 7
+        line_end: 7
+        excerpt: stored balance and crosses both service ownership boundaries.
+      evidence_valid: true
+    - rule_id: PROJECT.TRANSACTION.001
+      severity: high
+      evidence:
+      - path: orders.py
+        line_start: 3
+        line_end: 3
+        excerpt: '        "SELECT balance FROM accounts WHERE id = ?",'
+      - path: orders.py
+        line_start: 7
+        line_end: 7
+        excerpt: '        "UPDATE accounts SET balance = ? WHERE id = ?",'
+      - path: billing.py
+        line_start: 3
+        line_end: 3
+        excerpt: '        "SELECT balance FROM accounts WHERE id = ?",'
+      - path: billing.py
+        line_start: 7
+        line_end: 7
+        excerpt: '        "UPDATE accounts SET balance = ? WHERE id = ?",'
+      - path: README.md
+        line_start: 5
+        line_end: 5
+        excerpt: required to reproduce the lost update. The balance is authoritative
+          financial
+      - path: README.md
+        line_start: 6
+        line_end: 6
+        excerpt: state; the overwritten reservation or refund cannot be reconstructed
+          from the
+      evidence_valid: true
+    observed_recommendations: []
+    observed_decision:
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  - index: 3
+    duration_seconds: 69.83322683299775
+    observed_findings:
+    - rule_id: PROJECT.OWNERSHIP.001
+      severity: high
+      evidence:
+      - path: README.md
+        line_start: 3
+        line_end: 3
+        excerpt: Orders and billing deploy independently but both perform read-modify-write
+      - path: README.md
+        line_start: 4
+        line_end: 4
+        excerpt: updates against the same account balance table. A coordinated release
+          is not
+      - path: README.md
+        line_start: 7
+        line_end: 7
+        excerpt: stored balance and crosses both service ownership boundaries.
+      evidence_valid: true
+    - rule_id: PROJECT.TRANSACTION.001
+      severity: high
+      evidence:
+      - path: orders.py
+        line_start: 3
+        line_end: 3
+        excerpt: '        "SELECT balance FROM accounts WHERE id = ?",'
+      - path: orders.py
+        line_start: 7
+        line_end: 7
+        excerpt: '        "UPDATE accounts SET balance = ? WHERE id = ?",'
+      - path: billing.py
+        line_start: 3
+        line_end: 3
+        excerpt: '        "SELECT balance FROM accounts WHERE id = ?",'
+      - path: billing.py
+        line_start: 7
+        line_end: 7
+        excerpt: '        "UPDATE accounts SET balance = ? WHERE id = ?",'
+      - path: README.md
+        line_start: 5
+        line_end: 5
+        excerpt: required to reproduce the lost update. The balance is authoritative
+          financial
+      - path: README.md
+        line_start: 6
+        line_end: 6
+        excerpt: state; the overwritten reservation or refund cannot be reconstructed
+          from the
+      evidence_valid: true
+    observed_recommendations: []
+    observed_decision:
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  observed_decision: *id024
+- id: document-code-conflict
+  fixture: benchmarks/fixtures/payment-design-runtime
+  expected_findings: []
+  forbidden_recommendations: []
+  observed_findings: &id025
+  - rule_id: PROJECT.IDEMPOTENCY.001
+    severity: critical
+    evidence:
+    - path: payment.py
+      line_start: 4
+      line_end: 4
+      excerpt: '    result = payment_provider.charge(command.card, command.amount)'
+    - path: payment.py
+      line_start: 5
+      line_end: 5
+      excerpt: '    processed_commands.record(command.id, result)'
+    evidence_valid: true
+  observed_recommendations: &id026 []
+  trials:
+  - index: 1
+    duration_seconds: 62.69404833300359
+    observed_findings: *id025
+    observed_recommendations: *id026
+    observed_decision: &id027
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  - index: 2
+    duration_seconds: 65.90556495799683
+    observed_findings:
+    - rule_id: PROJECT.IDEMPOTENCY.001
+      severity: critical
+      evidence:
+      - path: payment.py
+        line_start: 2
+        line_end: 2
+        excerpt: '    if processed_commands.contains(command.id):'
+      - path: payment.py
+        line_start: 4
+        line_end: 4
+        excerpt: '    result = payment_provider.charge(command.card, command.amount)'
+      - path: payment.py
+        line_start: 5
+        line_end: 5
+        excerpt: '    processed_commands.record(command.id, result)'
+      evidence_valid: true
+    observed_recommendations:
+    - Establish the durable idempotency boundary before invoking the payment provider
+      so a retry cannot repeat the charge after a failure between charging and recording
+      the result.
+    observed_decision:
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  - index: 3
+    duration_seconds: 41.01442683299683
+    observed_findings:
+    - rule_id: PROJECT.IDEMPOTENCY.001
+      severity: critical
+      evidence:
+      - path: payment.py
+        line_start: 2
+        line_end: 2
+        excerpt: '    if processed_commands.contains(command.id):'
+      - path: payment.py
+        line_start: 4
+        line_end: 4
+        excerpt: '    result = payment_provider.charge(command.card, command.amount)'
+      - path: payment.py
+        line_start: 5
+        line_end: 5
+        excerpt: '    processed_commands.record(command.id, result)'
+      evidence_valid: true
+    observed_recommendations: []
+    observed_decision:
+      selected_option: not-applicable
+      compared_tradeoffs: []
+      knowledge_ids: []
+      rejected_options: []
+      migration_slices: []
+  observed_decision: *id027
+- id: single-agent-sufficient
+  fixture: benchmarks/fixtures/research-assistant
+  expected_findings: []
+  forbidden_recommendations: []
+  observed_findings: &id028 []
+  observed_recommendations: &id029 []
+  trials:
+  - index: 1
+    duration_seconds: 65.44165174999944
+    observed_findings: *id028
+    observed_recommendations: *id029
+    observed_decision: &id030
+      selected_option: single-agent-with-tools
+      compared_tradeoffs:
+      - implementation-complexity
+      - operational-complexity
+      - routing-complexity
+      - latency
+      - cost
+      - maintainability
+      - evaluation
+      - team-ownership
+      - reversibility
+      knowledge_ids:
+      - decision.single-agent-vs-multi-agent
+      - decision.agent-orchestration-selection
+      rejected_options:
+      - id: manager-with-specialist-tools
+        reason: README.md lines 3-5 directly describe one bounded task with two retrieval
+          tools and no specialist ownership or independent context boundary, so specialist
+          routing and delegation add unsupported complexity.
+      - id: peer-handoffs
+        reason: README.md lines 4-5 directly state that the task has no handoff, specialist
+          ownership, or independent context boundary, leaving no evidence-backed authority
+          transfer for peer agents.
+      migration_slices:
+      - Retain the existing answer entry point and its two-tool single-agent boundary.
+      - Add task evaluations for retrieval-tool selection and citation presence without
+        changing orchestration.
+      - If evaluations later prove a specific tool-confusion or context-isolation
+        problem, shadow one typed specialist behind the existing boundary and compare
+        quality, latency, and cost before enabling it.
+      - Remove the shadow specialist and return to the unchanged single-agent path
+        if the measured improvement is not material.
+  - index: 2
+    duration_seconds: 59.79476833400258
+    observed_findings: []
+    observed_recommendations: []
+    observed_decision:
+      selected_option: single-agent-with-tools
+      compared_tradeoffs:
+      - cost
+      - evaluation
+      - implementation-complexity
+      - latency
+      - maintainability
+      - operational-complexity
+      - reversibility
+      - routing-complexity
+      knowledge_ids:
+      - decision.agent-orchestration-selection
+      - decision.single-agent-vs-multi-agent
+      rejected_options:
+      - id: manager-with-specialist-tools
+        reason: README.md directly defines one bounded, read-only task with no specialist
+          ownership or independent context boundary, so manager routing, result schemas,
+          and nested calls add unsupported complexity.
+      - id: peer-handoffs
+        reason: README.md directly states there is no handoff, specialist ownership,
+          or independent context boundary; agent.py also exposes both retrieval tools
+          to one agent invocation, leaving no separate conversational domain that
+          warrants transferring control.
+      migration_slices:
+      - Retain the existing answer(question, agent, documentation_search, repository_search)
+        boundary and the single agent.run call as the reversible baseline.
+      - Add labeled evaluations for documentation-search selection, repository-search
+        selection, citation presence, and incorrect-tool selection without changing
+        orchestration.
+      - If measured evaluations show persistent tool confusion, place only the failing
+        retrieval capability behind one typed specialist while preserving the answer
+        boundary; shadow it against the single-agent baseline and remove it if quality
+        gains do not outweigh routing, latency, and cost.
+  - index: 3
+    duration_seconds: 65.82617408399528
+    observed_findings: []
+    observed_recommendations: []
+    observed_decision:
+      selected_option: single-agent-with-tools
+      compared_tradeoffs:
+      - implementation-complexity
+      - operational-complexity
+      - routing-complexity
+      - latency
+      - cost
+      - maintainability
+      - evaluation
+      - reversibility
+      knowledge_ids:
+      - decision.agent-orchestration-selection
+      - decision.single-agent-vs-multi-agent
+      rejected_options:
+      - id: manager-with-specialist-tools
+        reason: The fixture defines one bounded task with no specialist ownership
+          or independent context boundary, so manager routing, result schemas, and
+          nested execution add complexity without an evidenced isolation benefit.
+      - id: peer-handoffs
+        reason: The fixture has one agent that selects between two retrieval tools
+          and owns the cited answer; it provides no separate conversational domains,
+          authority transfer, or handoff requirement.
+      migration_slices:
+      - Keep the existing answer function and single agent as the reversible baseline.
+      - Add labeled evaluations for documentation_search versus repository_search
+        selection without changing orchestration.
+      - If evaluations later prove a specific tool-selection failure, shadow one typed
+        specialist behind the existing agent.run boundary and compare quality, latency,
+        and cost.
+      - Disable the shadow route and return all traffic to the unchanged single-agent
+        baseline if the measured benefit is not material.
+  observed_decision: *id030

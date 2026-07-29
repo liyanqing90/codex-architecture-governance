@@ -55,7 +55,7 @@ VERIFICATION_LEVEL_ORDER = {
     "V4": 4,
     "V5": 5,
 }
-TOOL_VERSION = "0.3.2"
+TOOL_VERSION = "0.4.0"
 REVIEW_KIND_CORE_PACK = {
     "project": "project-core",
     "ai-agent": "ai-agent-core",
@@ -72,6 +72,10 @@ REVIEW_WORKFLOW_KIND = {
 
 class ArchitectureError(RuntimeError):
     """User-facing input or contract error."""
+
+
+def highest_verification_level(*levels: str) -> str:
+    return max(levels, key=lambda value: VERIFICATION_LEVEL_ORDER[value])
 
 
 def slugify(value: str) -> str:
@@ -1494,14 +1498,38 @@ def decision_knowledge_snapshot() -> list[dict[str, str]]:
     return sorted(result, key=lambda item: item["kind"])
 
 
+def validate_design_brief(path: Path) -> dict[str, Any]:
+    data = validate_file(path, "architecture-design-brief.schema.json")
+    scenario_ids = [item["id"] for item in data["quality_scenarios"]]
+    if len(scenario_ids) != len(set(scenario_ids)):
+        raise ArchitectureError(f"{path} repeats a quality scenario ID")
+    flow_ids = [item["id"] for item in data["critical_flows"]]
+    if len(flow_ids) != len(set(flow_ids)):
+        raise ArchitectureError(f"{path} repeats a critical flow ID")
+    question_ids = [item["id"] for item in data["decision_questions"]]
+    if len(question_ids) != len(set(question_ids)):
+        raise ArchitectureError(f"{path} repeats a decision question ID")
+    return data
+
+
 def validate_decision(
     path: Path,
     *,
     review_path: Path | None = None,
+    design_brief_path: Path | None = None,
     require_accepted: bool = False,
     repository_root: Path | None = None,
 ) -> dict[str, Any]:
     data = validate_file(path, "architecture-decision.schema.json")
+    decision_kind = data["decision"].get("decision_kind", "remediation")
+    if decision_kind == "greenfield" and review_path is not None:
+        raise ArchitectureError(
+            f"{path} greenfield decision cannot bind a source review"
+        )
+    if decision_kind == "remediation" and design_brief_path is not None:
+        raise ArchitectureError(
+            f"{path} remediation decision cannot bind a design brief"
+        )
     option_ids = [option["id"] for option in data["options"]]
     if len(option_ids) != len(set(option_ids)):
         raise ArchitectureError(f"{path} has duplicate decision option IDs")
@@ -1664,7 +1692,7 @@ def validate_decision(
                     f"{path} decision uses quality attributes absent from the "
                     "project Profile: " + ", ".join(unknown_quality)
                 )
-        if data["schema_version"] == "1.2":
+        if data["schema_version"] in {"1.2", "1.3"}:
             selection_path = require_within_root(
                 root,
                 root / data["decision"]["knowledge_selection_path"],
@@ -1704,6 +1732,37 @@ def validate_decision(
                 raise ArchitectureError(
                     f"{path} knowledge selection is bound to another profile"
                 )
+    if decision_kind == "greenfield":
+        if design_brief_path is None:
+            if root is None:
+                raise ArchitectureError(
+                    f"{path} greenfield decision requires --design-brief or --project"
+                )
+            design_brief_path = root / data["decision"]["source_context"]
+        design_brief_path = design_brief_path.resolve()
+        if root is not None:
+            design_brief_path = require_within_root(
+                root,
+                design_brief_path,
+                "decision source design brief",
+            )
+            expected_context = design_brief_path.relative_to(root).as_posix()
+            if data["decision"]["source_context"] != expected_context:
+                raise ArchitectureError(
+                    f"{path} source_context does not match {design_brief_path}"
+                )
+        brief = validate_design_brief(design_brief_path)
+        if data["decision"]["source_context_sha256"] != file_sha256(design_brief_path):
+            raise ArchitectureError(
+                f"{path} source_context_sha256 does not match {design_brief_path}"
+            )
+        brief_attributes = {item["attribute"] for item in brief["quality_scenarios"]}
+        missing_scenarios = sorted(quality_attributes - brief_attributes)
+        if missing_scenarios:
+            raise ArchitectureError(
+                f"{path} quality attributes are absent from the design brief: "
+                + ", ".join(missing_scenarios)
+            )
     if review_path is not None:
         review_path = review_path.resolve()
         review = (
@@ -1723,9 +1782,13 @@ def validate_decision(
             raise ArchitectureError(
                 f"{path} requires a trusted 1.1 or 1.2 source review"
             )
-        if data["schema_version"] == "1.2" and review["schema_version"] != "1.2":
+        if (
+            data["schema_version"] in {"1.2", "1.3"}
+            and review["schema_version"] != "1.2"
+        ):
             raise ArchitectureError(
-                f"{path} schema 1.2 requires a trusted 1.2 source review"
+                f"{path} schema {data['schema_version']} requires a trusted "
+                "1.2 source review"
             )
         if data["decision"]["source_review"] != review["review"]["id"]:
             raise ArchitectureError(
@@ -3142,7 +3205,14 @@ def gate_from_config(
         except ArchitectureError as exc:
             policy_failures.append(str(exc))
 
-    signature_required = block.get("minimum_verification_level", "V0") == "V5" or any(
+    tiered_levels = block.get("verification_levels", {})
+    configured_levels = [
+        block.get("minimum_verification_level", "V0"),
+        tiered_levels.get("accepted_risk", "V0"),
+        tiered_levels.get("release", "V0"),
+        *tiered_levels.get("by_severity", {}).values(),
+    ]
+    signature_required = "V5" in configured_levels or any(
         finding["verification"].get("level") == "V5"
         for finding in review["findings"]
         if finding["verification"]["status"] == "confirmed"
@@ -3446,7 +3516,24 @@ def gate_from_config(
             continue
 
         verification_level = finding["verification"].get("level", "V0")
-        required_level = block.get("minimum_verification_level", "V0")
+        required_levels = [
+            block.get("minimum_verification_level", "V0"),
+            block.get("verification_levels", {})
+            .get("by_severity", {})
+            .get(finding["severity"], "V0"),
+        ]
+        if finding["status"] == "accepted-risk":
+            required_levels.append(
+                block.get("verification_levels", {}).get(
+                    "accepted_risk",
+                    "V0",
+                )
+            )
+        if "release" in selected_stages:
+            required_levels.append(
+                block.get("verification_levels", {}).get("release", "V0")
+            )
+        required_level = highest_verification_level(*required_levels)
         if (
             VERIFICATION_LEVEL_ORDER[verification_level]
             < VERIFICATION_LEVEL_ORDER[required_level]
@@ -3996,6 +4083,26 @@ def score_benchmark(
     input_tokens = 0
     output_tokens = 0
     cost_usd = 0.0
+    usage_trials = 0
+    decision_trials = 0
+    correct_decisions = 0
+    overdesign_decisions = 0
+    required_tradeoffs_seen = 0
+    required_tradeoffs_total = 0
+    valid_knowledge_citations = 0
+    knowledge_citations = 0
+    required_knowledge_seen = 0
+    required_knowledge_total = 0
+    rejection_explanation_values: list[float] = []
+    migration_actionability_values: list[float] = []
+    decision_stability_values: list[float] = []
+    try:
+        _, benchmark_knowledge = validate_knowledge_tree(
+            KNOWLEDGE_ROOT,
+            schema_root=SCHEMA_ROOT,
+        )
+    except KnowledgeError as exc:
+        raise ArchitectureError(str(exc)) from exc
     for case_id, expected_case in truth_cases.items():
         run_case = run_cases[case_id]
         if run_case["fixture"] != expected_case["fixture"]:
@@ -4023,6 +4130,7 @@ def score_benchmark(
                     "observed_recommendations",
                     [],
                 ),
+                "observed_decision": run_case.get("observed_decision"),
             }
         ]
         declared_repetitions = observed["benchmark"].get("repetitions")
@@ -4038,8 +4146,15 @@ def score_benchmark(
             raise ArchitectureError(
                 f"Benchmark case {case_id} summary does not match first trial"
             )
+        if run_case.get("trials") and run_case.get("observed_decision") != trials[
+            0
+        ].get("observed_decision"):
+            raise ArchitectureError(
+                f"Benchmark case {case_id} decision summary does not match first trial"
+            )
         total_trials += len(trials)
         trial_actuals: list[dict[str, dict[str, Any]]] = []
+        trial_decisions: list[str] = []
         fixture = require_within_root(
             ground_truth_path.parent.parent,
             ground_truth_path.parent.parent / run_case["fixture"],
@@ -4082,10 +4197,67 @@ def score_benchmark(
                 if any(forbidden.lower() in value for value in recommendations)
             )
             durations.append(trial["duration_seconds"])
-            usage = trial.get("usage", {})
-            input_tokens += usage.get("input_tokens", 0)
-            output_tokens += usage.get("output_tokens", 0)
-            cost_usd += usage.get("cost_usd", 0.0)
+            usage = trial.get("usage")
+            if usage is not None:
+                usage_trials += 1
+                input_tokens += usage.get("input_tokens", 0)
+                output_tokens += usage.get("output_tokens", 0)
+                cost_usd += usage.get("cost_usd", 0.0)
+            expected_decision = expected_case.get("expected_decision")
+            actual_decision = trial.get("observed_decision")
+            if expected_decision is not None:
+                decision_trials += 1
+                if actual_decision is None:
+                    trial_decisions.append("<missing>")
+                    required_tradeoffs_total += len(
+                        expected_decision["required_tradeoffs"]
+                    )
+                    required_knowledge_total += len(
+                        expected_decision["required_knowledge_ids"]
+                    )
+                    rejection_explanation_values.append(0.0)
+                    migration_actionability_values.append(
+                        float(expected_decision["minimum_migration_slices"] == 0)
+                    )
+                    continue
+                selected = actual_decision["selected_option"]
+                trial_decisions.append(selected)
+                accepted = {
+                    expected_decision["selected_option"],
+                    *expected_decision.get("acceptable_options", []),
+                }
+                correct_decisions += int(selected in accepted)
+                overdesign_decisions += int(
+                    selected in set(expected_decision["overdesign_options"])
+                )
+                expected_tradeoffs = set(expected_decision["required_tradeoffs"])
+                actual_tradeoffs = set(actual_decision["compared_tradeoffs"])
+                required_tradeoffs_total += len(expected_tradeoffs)
+                required_tradeoffs_seen += len(expected_tradeoffs & actual_tradeoffs)
+                cited_knowledge = set(actual_decision["knowledge_ids"])
+                knowledge_citations += len(cited_knowledge)
+                valid_knowledge_citations += len(
+                    cited_knowledge & set(benchmark_knowledge)
+                )
+                expected_knowledge = set(expected_decision["required_knowledge_ids"])
+                required_knowledge_total += len(expected_knowledge)
+                required_knowledge_seen += len(expected_knowledge & cited_knowledge)
+                minimum_rejections = expected_decision["minimum_rejected_options"]
+                rejection_explanation_values.append(
+                    min(
+                        len(actual_decision["rejected_options"]) / minimum_rejections,
+                        1.0,
+                    )
+                )
+                minimum_slices = expected_decision["minimum_migration_slices"]
+                migration_actionability_values.append(
+                    min(
+                        len(actual_decision["migration_slices"]) / minimum_slices,
+                        1.0,
+                    )
+                    if minimum_slices
+                    else 1.0
+                )
         for left_index, left in enumerate(trial_actuals):
             for right in trial_actuals[left_index + 1 :]:
                 union = set(left) | set(right)
@@ -4096,6 +4268,9 @@ def score_benchmark(
                     compared_severity_stability += 1
                     if left[rule_id]["severity"] == right[rule_id]["severity"]:
                         stable_severity += 1
+        for left_index, left in enumerate(trial_decisions):
+            for right in trial_decisions[left_index + 1 :]:
+                decision_stability_values.append(float(left == right))
 
     precision_denominator = true_positive + false_positive
     recall_denominator = true_positive + false_negative
@@ -4131,9 +4306,47 @@ def score_benchmark(
         "mean_duration_seconds": (
             sum(durations) / len(durations) if durations else 0.0
         ),
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
-        "cost_usd": cost_usd,
+        "usage_trials": usage_trials,
+        "input_tokens": input_tokens if usage_trials else None,
+        "output_tokens": output_tokens if usage_trials else None,
+        "cost_usd": cost_usd if usage_trials else None,
+        "decision_trials": decision_trials,
+        "recommendation_accuracy": (
+            correct_decisions / decision_trials if decision_trials else 1.0
+        ),
+        "overdesign_rate": (
+            overdesign_decisions / decision_trials if decision_trials else 0.0
+        ),
+        "tradeoff_coverage": (
+            required_tradeoffs_seen / required_tradeoffs_total
+            if required_tradeoffs_total
+            else 1.0
+        ),
+        "knowledge_citation_validity": (
+            valid_knowledge_citations / knowledge_citations
+            if knowledge_citations
+            else float(not decision_trials)
+        ),
+        "required_knowledge_coverage": (
+            required_knowledge_seen / required_knowledge_total
+            if required_knowledge_total
+            else 1.0
+        ),
+        "rejection_explanation_coverage": (
+            sum(rejection_explanation_values) / len(rejection_explanation_values)
+            if rejection_explanation_values
+            else 1.0
+        ),
+        "migration_actionability": (
+            sum(migration_actionability_values) / len(migration_actionability_values)
+            if migration_actionability_values
+            else 1.0
+        ),
+        "decision_stability": (
+            sum(decision_stability_values) / len(decision_stability_values)
+            if decision_stability_values
+            else 1.0
+        ),
     }
 
 
@@ -4323,12 +4536,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Repository root used to resolve completion evidence.",
     )
 
+    validate_design_brief_parser = subparsers.add_parser(
+        "validate-design-brief",
+        help="Validate one Greenfield architecture design brief.",
+    )
+    validate_design_brief_parser.add_argument("path")
+
     validate_decision_parser = subparsers.add_parser(
         "validate-decision",
-        help="Validate one architecture decision and its source review.",
+        help="Validate a remediation or Greenfield architecture decision.",
     )
     validate_decision_parser.add_argument("path")
-    validate_decision_parser.add_argument("--review")
+    decision_source = validate_decision_parser.add_mutually_exclusive_group()
+    decision_source.add_argument("--review")
+    decision_source.add_argument("--design-brief")
     validate_decision_parser.add_argument(
         "--project",
         help="Repository root used to validate Profile quality attributes.",
@@ -4405,10 +4626,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     decision_bindings_parser = subparsers.add_parser(
         "decision-bindings",
-        help="Print review and knowledge hashes for an architecture decision.",
+        help="Print source-context and knowledge hashes for an architecture decision.",
     )
     decision_bindings_parser.add_argument("--project", required=True)
-    decision_bindings_parser.add_argument("--review", required=True)
+    binding_source = decision_bindings_parser.add_mutually_exclusive_group(
+        required=True
+    )
+    binding_source.add_argument("--review")
+    binding_source.add_argument("--design-brief")
     decision_bindings_parser.add_argument(
         "--knowledge-selection",
         help=(
@@ -4423,6 +4648,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     benchmark_parser.add_argument("--ground-truth", required=True)
     benchmark_parser.add_argument("--run", required=True)
+    benchmark_parser.add_argument(
+        "--output",
+        type=Path,
+        help="Also write the score as deterministic UTF-8 JSON.",
+    )
 
     gate = subparsers.add_parser(
         "gate",
@@ -4618,10 +4848,17 @@ def run(args: argparse.Namespace) -> int:
         )
         print("Architecture remediation plan is valid.")
         return 0
+    if args.command == "validate-design-brief":
+        validate_design_brief(Path(args.path).resolve())
+        print("Architecture design brief is valid.")
+        return 0
     if args.command == "validate-decision":
         validate_decision(
             Path(args.path).resolve(),
             review_path=Path(args.review).resolve() if args.review else None,
+            design_brief_path=(
+                Path(args.design_brief).resolve() if args.design_brief else None
+            ),
             require_accepted=args.require_accepted,
             repository_root=(Path(args.project).resolve() if args.project else None),
         )
@@ -4727,26 +4964,44 @@ def run(args: argparse.Namespace) -> int:
             project_root / ".architecture" / "profile.yaml",
             "project-profile.schema.json",
         )
-        review_path = Path(args.review)
-        if not review_path.is_absolute():
-            review_path = project_root / review_path
-        review_path = require_within_root(
-            project_root,
-            review_path,
-            "decision source review",
-        )
-        review = validate_review(
-            review_path,
-            rule_pack_ids=profile["project"]["rule_packs"],
-            strict_trust=True,
-            repository_root=project_root,
-        )
+        review: dict[str, Any] | None = None
+        design_brief_path: Path | None = None
+        review_path: Path | None = None
+        if args.review:
+            review_path = Path(args.review)
+            if not review_path.is_absolute():
+                review_path = project_root / review_path
+            review_path = require_within_root(
+                project_root,
+                review_path,
+                "decision source review",
+            )
+            review = validate_review(
+                review_path,
+                rule_pack_ids=profile["project"]["rule_packs"],
+                strict_trust=True,
+                repository_root=project_root,
+            )
+        else:
+            design_brief_path = Path(args.design_brief)
+            if not design_brief_path.is_absolute():
+                design_brief_path = project_root / design_brief_path
+            design_brief_path = require_within_root(
+                project_root,
+                design_brief_path,
+                "decision source design brief",
+            )
+            validate_design_brief(design_brief_path)
         if args.knowledge_selection:
-            selection_path = Path(args.knowledge_selection)
-        elif review["schema_version"] == "1.2":
+            selection_path: Path | None = Path(args.knowledge_selection)
+        elif review is not None and review["schema_version"] == "1.2":
             selection_path = Path(review["knowledge_selection"]["path"])
         else:
             selection_path = None
+        if design_brief_path is not None and selection_path is None:
+            raise ArchitectureError(
+                "Greenfield decision bindings require --knowledge-selection"
+            )
         if selection_path is not None:
             if not selection_path.is_absolute():
                 selection_path = project_root / selection_path
@@ -4760,9 +5015,7 @@ def run(args: argparse.Namespace) -> int:
                 "knowledge-selection.schema.json",
             )
             binding_result = {
-                "schema_version": "1.2",
-                "source_review": review["review"]["id"],
-                "source_review_sha256": file_sha256(review_path),
+                "schema_version": ("1.3" if design_brief_path is not None else "1.2"),
                 "knowledge_selection_path": selection_path.relative_to(
                     project_root
                 ).as_posix(),
@@ -4776,7 +5029,28 @@ def run(args: argparse.Namespace) -> int:
                     for item in selection["selection"]
                 ],
             }
+            if design_brief_path is not None:
+                binding_result.update(
+                    {
+                        "decision_kind": "greenfield",
+                        "source_context": design_brief_path.relative_to(
+                            project_root
+                        ).as_posix(),
+                        "source_context_sha256": file_sha256(design_brief_path),
+                    }
+                )
+            else:
+                if review is None or review_path is None:
+                    raise ArchitectureError("Missing decision source review")
+                binding_result.update(
+                    {
+                        "source_review": review["review"]["id"],
+                        "source_review_sha256": file_sha256(review_path),
+                    }
+                )
         else:
+            if review is None or review_path is None:
+                raise ArchitectureError("Missing decision source review")
             binding_result = {
                 "schema_version": "1.1",
                 "source_review": review["review"]["id"],
@@ -4796,7 +5070,11 @@ def run(args: argparse.Namespace) -> int:
             Path(args.ground_truth).resolve(),
             Path(args.run).resolve(),
         )
-        print(json.dumps(result, indent=2, ensure_ascii=False))
+        rendered = json.dumps(result, indent=2, ensure_ascii=False)
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(f"{rendered}\n", encoding="utf-8")
+        print(rendered)
         return 0
     if args.command == "gate":
         review_path = Path(args.review) if args.review else None

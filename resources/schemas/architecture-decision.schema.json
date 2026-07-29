@@ -7,12 +7,12 @@
   "required": ["schema_version", "decision", "problem", "knowledge_snapshot", "options", "selected_option", "rationale", "revisit_triggers"],
   "properties": {
     "schema_version": {
-      "enum": ["1.1", "1.2"]
+      "enum": ["1.1", "1.2", "1.3"]
     },
     "decision": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "source_review", "source_review_sha256", "decided_at", "decision_makers", "status"],
+      "required": ["id", "decided_at", "decision_makers", "status"],
       "properties": {
         "id": {
           "type": "string",
@@ -23,6 +23,17 @@
           "minLength": 1
         },
         "source_review_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "decision_kind": {
+          "enum": ["remediation", "greenfield"]
+        },
+        "source_context": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_context_sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         },
@@ -364,9 +375,27 @@
       "if": {
         "properties": {
           "schema_version": {
-            "const": "1.2"
+            "enum": ["1.1", "1.2"]
+          }
+        },
+        "required": ["schema_version"]
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "required": ["source_review", "source_review_sha256"]
           }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "enum": ["1.2", "1.3"]
+          }
+        },
+        "required": ["schema_version"]
       },
       "then": {
         "required": ["migration"],
@@ -383,6 +412,79 @@
           "knowledge_snapshot": {
             "items": {
               "required": ["id", "version", "sha256"]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": "1.3"
+          }
+        },
+        "required": ["schema_version"]
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "required": ["decision_kind"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.3"},
+          "decision": {
+            "properties": {
+              "decision_kind": {"const": "remediation"}
+            },
+            "required": ["decision_kind"]
+          }
+        },
+        "required": ["schema_version", "decision"]
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "required": ["source_review", "source_review_sha256"]
+          },
+          "problem": {
+            "properties": {
+              "finding_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.3"},
+          "decision": {
+            "properties": {
+              "decision_kind": {"const": "greenfield"}
+            },
+            "required": ["decision_kind"]
+          }
+        },
+        "required": ["schema_version", "decision"]
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "required": ["source_context", "source_context_sha256"]
+          },
+          "problem": {
+            "properties": {
+              "finding_ids": {
+                "maxItems": 0
+              }
             }
           }
         }

@@ -49,6 +49,12 @@ For each case:
 Do not reuse artifacts between cases. A Skill that succeeds only after seeing
 the expected answer has not passed a forward test.
 
+Fixture directory names, titles, and content must remain outcome-neutral.
+Repository tests reject phrases such as `Expected behavior`, `Expected
+decision`, and `do not recommend` inside model-visible fixtures. Case IDs may
+remain descriptive in the hidden ground-truth artifact because the runner
+never places those IDs in the model command.
+
 ## Acceptance
 
 A release candidate should:
@@ -71,13 +77,16 @@ client/server ownership, documentation/code contradictions, shared-database
 coupling, and injected tool authority.
 
 The ground truth records expected rule IDs and severity plus forbidden
-over-design recommendations. A run must use the same case IDs and record the
-model, Codex surface, Skill version, and run time. Score it with:
+over-design recommendations. Solution Advisor cases also record the expected
+option, required trade-offs and knowledge, over-design options, rejected-option
+depth, and migration-slice depth. A run must use the same case IDs and record
+the model, Codex surface, Skill version, and run time. Score it with:
 
 ```bash
 python3 resources/scripts/architecture_tool.py benchmark-score \
   --ground-truth benchmarks/ground-truth.yaml \
-  --run benchmark-run.yaml
+  --run benchmark-run.yaml \
+  --output benchmark-score.json
 ```
 
 Metrics are:
@@ -88,29 +97,54 @@ Metrics are:
   references;
 - hits on fixture-specific forbidden recommendations;
 - finding and severity stability across repeated independent trials;
+- recommendation accuracy and selected-option stability;
+- over-design rate and required trade-off coverage;
+- validity and relevance of cited knowledge IDs;
+- rejected-option explanation coverage and migration actionability;
 - mean duration and optional token/cost usage.
+
+The score reports `usage_trials` and uses JSON `null` for token and cost totals
+when the model surface supplied no usage metadata; missing telemetry is never
+represented as zero consumption.
 
 An empty run has zero precision when expected positives exist. It is not a
 successful baseline. `benchmarks/run-template.yaml` only proves schema and
 scorer operation; it is not a model result.
 
-The caller-supplied harness deliberately does not embed a vendor command:
+The harness remains command-agnostic. A bundled adapter invokes Codex in a
+read-only fixture with a strict observation schema:
 
 ```bash
 python3 scripts/run_behavior_benchmark.py \
   --model MODEL --surface SURFACE --repetitions 3 \
   --output benchmark-run.yaml -- \
-  command --skill '{skill}' --repo '{fixture}' --prompt '{prompt}'
+  python3 scripts/codex_benchmark_adapter.py \
+    --model MODEL --skill '{skill}' \
+    --fixture '{fixture}' --prompt '{prompt}'
 ```
 
 The command must emit JSON with `observed_findings` and
-`observed_recommendations`. Every observed Finding supplies repository-relative
+`observed_recommendations`; Solution Advisor cases also require
+`observed_decision`. Every observed Finding supplies repository-relative
 `path`, `line_start`, `line_end`, and exact `excerpt` evidence. The harness and
 scorer independently resolve these references inside the fixture; a
 caller-supplied validity assertion is not trusted. Use a clean task per case
 and never include the ground-truth expectations in the model prompt. Each
 repetition launches a new command process; the harness records every trial
 rather than averaging model output before scoring.
+
+The bundled Codex adapter constrains Finding IDs to the bundled machine Rule
+Packs and solution trade-offs to a documented atomic vocabulary. It performs
+at most one evidence-only correction call when the first response contains an
+escaped path, non-contiguous excerpt, or non-verbatim line citation. The
+correction receives the prior response and deterministic validation errors,
+never ground truth or expected findings. A second invalid response fails the
+trial instead of being repaired or scored as valid.
+
+For release evidence, run at least two identified models with three fresh
+trials per case. Preserve both run YAML files and their score JSON. A failed or
+interrupted run remains evidence of the environment; it must not be rewritten
+as a passing model result.
 
 ## Release evidence
 
@@ -121,3 +155,7 @@ repository claims corpus and harness coverage, not model quality.
 A deterministic release report may cover repository contracts, selector cases,
 and artifact tamper tests without claiming model behavior. A model-quality
 report still requires an actual external run.
+
+Version 0.4.0 satisfies that evidence condition with two models, three trials
+per case, preserved run/score artifacts, and an explicit limitations section
+in `benchmarks/reports/0.4.0-model-behavior.md`.

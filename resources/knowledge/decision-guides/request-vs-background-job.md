@@ -1,7 +1,7 @@
 ---
 id: decision.request-vs-background-job
 kind: decision-guide
-version: 1.0.0
+version: 2.0.0
 status: active
 domains:
 - backend-api
@@ -12,70 +12,105 @@ triggers:
 - job
 quality_attributes:
 - maintainability
-related: []
+related:
+- decision.sync-vs-async
+- style.durable-workflow
 last_reviewed: '2026-07-28'
 review_after_days: 365
 source_policy: stable-principles-plus-official-docs
 sources:
-- title: Azure Architecture Center
-  url: https://learn.microsoft.com/en-us/azure/architecture/
+- title: Azure background job guidance
+  url: https://learn.microsoft.com/en-us/azure/architecture/best-practices/background-jobs
   authority: official
+  supports:
+  - JOB-SEPARATION
+  - JOB-RELIABILITY
+maturity: golden
+curation:
+  method: assisted-reviewed
+  reviewer: Codex Architecture Governance review
+  reviewed_at: '2026-07-28'
 ---
 
-# Request vs Background Job
+# Request Handler vs Background Job
 
 ## Problem and intent
 
-Move work out of a request only when duration, resource isolation, retry, cancellation, or recovery requires durable state.
+Place work in the interactive request path or in a separately owned worker without creating hidden fire-and-forget behavior.
 
 ## Mechanism
 
-Apply the mechanism at its owning boundary, keep authority and contracts explicit, and bind the choice to measurable scenarios rather than technology presence.
+A request handler validates and performs only bounded work needed for the response. A background job begins after a durable handoff, has a lease or message, records attempts, and reaches a visible terminal state.
+
+## Options
+
+### Inline request work
+
+- Fit: Short, bounded operations whose result defines the response.
+- Avoid: CPU, I/O, or external dependencies exceed the request budget.
+- Cost: Consumes request concurrency and couples failures.
+- Failure: Timeouts leave unknown completion and retries duplicate effects.
+### Durable background job
+
+- Fit: Long, bursty, scheduled, or independently retryable work.
+- Avoid: No durable queue/status owner exists or immediate completion is required.
+- Cost: Worker fleet, queue, idempotency, retries, status, and support runbooks.
+- Failure: Jobs disappear, poison messages loop, or leases cause concurrent execution.
 
 ## Fit when
 
-Work may exceed request deadlines or must survive client and process interruption.
+At least one named option fits a measured quality scenario and the team can own its
+required failure and recovery behavior.
 
 ## Avoid when
 
-The operation is short, bounded, and the caller requires its immediate result.
+The choice is driven only by a technology name, hypothetical scale, or a problem
+already solved by the current design.
 
 ## Required capabilities
 
-An accountable owner, explicit compatibility and failure semantics, proportional tests, observable outcomes, and an affordable operating model are required.
+Explicit acceptance boundary, idempotency key, durable payload or reference, attempt limits, lease/visibility timeout, dead-letter path, progress/status, and cancellation policy.
 
 ## Benefits
 
-The choice addresses the stated problem while keeping the reason, protected qualities, and governing evidence reviewable.
+Protects interactive latency and permits job-specific scaling and recovery.
 
 ## Costs and liabilities
 
-It adds implementation, migration, cognitive, and operational costs that must be compared with keeping the current design.
+Introduces operational state, delayed outcomes, and coordination between API and worker.
 
 ## Failure modes
 
-It fails when adopted from naming, popularity, or hypothetical scale without ownership, negative-path behavior, and acceptance evidence.
+In-process background threads die on deploy, job payloads become incompatible, retry repeats non-idempotent effects, or queue age grows unnoticed.
 
 ## Alternatives
 
-Keep the current architecture with a local correction, or select the next simpler mechanism that satisfies the same quality scenario.
+Compare the current design and the named options—Inline request work, Durable background job—against the same
+quality scenarios; do not compare feature lists without operating consequences.
 
 ## Migration and exit
 
-Introduce the new behavior behind a compatible boundary, observe a bounded cohort, preserve rollback, and remove the old path only after consumers and data are verified.
+Extract the slowest self-contained step, persist a job before returning, run a worker with idempotent completion, expose status, and remove the old inline branch after result parity and restart tests pass.
 
 ## Evidence to inspect
 
-Inspect the product scenario, owning code and configuration, consumers, persisted contracts, tests, runtime evidence when applicable, team capability, and cost boundary.
+Request latency and timeout traces, task duration distribution, deployment interruption behavior, queue depth/age, job retry history, and terminal-state coverage.
 
 ## Evidence that changes the recommendation
 
-A simpler option meeting the same measurable outcome, missing operational ownership, incompatible consumers, or contrary runtime evidence changes the recommendation.
+Inline is preferable for consistently short atomic work; a durable job is required when completion must survive process or deployment failure.
 
 ## Quality trade-offs
 
-Prioritize maintainability while explicitly recording effects on reliability, security, performance, maintainability, delivery speed, cost, and cognitive load.
+Background execution protects responsiveness and scalability but adds eventual completion and operational ownership.
+
+## Claim map
+
+- JOB-SEPARATION: Background jobs run independently from the initiating UI or request process.
+- JOB-RELIABILITY: Reliable background work needs restart, conflict, result, and poison-message handling.
 
 ## Volatile facts
 
-Versions, support status, compatibility, security advisories, licensing, pricing, and service limits require current official confirmation; they are not timeless architecture facts.
+Product versions, protocol/library support, service limits, pricing, licensing, and
+security advisories must be rechecked in the cited official sources at decision time.
+The mechanisms and decision criteria above are maintained separately from those facts.

@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "benchmark", "cases"],
   "properties": {
-    "schema_version": {"const": "1.1"},
+    "schema_version": {"enum": ["1.1", "1.2"]},
     "benchmark": {
       "type": "object",
       "additionalProperties": false,
@@ -51,6 +51,9 @@
             "type": "array",
             "items": {"type": "string", "minLength": 1}
           },
+          "expected_decision": {
+            "$ref": "#/$defs/expectedDecision"
+          },
           "observed_findings": {
             "type": "array",
             "items": {
@@ -82,6 +85,9 @@
             "type": "array",
             "items": {"type": "string"}
           },
+          "observed_decision": {
+            "$ref": "#/$defs/observedDecision"
+          },
           "trials": {
             "type": "array",
             "minItems": 1,
@@ -92,6 +98,124 @@
     }
   },
   "$defs": {
+    "expectedDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected_option",
+        "required_tradeoffs",
+        "overdesign_options",
+        "required_knowledge_ids",
+        "minimum_rejected_options",
+        "minimum_migration_slices"
+      ],
+      "properties": {
+        "selected_option": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "acceptable_options": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "required_tradeoffs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "overdesign_options": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "required_knowledge_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "minimum_rejected_options": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_migration_slices": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "observedDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected_option",
+        "compared_tradeoffs",
+        "knowledge_ids",
+        "rejected_options",
+        "migration_slices"
+      ],
+      "properties": {
+        "selected_option": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "compared_tradeoffs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "knowledge_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "rejected_options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "reason"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 10
+              }
+            }
+          }
+        },
+        "migration_slices": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 10
+          }
+        }
+      }
+    },
     "observedFinding": {
       "type": "object",
       "additionalProperties": false,
@@ -135,6 +259,9 @@
         "observed_recommendations": {
           "type": "array",
           "items": {"type": "string"}
+        },
+        "observed_decision": {
+          "$ref": "#/$defs/observedDecision"
         },
         "usage": {
           "type": "object",

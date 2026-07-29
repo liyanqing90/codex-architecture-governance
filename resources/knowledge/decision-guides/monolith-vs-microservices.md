@@ -1,7 +1,7 @@
 ---
 id: decision.monolith-vs-microservices
 kind: decision-guide
-version: 1.0.0
+version: 2.0.0
 status: active
 domains:
 - backend-api
@@ -12,70 +12,115 @@ triggers:
 - services
 quality_attributes:
 - maintainability
-related: []
+related:
+- foundation.system-boundaries
+- pattern.outbox
 last_reviewed: '2026-07-28'
 review_after_days: 365
 source_policy: stable-principles-plus-official-docs
 sources:
-- title: Azure Architecture Styles
-  url: https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/
+- title: Azure microservices architecture style
+  url: https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/microservices
   authority: official
+  supports:
+  - SERVICE-BOUNDARY
+- title: 'Martin Fowler: Monolith First'
+  url: https://martinfowler.com/bliki/MonolithFirst.html
+  authority: maintainer
+  supports:
+  - MONOLITH-MODULARITY
+maturity: golden
+curation:
+  method: assisted-reviewed
+  reviewer: Codex Architecture Governance review
+  reviewed_at: '2026-07-28'
 ---
 
-# Monolith vs Microservices
+# Modular Monolith vs Microservices
 
 ## Problem and intent
 
-Choose deployment and ownership boundaries from team autonomy, independent release, scaling, isolation, and operations evidence.
+Choose deployment boundaries from independent change and scaling needs, not from module count or anticipated prestige.
 
 ## Mechanism
 
-Apply the mechanism at its owning boundary, keep authority and contracts explicit, and bind the choice to measurable scenarios rather than technology presence.
+A modular monolith enforces domain ownership inside one deployable and transaction boundary. Microservices turn selected domain boundaries into separately deployed, versioned, observed, and failure-isolated services.
+
+## Options
+
+### Modular monolith
+
+- Fit: A small team, coupled release cadence, and shared operational envelope.
+- Avoid: Independent scaling, compliance, or release ownership is already measurable.
+- Cost: Discipline is needed to keep modules and data ownership explicit.
+- Failure: Internal imports and shared tables erode boundaries into a big ball of mud.
+### Selective service extraction
+
+- Fit: One bounded context has proven independent change, load, data, or isolation needs.
+- Avoid: The candidate boundary still changes transactionally with neighbors.
+- Cost: Network contracts, deployment, tracing, eventual consistency, and on-call load.
+- Failure: A distributed monolith preserves coupling while adding network failure.
+### Broad microservice decomposition
+
+- Fit: Multiple autonomous teams and operational capabilities can own many services.
+- Avoid: A small team cannot sustain platform and incident overhead.
+- Cost: Highest delivery, runtime, data, and governance complexity.
+- Failure: Service sprawl, incompatible contracts, and cross-service transaction failure.
 
 ## Fit when
 
-A single deployment creates a proven organizational or operational constraint.
+At least one named option fits a measured quality scenario and the team can own its
+required failure and recovery behavior.
 
 ## Avoid when
 
-Service separation is proposed only because the codebase is large or microservices appear more advanced.
+The choice is driven only by a technology name, hypothetical scale, or a problem
+already solved by the current design.
 
 ## Required capabilities
 
-An accountable owner, explicit compatibility and failure semantics, proportional tests, observable outcomes, and an affordable operating model are required.
+Domain/data ownership, dependency rules, consumer contracts, deployment and rollback, distributed tracing, service SLOs, and teams able to own incidents.
 
 ## Benefits
 
-The choice addresses the stated problem while keeping the reason, protected qualities, and governing evidence reviewable.
+A proportional boundary choice preserves simplicity while leaving a measured path to independent deployment.
 
 ## Costs and liabilities
 
-It adds implementation, migration, cognitive, and operational costs that must be compared with keeping the current design.
+Microservices multiply runtime and coordination surfaces; monoliths require strong internal enforcement.
 
 ## Failure modes
 
-It fails when adopted from naming, popularity, or hypothetical scale without ownership, negative-path behavior, and acceptance evidence.
+Shared databases, chatty synchronous calls, cyclic service dependencies, coordinated releases, and extraction before the domain stabilizes.
 
 ## Alternatives
 
-Keep the current architecture with a local correction, or select the next simpler mechanism that satisfies the same quality scenario.
+Compare the current design and the named options—Modular monolith, Selective service extraction, Broad microservice decomposition—against the same
+quality scenarios; do not compare feature lists without operating consequences.
 
 ## Migration and exit
 
-Introduce the new behavior behind a compatible boundary, observe a bounded cohort, preserve rollback, and remove the old path only after consumers and data are verified.
+First establish modules and owner-owned tables; measure change/load coupling; extract one edge boundary with an anti-corruption interface and reversible routing before considering another.
 
 ## Evidence to inspect
 
-Inspect the product scenario, owning code and configuration, consumers, persisted contracts, tests, runtime evidence when applicable, team capability, and cost boundary.
+Commit and release coupling, team ownership, hot spots, scaling asymmetry, transaction boundaries, incident history, dependency graph, and deployment capability.
 
 ## Evidence that changes the recommendation
 
-A simpler option meeting the same measurable outcome, missing operational ownership, incompatible consumers, or contrary runtime evidence changes the recommendation.
+Prefer a modular monolith until independent deployment or isolation produces measurable value greater than distributed-systems cost.
 
 ## Quality trade-offs
 
-Prioritize maintainability while explicitly recording effects on reliability, security, performance, maintainability, delivery speed, cost, and cognitive load.
+Services improve independent evolution and isolation but trade away local transactions, simple debugging, and low operational overhead.
+
+## Claim map
+
+- SERVICE-BOUNDARY: Microservice boundaries carry independent deployment and distributed interaction consequences.
+- MONOLITH-MODULARITY: A single deployable can still enforce explicit internal modules.
 
 ## Volatile facts
 
-Versions, support status, compatibility, security advisories, licensing, pricing, and service limits require current official confirmation; they are not timeless architecture facts.
+Product versions, protocol/library support, service limits, pricing, licensing, and
+security advisories must be rechecked in the cited official sources at decision time.
+The mechanisms and decision criteria above are maintained separately from those facts.

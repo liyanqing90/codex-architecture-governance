@@ -216,8 +216,10 @@ python3 resources/scripts/architecture_tool.py review-diff \
 
 ## Decisions, plans, and risk acceptance
 
-Solution decisions must reference a trusted Review by ID and SHA-256. Schema
-`1.2` Decisions compare at least three options, including keep-current, bind
+Remediation decisions reference a trusted Review by ID and SHA-256. Greenfield
+decisions instead bind a validated `architecture-design-brief.yaml`; they
+never require or manufacture an empty review. Schema `1.2` remediation and
+schema `1.3` Greenfield Decisions compare at least three options, including keep-current, bind
 the exact task selection and per-entry Markdown versions and hashes, and score
 quality, business, team, evolution, maturity, lock-in, and complexity
 trade-offs. Generate their hashes first:
@@ -228,6 +230,21 @@ python3 resources/scripts/architecture_tool.py decision-bindings \
   --knowledge-selection .architecture/knowledge-selection.yaml
 python3 resources/scripts/architecture_tool.py validate-decision \
   decision.yaml --review verified.yaml --project . --require-accepted
+```
+
+For a new system:
+
+```bash
+python3 resources/scripts/architecture_tool.py validate-design-brief \
+  .architecture/architecture-design-brief.yaml
+python3 resources/scripts/architecture_tool.py decision-bindings \
+  --project . \
+  --design-brief .architecture/architecture-design-brief.yaml \
+  --knowledge-selection .architecture/decision-knowledge-selection.yaml
+python3 resources/scripts/architecture_tool.py validate-decision \
+  decision.yaml \
+  --design-brief .architecture/architecture-design-brief.yaml \
+  --project .
 ```
 
 Plans bind the accepted decision and source review. A plan marked complete must
@@ -286,7 +303,14 @@ false-positive resistance, and artifact tampering. `benchmarks/` adds ten
 adversarial code fixtures with ground truth, forbidden over-design
 recommendations, and metrics for precision, recall, severity agreement,
 evidence validity, prohibited recommendations, repeated-trial stability,
-duration, and optional token/cost usage.
+duration, optional token/cost usage, recommendation accuracy, over-design,
+trade-off coverage, knowledge citation validity, rejected-option explanations,
+and migration actionability.
+
+The bundled Codex adapter limits outputs to machine Rule IDs and canonical
+atomic trade-offs. It allows one disclosed evidence-only correction when an
+initial path/line/excerpt citation is not verbatim; it never sends benchmark
+ground truth to the model.
 
 The forward-test runner accepts a caller-supplied agent command:
 
@@ -294,13 +318,17 @@ The forward-test runner accepts a caller-supplied agent command:
 python3 scripts/run_behavior_benchmark.py \
   --model MODEL --surface SURFACE --repetitions 3 \
   --output benchmark-run.yaml -- \
-  agent-command --skill '{skill}' --repo '{fixture}' --prompt '{prompt}'
+  python3 scripts/codex_benchmark_adapter.py --model MODEL \
+    --skill '{skill}' --fixture '{fixture}' --prompt '{prompt}'
 python3 resources/scripts/architecture_tool.py benchmark-score \
-  --ground-truth benchmarks/ground-truth.yaml --run benchmark-run.yaml
+  --ground-truth benchmarks/ground-truth.yaml --run benchmark-run.yaml \
+  --output benchmark-score.json
 ```
 
-No public model score is claimed until an identified model and surface have
-actually run the corpus. See [evaluation guidance](docs/evaluation.md).
+Version 0.4.0 preserves 60 real trials from two identified models on
+`codex-cli 0.146.0-alpha.3.1`, including non-perfect results and limitations.
+See the [model behavior evidence](benchmarks/reports/0.4.0-model-behavior.md)
+and [evaluation guidance](docs/evaluation.md).
 
 ## Open-source verification
 
@@ -317,8 +345,8 @@ python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/codex-architecture-governance-0.3.2.zip \
-  --output dist/codex-architecture-governance-0.3.2.spdx.json
+  --archive dist/codex-architecture-governance-0.4.0.zip \
+  --output dist/codex-architecture-governance-0.4.0.spdx.json
 ```
 
 CI runs the supported Python boundary on Linux, macOS, and Windows. Tagged

@@ -63,6 +63,31 @@
         "minimum_verification_level": {
           "enum": ["V0", "V1", "V2", "V3", "V4", "V5"]
         },
+        "verification_levels": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["by_severity", "accepted_risk", "release"],
+          "properties": {
+            "by_severity": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["critical", "high", "medium", "low", "info"],
+              "properties": {
+                "critical": {"enum": ["V0", "V1", "V2", "V3", "V4", "V5"]},
+                "high": {"enum": ["V0", "V1", "V2", "V3", "V4", "V5"]},
+                "medium": {"enum": ["V0", "V1", "V2", "V3", "V4", "V5"]},
+                "low": {"enum": ["V0", "V1", "V2", "V3", "V4", "V5"]},
+                "info": {"enum": ["V0", "V1", "V2", "V3", "V4", "V5"]}
+              }
+            },
+            "accepted_risk": {
+              "enum": ["V0", "V1", "V2", "V3", "V4", "V5"]
+            },
+            "release": {
+              "enum": ["V0", "V1", "V2", "V3", "V4", "V5"]
+            }
+          }
+        },
         "freshness_strategy": {
           "enum": ["time-window", "exact-commit", "ancestor", "diff-aware"]
         },

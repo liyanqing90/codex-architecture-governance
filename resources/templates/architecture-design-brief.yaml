@@ -1,0 +1,56 @@
+schema_version: "1.0"
+brief:
+  id: DESIGN-BRIEF-EXAMPLE-001
+  created_at: "1970-01-01T00:00:00+00:00"
+  authors:
+    - unassigned
+  status: draft
+context:
+  objective: Replace with the user outcome and the architectural decision this design must enable.
+  users:
+    - Replace with a real user or operating role.
+  lifecycle: early
+  constraints:
+    - Replace with an authoritative delivery, stack, cost, security, or migration constraint.
+  known_facts:
+    - Replace with a directly observed or owner-confirmed fact.
+  assumptions:
+    - Replace with an assumption whose failure changes an option.
+  unknowns:
+    - Replace with an unresolved input and name how it will be learned.
+quality_scenarios:
+  - id: QS-EXAMPLE-001
+    attribute: maintainability
+    priority: high
+    source: A maintainer changes one bounded capability.
+    stimulus: The capability needs a compatible behavior change.
+    environment: Normal development and release conditions.
+    target: The owning module and its consumers.
+    response: The change remains inside the declared boundary.
+    measure: Focused tests and contract validation pass without unrelated edits.
+boundaries:
+  in_scope:
+    - Replace with one owned product or system boundary.
+  out_of_scope:
+    - Replace with an adjacent capability intentionally excluded.
+  external_systems:
+    - Replace with an external dependency or write none.
+  data_owners:
+    - Replace with an authoritative data owner and record type.
+  trust_boundaries:
+    - Replace with an identity, permission, network, or tool boundary.
+critical_flows:
+  - id: primary-flow
+    trigger: Replace with the event that begins the critical flow.
+    steps:
+      - Replace with one observable step and owner.
+    failure_outcome: Replace with the user-visible or operational failure.
+    recovery: Replace with the retry, rollback, resume, or manual recovery path.
+decision_questions:
+  - id: DQ-EXAMPLE-001
+    question: Which least-complex architecture satisfies the declared quality scenarios?
+    decision_owner: unassigned
+success_criteria:
+  - The selected option satisfies every critical quality scenario with observable evidence.
+prohibited_options:
+  - Replace with an option forbidden by an authoritative constraint, or remove this item.

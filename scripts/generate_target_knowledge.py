@@ -902,7 +902,13 @@ def render(seed: Seed) -> str:
         "id": f"{prefix}.{seed.id}",
         "kind": seed.kind,
         "version": "1.0.0",
-        "status": "active",
+        "status": "draft",
+        "maturity": "standard",
+        "curation": {
+            "method": "generated",
+            "reviewer": "knowledge-seed-generator",
+            "reviewed_at": "2026-07-28",
+        },
         "domains": list(seed.domains),
         "triggers": list(seed.triggers),
         "quality_attributes": list(seed.quality),
@@ -1006,7 +1012,10 @@ def generate(root: Path, *, check: bool) -> int:
         path = root / directory / f"{seed.id}.md"
         expected = render(seed)
         if path.exists():
-            if path.read_text(encoding="utf-8") != expected:
+            current = path.read_text(encoding="utf-8")
+            if "method: generated" not in current:
+                continue
+            if current != expected:
                 raise GenerationError(f"Generated knowledge drift: {path}")
         elif check:
             raise GenerationError(f"Missing generated knowledge: {path}")

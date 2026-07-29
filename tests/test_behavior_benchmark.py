@@ -26,7 +26,7 @@ class BehaviorBenchmarkTests(unittest.TestCase):
                 output=output,
                 model="test-model",
                 surface="pytest",
-                skill_version="0.3.2",
+                skill_version="0.4.0",
                 timeout=10,
                 command=[
                     sys.executable,
@@ -34,7 +34,13 @@ class BehaviorBenchmarkTests(unittest.TestCase):
                     (
                         "import json; "
                         "print(json.dumps({'observed_findings': [], "
-                        "'observed_recommendations': []}))"
+                        "'observed_recommendations': [], "
+                        "'observed_decision': {"
+                        "'selected_option': 'test-option', "
+                        "'compared_tradeoffs': [], "
+                        "'knowledge_ids': [], "
+                        "'rejected_options': [], "
+                        "'migration_slices': []}}))"
                     ),
                     "{skill}",
                     "{fixture}",
@@ -60,7 +66,7 @@ class BehaviorBenchmarkTests(unittest.TestCase):
         self.assertEqual(rendered[4], str(fixture))
 
     def test_fixture_evidence_is_resolved_not_self_asserted(self) -> None:
-        fixture = ROOT / "benchmarks" / "fixtures" / "conflicting-writers"
+        fixture = ROOT / "benchmarks" / "fixtures" / "account-balance-updates"
         valid = [
             {
                 "path": "store.py",
@@ -72,6 +78,37 @@ class BehaviorBenchmarkTests(unittest.TestCase):
         self.assertTrue(run_behavior_benchmark.evidence_is_valid(fixture, valid))
         invalid = [dict(valid[0], excerpt="a line that is not in the fixture")]
         self.assertFalse(run_behavior_benchmark.evidence_is_valid(fixture, invalid))
+
+    def test_fixture_inputs_do_not_disclose_expected_outcomes(self) -> None:
+        corpus = run_behavior_benchmark.load_yaml(
+            ROOT / "benchmarks" / "ground-truth.yaml"
+        )
+        banned_path_terms = {
+            "benign",
+            "conflict",
+            "healthy",
+            "injected",
+            "missing",
+            "sufficient",
+        }
+        banned_content = {
+            "expected behavior:",
+            "expected decision:",
+            "do not recommend",
+        }
+        for case in corpus["cases"]:
+            fixture = ROOT / case["fixture"]
+            self.assertTrue(fixture.is_dir(), case["id"])
+            self.assertTrue(
+                banned_path_terms.isdisjoint(fixture.name.split("-")),
+                fixture.name,
+            )
+            for path in fixture.rglob("*"):
+                if not path.is_file():
+                    continue
+                content = path.read_text(encoding="utf-8").lower()
+                for phrase in banned_content:
+                    self.assertNotIn(phrase, content, str(path))
 
 
 if __name__ == "__main__":

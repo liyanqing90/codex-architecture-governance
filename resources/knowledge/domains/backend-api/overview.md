@@ -16,9 +16,12 @@ last_reviewed: '2026-07-28'
 review_after_days: 90
 source_policy: stable-principles-plus-official-docs
 sources:
-- title: OpenAI Practical Guide to Building Agents
-  url: https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/
-  authority: official
+- title: RFC 9110 HTTP Semantics
+  url: https://www.rfc-editor.org/rfc/rfc9110
+  authority: standard
+- title: OpenAPI Specification
+  url: https://spec.openapis.org/oas/latest.html
+  authority: standard
 ---
 
 # Backend API Services

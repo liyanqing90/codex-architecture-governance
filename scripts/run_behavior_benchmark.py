@@ -97,12 +97,21 @@ def run_benchmark(args: argparse.Namespace) -> dict:
     corpus = load_yaml(corpus_path)
     schema_path = root / "resources" / "schemas" / "benchmark.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    observation_schema_path = (
+        root / "resources" / "schemas" / "benchmark-observation.schema.json"
+    )
+    observation_schema = json.loads(observation_schema_path.read_text(encoding="utf-8"))
+    # Keep the standalone observation schema usable by model surfaces while
+    # avoiding network or resolver behavior during local validation.
+    observation_schema["properties"]["usage"] = schema["$defs"]["trial"]["properties"][
+        "usage"
+    ]
     validate(corpus, schema, corpus_path)
     if corpus["benchmark"]["kind"] != "ground-truth":
         raise ValueError("Benchmark input must be ground truth")
 
     result = {
-        "schema_version": "1.1",
+        "schema_version": "1.2",
         "benchmark": {
             "id": corpus["benchmark"]["id"],
             "version": corpus["benchmark"]["version"],
@@ -159,6 +168,7 @@ def run_benchmark(args: argparse.Namespace) -> dict:
                     f"Case {case['id']} trial {trial_index} output must be "
                     "a JSON object"
                 )
+            validate(observed, observation_schema, observation_schema_path)
             observed_findings = observed.get("observed_findings", [])
             observed_recommendations = observed.get(
                 "observed_recommendations",
@@ -193,6 +203,15 @@ def run_benchmark(args: argparse.Namespace) -> dict:
                 "observed_findings": normalized_findings,
                 "observed_recommendations": observed_recommendations,
             }
+            observed_decision = observed.get("observed_decision")
+            if case.get("expected_decision") is not None:
+                if observed_decision is None:
+                    raise ValueError(
+                        f"Case {case['id']} requires observed_decision output"
+                    )
+                trial["observed_decision"] = observed_decision
+            elif observed_decision is not None:
+                trial["observed_decision"] = observed_decision
             usage = observed.get("usage")
             if usage is not None:
                 if not isinstance(usage, dict):
@@ -200,17 +219,18 @@ def run_benchmark(args: argparse.Namespace) -> dict:
                 trial["usage"] = usage
             trials.append(trial)
         first_trial = trials[0]
-        result["cases"].append(
-            {
-                "id": case["id"],
-                "fixture": case["fixture"],
-                "expected_findings": [],
-                "forbidden_recommendations": [],
-                "observed_findings": first_trial["observed_findings"],
-                "observed_recommendations": first_trial["observed_recommendations"],
-                "trials": trials,
-            }
-        )
+        result_case = {
+            "id": case["id"],
+            "fixture": case["fixture"],
+            "expected_findings": [],
+            "forbidden_recommendations": [],
+            "observed_findings": first_trial["observed_findings"],
+            "observed_recommendations": first_trial["observed_recommendations"],
+            "trials": trials,
+        }
+        if "observed_decision" in first_trial:
+            result_case["observed_decision"] = first_trial["observed_decision"]
+        result["cases"].append(result_case)
     validate(result, schema, args.output)
     return result
 
@@ -231,7 +251,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--surface", required=True)
-    parser.add_argument("--skill-version", default="0.3.2")
+    parser.add_argument("--skill-version", default="0.4.0")
     parser.add_argument("--timeout", type=int, default=600)
     parser.add_argument("--repetitions", type=int, default=1, choices=range(1, 21))
     parser.add_argument(

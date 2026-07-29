@@ -190,7 +190,7 @@ def build_sbom(
         ),
         "creationInfo": {
             "created": "1970-01-01T00:00:00Z",
-            "creators": ["Tool: codex-architecture-governance-sbom-0.3.2"],
+            "creators": [f"Tool: codex-architecture-governance-sbom-{plugin_version}"],
         },
         "documentDescribes": [plugin_id],
         "packages": packages,

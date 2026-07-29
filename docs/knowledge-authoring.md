@@ -82,7 +82,9 @@ silently consume the freed context budget. Mandatory Skill and decision-intent
 contracts must fit both caps; the selector fails rather than silently dropping
 one. Pass `--context-output` to write a compact model-facing index containing
 only selected IDs, paths, priorities, reasons, and hashes. Keep exclusions and
-runtime provenance in the full machine lock.
+runtime provenance in the full machine lock. Run
+`architecture_tool.py validate-knowledge-context` with the exact Selection,
+Facts, and Profile paths before any Skill reads that compact index.
 
 The Solution Advisor is Golden-only for discretionary context. A standard entry
 may appear only when its recorded reason is one of:

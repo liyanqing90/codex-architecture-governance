@@ -50,6 +50,10 @@ jobs:
       - name: Validate dogfood architecture profile
         run: python resources/scripts/architecture_tool.py validate-project .
 
+      - name: Validate governance history anchors
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        run: python resources/scripts/architecture_tool.py validate-history-anchors .
+
       - name: Validate architecture knowledge
         run: python resources/scripts/validate_knowledge.py
 

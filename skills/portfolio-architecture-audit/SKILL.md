@@ -42,7 +42,9 @@ Populate the explicit project registry and catalogs, then run `validate-portfoli
    the user authorized project writes; otherwise use a temporary directory and
    record hashes in the portfolio evidence. Do not derive one project's stack
    from another project's files.
-3. Read each compact context index and its selected Markdown entries, union
+3. Run `validate-knowledge-context` for each context index with its exact
+   `--selection`, `--facts`, and `--profile` paths. Read each compact context
+   index only after validation succeeds and read its selected Markdown entries, union
    them by canonical ID, and retain every per-project inclusion reason. Keep
    exclusions in the machine lock rather than model context. Do not load the
    whole knowledge tree.

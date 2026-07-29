@@ -136,9 +136,11 @@ reasons, exclusions, total/per-kind context budgets, and creation-time
 Selector/Knowledge/policy provenance. Schema 1.4 separates the reviewed
 project commit from the plugin source commit and binds the complete Selector
 Runtime Input Manifest. It replays an exact current runtime, verifies archived
-Git blobs without executing historical code, and rejects an unreachable
-runtime from trusted Reviews, Decisions, and Gates. `knowledge-context.yaml`
-contains only selected entries for model context; the full exclusion ledger
+Git blobs without executing historical code, and keeps those archived locks
+readable without allowing them to create a new trusted Review, Decision, Plan,
+or Gate chain. `knowledge-context.yaml` contains only selected entries for
+model context; `validate-knowledge-context` proves its lock hash, result hash,
+and exact ordered projection before consumption. The full exclusion ledger
 remains a machine-facing lock.
 `constraints.md` records real limits. `critical-flows.md` defines protected
 runtime behavior. Findings, decisions, and plans are stored under `reviews/`.
@@ -193,6 +195,11 @@ python3 resources/scripts/architecture_tool.py select-knowledge \
   --skill project-architecture-audit \
   --output /path/to/repository/.architecture/knowledge-selection.yaml \
   --context-output /path/to/repository/.architecture/knowledge-context.yaml
+python3 resources/scripts/architecture_tool.py validate-knowledge-context \
+  /path/to/repository/.architecture/knowledge-context.yaml \
+  --selection /path/to/repository/.architecture/knowledge-selection.yaml \
+  --facts /path/to/repository/.architecture/repository-facts.yaml \
+  --profile /path/to/repository/.architecture/profile.yaml
 ```
 
 For an architecture decision whose wording could cross semantic domains, bind
@@ -220,6 +227,10 @@ python3 resources/scripts/architecture_tool.py verify-evidence \
 python3 resources/scripts/architecture_tool.py verify-review-signature \
   --project /path/to/repository --review /path/to/verified.yaml
 ```
+
+Add `--historical` only to inspect an existing archived Review, Decision, Plan,
+or compact context. New bindings, coverage checks, and Gates require a
+Selection that replays with the current Selector Runtime.
 
 Finding IDs remain readable identifiers. Fingerprints bind baselines, waivers,
 and risk acceptance to finding semantics and evidence identity, preventing an

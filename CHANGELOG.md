@@ -7,6 +7,19 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Consumption-time `validate-knowledge-context` checks for the Selection lock,
+  result hash, and exact ordered selected-entry projection.
+- CI and release ancestry checks for the Selector source and latest reviewed
+  implementation commits.
+
+### Changed
+
+- Git-verified archived Selection locks remain historically readable but can no
+  longer create new trusted Review, Decision, Plan, coverage, or Gate chains;
+  current deterministic replay is required.
+
 ## [0.4.2] - 2026-07-29
 
 ### Added

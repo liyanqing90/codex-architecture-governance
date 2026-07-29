@@ -24,7 +24,18 @@ python3 ../../resources/scripts/architecture_tool.py select-knowledge \
   --context-output <repo>/.architecture/decision-knowledge-context.yaml
 ```
 
-Read the compact context index and every selected Markdown entry. Do not place
+Validate the compact context before reading it:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py validate-knowledge-context \
+  <repo>/.architecture/decision-knowledge-context.yaml \
+  --selection <repo>/.architecture/decision-knowledge-selection.yaml \
+  --facts <repository-facts.yaml> \
+  --profile <profile.yaml>
+```
+
+Read the compact context index and every selected Markdown entry only after
+validation succeeds. Do not place
 the full exclusion ledger in model context; scripts, Decisions, and Gates bind
 the complete lock. Every architecture style, pattern, technology, reference
 architecture, or migration cited by an option must be selected and

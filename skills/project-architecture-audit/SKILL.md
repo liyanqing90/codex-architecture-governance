@@ -80,7 +80,18 @@ python3 ../../resources/scripts/architecture_tool.py select-knowledge \
   --context-output <repo>/.architecture/knowledge-context.yaml
 ```
 
-Read `knowledge-context.yaml`, then read every Markdown path it selects
+Before reading model context, validate the sidecar against the exact lock:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py validate-knowledge-context \
+  <repo>/.architecture/knowledge-context.yaml \
+  --selection <repo>/.architecture/knowledge-selection.yaml \
+  --facts <repo>/.architecture/repository-facts.yaml \
+  --profile <profile.yaml>
+```
+
+Read `knowledge-context.yaml` only after validation succeeds, then read every
+Markdown path it selects
 completely. Do not load the full `knowledge-selection.yaml` exclusion ledger
 into model context; that lock is for scripts, Reviews, and Gates. Do not load
 the full knowledge tree. Treat repository facts as observations, never as risk

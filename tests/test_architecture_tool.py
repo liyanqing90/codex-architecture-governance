@@ -817,6 +817,16 @@ class ArchitectureToolTests(unittest.TestCase):
                 facts_path=facts_path,
                 profile_path=profile_path,
             )
+            with self.assertRaisesRegex(
+                architecture_tool.ArchitectureError,
+                "uses an archived Selector Runtime lock",
+            ):
+                architecture_tool.validate_knowledge_selection_artifact(
+                    selection_path,
+                    facts_path=facts_path,
+                    profile_path=profile_path,
+                    require_current_runtime=True,
+                )
         self.assertEqual(validated["selector"]["source"]["commit"], commit)
 
     def test_select_knowledge_cli_passes_decision_intent(self) -> None:
@@ -864,6 +874,129 @@ class ArchitectureToolTests(unittest.TestCase):
             selected,
         )
         self.assertNotIn("excluded", context)
+        architecture_tool.validate_knowledge_context_artifact(
+            context_output,
+            output,
+            facts_path=config_root / "repository-facts.yaml",
+            profile_path=config_root / "profile.yaml",
+        )
+
+        context_mutations = {
+            "selection lock": lambda value: value.update(
+                {"selection_lock_sha256": "0" * 64}
+            ),
+            "selection result": lambda value: value.update(
+                {"selection_result_sha256": "0" * 64}
+            ),
+            "selected projection": lambda value: value["selected"][0].update(
+                {"priority": "optional"}
+            ),
+            "selected order": lambda value: value["selected"].reverse(),
+        }
+        for label, mutate in context_mutations.items():
+            with self.subTest(label=label):
+                tampered = copy.deepcopy(context)
+                mutate(tampered)
+                self.write_yaml(context_output, tampered)
+                with self.assertRaises(architecture_tool.ArchitectureError):
+                    architecture_tool.validate_knowledge_context_artifact(
+                        context_output,
+                        output,
+                        facts_path=config_root / "repository-facts.yaml",
+                        profile_path=config_root / "profile.yaml",
+                    )
+        self.write_yaml(context_output, context)
+
+        validate_context_args = architecture_tool.build_parser().parse_args(
+            [
+                "validate-knowledge-context",
+                str(context_output),
+                "--selection",
+                str(output),
+                "--facts",
+                str(config_root / "repository-facts.yaml"),
+                "--profile",
+                str(config_root / "profile.yaml"),
+            ]
+        )
+        self.assertEqual(architecture_tool.run(validate_context_args), 0)
+
+    def test_history_anchors_require_reachable_selector_and_review_commits(
+        self,
+    ) -> None:
+        config_root = self.init_project()
+        anchor = architecture_tool.current_git_commit(self.root)
+        selector_source_path = self.root / "resources" / "selector-source.json"
+        selector_source_path.parent.mkdir(parents=True)
+        selector_source_path.write_text(
+            json.dumps(
+                {
+                    "schema_version": "1.0",
+                    "repository": (
+                        "https://github.com/example/architecture-governance"
+                    ),
+                    "commit": anchor,
+                    "plugin_version": "0.4.2",
+                }
+            ),
+            encoding="utf-8",
+        )
+        review = self.review()
+        review["review"]["commit"] = anchor
+        review_path = config_root / "reviews" / "history-verified.yaml"
+        self.write_yaml(review_path, review)
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", "."],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Add history anchors"],
+            check=True,
+        )
+
+        result = architecture_tool.validate_history_anchors(
+            self.root,
+            review_path,
+        )
+        self.assertEqual(result["selector_source"]["commit"], anchor)
+        self.assertEqual(result["reviewed_implementation"]["commit"], anchor)
+
+        detached_branch = "unmerged-anchor"
+        subprocess.run(
+            ["git", "-C", str(self.root), "switch", "-qc", detached_branch, anchor],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.root),
+                "commit",
+                "--allow-empty",
+                "-qm",
+                "Unmerged anchor",
+            ],
+            check=True,
+        )
+        unmerged = architecture_tool.current_git_commit(self.root)
+        subprocess.run(
+            ["git", "-C", str(self.root), "switch", "-q", "-"],
+            check=True,
+        )
+        selector_source = json.loads(selector_source_path.read_text(encoding="utf-8"))
+        selector_source["commit"] = unmerged
+        selector_source_path.write_text(
+            json.dumps(selector_source),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "is not an ancestor of HEAD",
+        ):
+            architecture_tool.validate_history_anchors(
+                self.root,
+                review_path,
+            )
 
     def test_governance_run_is_informational_and_path_contained(self) -> None:
         config_root = self.init_project()

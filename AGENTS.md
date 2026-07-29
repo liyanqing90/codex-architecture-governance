@@ -41,6 +41,7 @@ Run the full local gate:
 ```bash
 python3 scripts/validate_repository.py
 python3 resources/scripts/architecture_tool.py validate-project .
+python3 resources/scripts/architecture_tool.py validate-history-anchors .
 python3 resources/scripts/validate_knowledge.py
 python3 -m pytest
 python3 resources/scripts/architecture_tool.py gate --project . --stage change
@@ -74,3 +75,5 @@ The accepted target boundary is recorded in
 - Flag scripts that can overwrite an existing `.architecture` or `.architecture-portfolio` directory.
 - Flag review artifacts whose counts, finding references, verification state, or policy outcome are not schema-validated.
 - Flag release archives containing caches, tests, development configuration, or files outside the runtime allowlist.
+- Flag source-anchored governance changes that would be squash/rebase merged and
+  lose the Selector or reviewed implementation ancestry.

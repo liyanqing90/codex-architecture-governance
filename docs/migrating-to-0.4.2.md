@@ -49,6 +49,11 @@ python3 resources/scripts/architecture_tool.py select-knowledge \
   --skill project-architecture-audit \
   --output .architecture/knowledge-selection-current.yaml \
   --context-output .architecture/knowledge-context-current.yaml
+python3 resources/scripts/architecture_tool.py validate-knowledge-context \
+  .architecture/knowledge-context-current.yaml \
+  --selection .architecture/knowledge-selection-current.yaml \
+  --facts .architecture/repository-facts-current.yaml \
+  --profile .architecture/profile-current.yaml
 ```
 
 Bind those new inputs in a new candidate and independently verified Review.
@@ -94,7 +99,10 @@ enter a new trusted Review, Decision, or Gate after the runtime changes.
 Schema `1.4` replays only when its complete Runtime Manifest equals the
 installed runtime. Otherwise the validator resolves the recorded plugin commit
 from the current checkout or `CAG_SELECTOR_SOURCE_ROOT`, verifies every
-historical Git blob, and never executes old code:
+historical Git blob, and never executes old code. That archived verification
+keeps existing records inspectable; it does not attest the historical
+selected/excluded outcome and therefore cannot create a new trusted Review,
+Decision, Plan, or Gate chain:
 
 ```bash
 python3 resources/scripts/architecture_tool.py validate-knowledge-selection \
@@ -104,9 +112,11 @@ python3 resources/scripts/architecture_tool.py validate-knowledge-selection \
 ```
 
 If the recorded source is unavailable, add `--read-only` only for historical
-inspection. Recreate and independently verify a new 1.4 chain before trusted
-enforcement. Skills read the compact `knowledge-context*.yaml`; scripts,
-Reviews, Decisions, and Gates continue to bind the full selection lock.
+inspection. Use `--historical` on artifact validators only to inspect an
+existing archived chain. Recreate and independently verify a new 1.4 chain
+before trusted enforcement. Skills must run `validate-knowledge-context`
+before reading a compact `knowledge-context*.yaml`; scripts, Reviews,
+Decisions, and Gates continue to bind the full selection lock.
 
 Use `--decision-intent plugin-runtime-topology` for hosted-versus-local plugin
 execution. Use `--decision-intent data-authority-topology` only for client data

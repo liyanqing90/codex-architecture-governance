@@ -535,6 +535,7 @@ def validate_knowledge_selection_artifact(
     facts_path: Path | None = None,
     profile_path: Path | None = None,
     require_trusted_runtime: bool = True,
+    require_current_runtime: bool = False,
 ) -> dict[str, Any]:
     """Validate a selection's source bindings and derived context accounting.
 
@@ -542,10 +543,19 @@ def validate_knowledge_selection_artifact(
     their creation-time snapshot semantics. Schema 1.3 remains readable but
     cannot establish a trusted historical runtime. Schema 1.4 either replays
     against the exact current Runtime Manifest or verifies every anchored Git
-    blob without executing historical code.
+    blob without executing historical code. Archived verification preserves
+    historical readability, but callers creating a new trusted chain must set
+    ``require_current_runtime`` so the selection is deterministically replayed
+    by the current runtime.
     """
     selection = validate_file(path, "knowledge-selection.schema.json")
     if selection["schema_version"] not in {"1.2", "1.3", "1.4"}:
+        if require_current_runtime:
+            raise ArchitectureError(
+                f"{path} schema {selection['schema_version']} has no replayable "
+                "Selector Runtime Manifest; regenerate the Knowledge Selection "
+                "before creating a new trusted chain"
+            )
         return selection
     try:
         _, entries = validate_knowledge_tree(
@@ -555,6 +565,11 @@ def validate_knowledge_selection_artifact(
     except KnowledgeError as exc:
         raise ArchitectureError(str(exc)) from exc
     replay_with_current_runtime = False
+    if selection["schema_version"] == "1.2" and require_current_runtime:
+        raise ArchitectureError(
+            f"{path} schema 1.2 has no replayable Selector Runtime Manifest; "
+            "regenerate the Knowledge Selection before creating a new trusted chain"
+        )
     if selection["schema_version"] in {"1.3", "1.4"}:
         if selection["result_sha256"] != selection_result_sha256(selection):
             raise ArchitectureError(f"{path} result_sha256 does not match its payload")
@@ -572,6 +587,12 @@ def validate_knowledge_selection_artifact(
                     f"{path} has an unverifiable legacy Selector Runtime lock"
                 )
             verify_archived_selector_runtime(selection, path)
+        if not replay_with_current_runtime and require_current_runtime:
+            raise ArchitectureError(
+                f"{path} uses an archived Selector Runtime lock; regenerate the "
+                "Knowledge Selection with the current runtime before creating a "
+                "new trusted Review, Decision, Plan, or Gate chain"
+            )
 
     selected_ids = [item["id"] for item in selection["selection"]]
     if len(selected_ids) != len(set(selected_ids)):
@@ -695,6 +716,55 @@ def validate_knowledge_selection_artifact(
     if canonical_sha256(expected_selection) != canonical_sha256(selection):
         raise ArchitectureError(f"{path} does not match its deterministic inputs")
     return selection
+
+
+def validate_knowledge_context_artifact(
+    path: Path,
+    selection_path: Path,
+    *,
+    facts_path: Path | None = None,
+    profile_path: Path | None = None,
+    require_trusted_runtime: bool = True,
+    require_current_runtime: bool = True,
+) -> dict[str, Any]:
+    """Validate a compact context as the exact projection of its Selection."""
+    context = validate_file(path, "knowledge-context.schema.json")
+    selection = validate_knowledge_selection_artifact(
+        selection_path,
+        facts_path=facts_path,
+        profile_path=profile_path,
+        require_trusted_runtime=require_trusted_runtime,
+        require_current_runtime=require_current_runtime,
+    )
+    expected_lock = file_sha256(selection_path)
+    if context["selection_lock_sha256"] != expected_lock:
+        raise ArchitectureError(
+            f"{path} selection_lock_sha256 does not match {selection_path}"
+        )
+    expected_result = selection.get(
+        "result_sha256",
+        selection_result_sha256(selection),
+    )
+    if context["selection_result_sha256"] != expected_result:
+        raise ArchitectureError(
+            f"{path} selection_result_sha256 does not match {selection_path}"
+        )
+    expected_selected = [
+        {
+            "id": item["id"],
+            "path": item["path"],
+            "sha256": item["sha256"],
+            "priority": item["priority"],
+            "reasons": list(item["reasons"]),
+        }
+        for item in selection["selection"]
+    ]
+    if context["selected"] != expected_selected:
+        raise ArchitectureError(
+            f"{path} selected entries are not the exact ordered projection of "
+            f"{selection_path}"
+        )
+    return context
 
 
 def git_process(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -1335,6 +1405,7 @@ def validate_review(
     strict_trust: bool = False,
     repository_root: Path | None = None,
     allow_unverifiable_historical: bool = False,
+    require_current_selection: bool = False,
 ) -> dict[str, Any]:
     data = validate_file(path, "review.schema.json")
     finding_ids: set[str] = set()
@@ -1725,6 +1796,7 @@ def validate_review(
                 facts_path=facts_path,
                 profile_path=profile_path,
                 require_trusted_runtime=not allow_unverifiable_historical,
+                require_current_runtime=require_current_selection,
             )
             if selection_binding["sha256"] != file_sha256(selection_path):
                 raise ArchitectureError(
@@ -1898,6 +1970,7 @@ def validate_review(
                     strict_trust=True,
                     repository_root=root,
                     allow_unverifiable_historical=allow_unverifiable_historical,
+                    require_current_selection=require_current_selection,
                 )
                 if data["schema_version"] == "1.2"
                 else validate_review(candidate_path)
@@ -2003,6 +2076,7 @@ def validate_decision(
     require_accepted: bool = False,
     repository_root: Path | None = None,
     allow_unverifiable_historical: bool = False,
+    require_current_selection: bool = False,
 ) -> dict[str, Any]:
     data = validate_file(path, "architecture-decision.schema.json")
     decision_kind = data["decision"].get("decision_kind", "remediation")
@@ -2199,6 +2273,7 @@ def validate_decision(
                 ),
                 profile_path=(None if allow_unverifiable_historical else profile_path),
                 require_trusted_runtime=not allow_unverifiable_historical,
+                require_current_runtime=require_current_selection,
             )
             if data["decision"]["knowledge_selection_sha256"] != file_sha256(
                 selection_path
@@ -2322,6 +2397,7 @@ def validate_plan(
     decision_path: Path | None = None,
     repository_root: Path | None = None,
     allow_unverifiable_historical: bool = False,
+    require_current_selection: bool = False,
 ) -> dict[str, Any]:
     data = validate_file(path, "remediation-plan.schema.json")
     item_ids: set[str] = set()
@@ -2468,6 +2544,7 @@ def validate_plan(
             require_accepted=True,
             repository_root=repository_root,
             allow_unverifiable_historical=allow_unverifiable_historical,
+            require_current_selection=require_current_selection,
         )
         if data["plan"].get("source_decision") != decision["decision"]["id"]:
             raise ArchitectureError(
@@ -3341,6 +3418,53 @@ def find_latest_review(reviews_root: Path) -> Path:
     return candidates[-1][2]
 
 
+def validate_history_anchors(
+    repository_root: Path,
+    review_path: Path | None = None,
+) -> dict[str, Any]:
+    """Require selector and reviewed implementation commits in HEAD history."""
+    root = repository_root.resolve()
+    selector_source_path = root / "resources" / "selector-source.json"
+    selector_source = validate_file(
+        selector_source_path,
+        "selector-source.schema.json",
+    )
+    if review_path is None:
+        review_path = find_latest_review(root / ".architecture" / "reviews")
+    elif not review_path.is_absolute():
+        review_path = root / review_path
+    review_path = require_within_root(root, review_path, "history anchor review")
+    review = validate_review(review_path)
+    reviewed_commit = review["review"].get("commit")
+    if not reviewed_commit or reviewed_commit == "unknown":
+        raise ArchitectureError(
+            f"{review_path} does not identify a reviewed implementation commit"
+        )
+    head = current_git_commit(root)
+    anchors = {
+        "selector_source": selector_source["commit"],
+        "reviewed_implementation": reviewed_commit,
+    }
+    for name, commit in anchors.items():
+        git_output(root, "cat-file", "-e", f"{commit}^{{commit}}")
+        if not git_is_ancestor(root, commit, head):
+            raise ArchitectureError(
+                f"{name} anchor {commit} is not an ancestor of HEAD {head}; "
+                "preserve history and merge with a merge commit"
+            )
+    return {
+        "head": head,
+        "selector_source": {
+            "path": selector_source_path.relative_to(root).as_posix(),
+            "commit": anchors["selector_source"],
+        },
+        "reviewed_implementation": {
+            "review": review_path.relative_to(root).as_posix(),
+            "commit": anchors["reviewed_implementation"],
+        },
+    }
+
+
 def verify_review_signature(
     review_path: Path,
     review: dict[str, Any],
@@ -3510,6 +3634,7 @@ def completed_required_reviews(
                     rule_pack_ids=profile["project"]["rule_packs"],
                     strict_trust=True,
                     repository_root=root,
+                    require_current_selection=True,
                 )
             except ArchitectureError:
                 # Historical artifacts remain inspectable project records, but an
@@ -3645,6 +3770,7 @@ def gate_from_config(
         rule_pack_ids=rule_pack_ids,
         strict_trust=True,
         repository_root=root,
+        require_current_selection=commit_root is not None,
     )
     if review["review"]["repository_identity"] != expected_identity:
         raise ArchitectureError(
@@ -4529,11 +4655,17 @@ def review_bindings(project_root: Path, candidate_path: Path) -> dict[str, Any]:
     if not candidate_path.is_absolute():
         candidate_path = root / candidate_path
     candidate_path = require_within_root(root, candidate_path, "candidate review")
-    candidate = validate_review(candidate_path)
-    if candidate["review"]["verification_state"] != "candidates":
-        raise ArchitectureError("Bindings require a candidate review")
     profile_path = root / ".architecture" / "profile.yaml"
     profile = validate_file(profile_path, "project-profile.schema.json")
+    candidate = validate_review(
+        candidate_path,
+        rule_pack_ids=profile["project"]["rule_packs"],
+        strict_trust=True,
+        repository_root=root,
+        require_current_selection=True,
+    )
+    if candidate["review"]["verification_state"] != "candidates":
+        raise ArchitectureError("Bindings require a candidate review")
     declared = [item["id"] for item in candidate["review"].get("rule_packs", [])]
     pack_ids = declared or [REVIEW_KIND_CORE_PACK[candidate["review"]["kind"]]]
     unknown = sorted(set(pack_ids) - set(profile["project"]["rule_packs"]))
@@ -5801,6 +5933,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     validate_review_parser.add_argument("path")
     validate_review_parser.add_argument("--project")
+    validate_review_parser.add_argument(
+        "--historical",
+        action="store_true",
+        help=(
+            "Validate an existing historical chain without allowing it to create "
+            "new trusted downstream artifacts."
+        ),
+    )
 
     validate_selection_parser = subparsers.add_parser(
         "validate-knowledge-selection",
@@ -5816,6 +5956,25 @@ def build_parser() -> argparse.ArgumentParser:
             "Permit an unresolvable historical Runtime lock for inspection only; "
             "never use this mode for a trusted Review, Decision, or Gate."
         ),
+    )
+    validate_selection_parser.add_argument(
+        "--require-current-runtime",
+        action="store_true",
+        help="Require deterministic replay by the current Selector Runtime.",
+    )
+
+    validate_context_parser = subparsers.add_parser(
+        "validate-knowledge-context",
+        help="Validate a compact context as the exact projection of its Selection.",
+    )
+    validate_context_parser.add_argument("path")
+    validate_context_parser.add_argument("--selection", required=True)
+    validate_context_parser.add_argument("--facts")
+    validate_context_parser.add_argument("--profile")
+    validate_context_parser.add_argument(
+        "--historical",
+        action="store_true",
+        help="Permit a Git-verified archived Selection for historical inspection.",
     )
 
     validate_governance_run_parser = subparsers.add_parser(
@@ -5838,6 +5997,7 @@ def build_parser() -> argparse.ArgumentParser:
     coverage_parser.add_argument("--project", required=True)
     coverage_parser.add_argument("--review", required=True)
     coverage_parser.add_argument("--allow-candidates", action="store_true")
+    coverage_parser.add_argument("--historical", action="store_true")
 
     fingerprint_parser = subparsers.add_parser(
         "fingerprint-artifact",
@@ -5857,6 +6017,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--project",
         help="Repository root used to resolve completion evidence.",
     )
+    validate_plan_parser.add_argument("--historical", action="store_true")
 
     validate_design_brief_parser = subparsers.add_parser(
         "validate-design-brief",
@@ -5877,6 +6038,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Repository root used to validate Profile quality attributes.",
     )
     validate_decision_parser.add_argument("--require-accepted", action="store_true")
+    validate_decision_parser.add_argument("--historical", action="store_true")
+
+    history_parser = subparsers.add_parser(
+        "validate-history-anchors",
+        help="Require selector-source and reviewed implementation commits in HEAD.",
+    )
+    history_parser.add_argument("root", nargs="?", default=".")
+    history_parser.add_argument("--review")
 
     validate_acceptance_parser = subparsers.add_parser(
         "validate-risk-acceptances",
@@ -6127,19 +6296,35 @@ def run(args: argparse.Namespace) -> int:
                 rule_pack_ids=profile["project"]["rule_packs"],
                 strict_trust=True,
                 repository_root=project_root,
+                require_current_selection=not args.historical,
             )
         else:
             validate_review(Path(args.path).resolve())
         print("Architecture review is valid.")
         return 0
     if args.command == "validate-knowledge-selection":
+        if args.read_only and args.require_current_runtime:
+            raise ArchitectureError(
+                "--read-only and --require-current-runtime are mutually exclusive"
+            )
         validate_knowledge_selection_artifact(
             Path(args.path).resolve(),
             facts_path=Path(args.facts).resolve() if args.facts else None,
             profile_path=Path(args.profile).resolve() if args.profile else None,
             require_trusted_runtime=not args.read_only,
+            require_current_runtime=args.require_current_runtime,
         )
         print("Knowledge selection is valid.")
+        return 0
+    if args.command == "validate-knowledge-context":
+        validate_knowledge_context_artifact(
+            Path(args.path).resolve(),
+            Path(args.selection).resolve(),
+            facts_path=Path(args.facts).resolve() if args.facts else None,
+            profile_path=Path(args.profile).resolve() if args.profile else None,
+            require_current_runtime=not args.historical,
+        )
+        print("Knowledge context is valid and exactly matches its Selection.")
         return 0
     if args.command == "validate-governance-run":
         validate_governance_run(
@@ -6162,6 +6347,7 @@ def run(args: argparse.Namespace) -> int:
             rule_pack_ids=profile["project"]["rule_packs"],
             strict_trust=True,
             repository_root=project_root,
+            require_current_selection=not args.historical,
         )
         if (
             not args.allow_candidates
@@ -6225,6 +6411,7 @@ def run(args: argparse.Namespace) -> int:
             review_path=Path(args.review).resolve() if args.review else None,
             decision_path=Path(args.decision).resolve() if args.decision else None,
             repository_root=(Path(args.project).resolve() if args.project else None),
+            require_current_selection=not args.historical,
         )
         print("Architecture remediation plan is valid.")
         return 0
@@ -6241,8 +6428,16 @@ def run(args: argparse.Namespace) -> int:
             ),
             require_accepted=args.require_accepted,
             repository_root=(Path(args.project).resolve() if args.project else None),
+            require_current_selection=not args.historical,
         )
         print("Architecture decision is valid.")
+        return 0
+    if args.command == "validate-history-anchors":
+        result = validate_history_anchors(
+            Path(args.root),
+            Path(args.review) if args.review else None,
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
     if args.command == "validate-risk-acceptances":
         validate_risk_acceptances(Path(args.path).resolve())
@@ -6361,6 +6556,7 @@ def run(args: argparse.Namespace) -> int:
                 rule_pack_ids=profile["project"]["rule_packs"],
                 strict_trust=True,
                 repository_root=project_root,
+                require_current_selection=True,
             )
         else:
             design_brief_path = Path(args.design_brief)
@@ -6404,6 +6600,7 @@ def run(args: argparse.Namespace) -> int:
                 selection_path,
                 facts_path=selection_facts_path,
                 profile_path=project_root / ".architecture" / "profile.yaml",
+                require_current_runtime=True,
             )
             binding_result = {
                 "schema_version": ("1.3" if design_brief_path is not None else "1.2"),

@@ -85,6 +85,7 @@ Run:
 ```bash
 python3 scripts/validate_repository.py
 python3 resources/scripts/architecture_tool.py validate-project .
+python3 resources/scripts/architecture_tool.py validate-history-anchors .
 python3 resources/scripts/validate_knowledge.py
 python3 -m pytest
 python3 resources/scripts/architecture_tool.py gate --project . --stage change
@@ -101,6 +102,10 @@ python3 scripts/generate_sbom.py \
 
 The pull request should explain what each new test proves. A generated archive
 is local evidence and should not be committed.
+
+When a review or Selector Runtime binds source commits, preserve those commits
+with a Merge Commit. Squash/rebase merging invalidates the source ancestry and
+is rejected by `validate-history-anchors`.
 
 ## Pull request expectations
 

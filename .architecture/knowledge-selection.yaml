@@ -496,8 +496,8 @@ inputs:
   skill: project-architecture-audit
   task: Audit project architecture, plugin governance, test evidence, compatibility,
     quality, data ownership, and architecture decisions.
-  facts_sha256: 3a6e183e289d081f6f64ec722babe7339b44ca38f0f2fbaf5c563a352d2a2015
-  profile_sha256: de02338fd5830a8a9cf537adf1ec1343a59fd0474d02fa574631e11978e094ad
+  facts_sha256: f7aca0c8c3422a314c9acd104464e0299bd8167d38401f38a98e1e0dc8e86c30
+  profile_sha256: 986a492dfaa1a0a3abf96ccef5d44157985f6fad433c210b46e0a5ed59227379
 budget:
   maximum_entries: 16
   selected_entries: 15

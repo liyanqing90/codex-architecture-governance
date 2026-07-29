@@ -2194,7 +2194,9 @@ def validate_decision(
             )
             selection = validate_knowledge_selection_artifact(
                 selection_path,
-                facts_path=selection_facts_path,
+                facts_path=(
+                    None if allow_unverifiable_historical else selection_facts_path
+                ),
                 profile_path=(None if allow_unverifiable_historical else profile_path),
                 require_trusted_runtime=not allow_unverifiable_historical,
             )

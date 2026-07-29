@@ -1,33 +1,5 @@
 schema_version: '1.4'
 selection:
-- id: foundation.quality-attributes
-  version: 1.0.0
-  path: foundations/quality-attributes.md
-  sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680
-  kind: foundation
-  maturity: standard
-  priority: required
-  reasons:
-  - Required foundation or lens for project-architecture-audit.
-  - 'Task matches trigger(s): quality'
-- id: foundation.data-ownership
-  version: 1.0.0
-  path: foundations/data-ownership.md
-  sha256: 260f240ec9782f5a42a68481652912532cfcd6a0b07fdc5366d44388cc3d0204
-  kind: foundation
-  maturity: standard
-  priority: required
-  reasons:
-  - Required foundation or lens for project-architecture-audit.
-- id: foundation.evidence-reasoning
-  version: 1.0.0
-  path: foundations/evidence-reasoning.md
-  sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f
-  kind: foundation
-  maturity: standard
-  priority: required
-  reasons:
-  - Required foundation or lens for project-architecture-audit.
 - id: foundation.proportional-design
   version: 1.0.0
   path: foundations/proportional-design.md
@@ -36,16 +8,49 @@ selection:
   maturity: standard
   priority: required
   reasons:
-  - Required foundation or lens for project-architecture-audit.
-- id: foundation.system-boundaries
+  - Explicit caller include.
+  - 'Non-Golden exception: skill-required contract dependency.'
+  - Required foundation or lens for architecture-solution-advisor.
+- id: migration.layered-monolith-to-modular
   version: 1.0.0
-  path: foundations/system-boundaries.md
-  sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db
-  kind: foundation
+  path: migration-guides/layered-monolith-to-modular.md
+  sha256: 3017c377c06e2d19654ccf0b07f6431a1dfb5854e135ea8c4ec58117aab64bb9
+  kind: migration-guide
   maturity: standard
   priority: required
   reasons:
-  - Required foundation or lens for project-architecture-audit.
+  - Explicit caller include.
+  - 'Non-Golden exception: explicit caller include.'
+- id: style.microservices
+  version: 1.0.0
+  path: architecture-styles/microservices.md
+  sha256: 0533dbcda24b99313c8fe8fccd64ea2ce08bd020e60571ad561c04a800ececf6
+  kind: architecture-style
+  maturity: standard
+  priority: required
+  reasons:
+  - Explicit caller include.
+  - 'Non-Golden exception: explicit caller include.'
+- id: style.modular-monolith
+  version: 1.0.0
+  path: architecture-styles/modular-monolith.md
+  sha256: 3f97c548665d8e6c4159c5f6ecee4a5d099a2ac4def69fba2b0a5d6d6703c3c0
+  kind: architecture-style
+  maturity: standard
+  priority: required
+  reasons:
+  - Explicit caller include.
+  - 'Non-Golden exception: explicit caller include.'
+- id: technology.import-linter
+  version: 1.0.0
+  path: technology-profiles/import-linter.md
+  sha256: 8a1dd4ac1887df7f0236750899809449062448196851b76a86e3bd9979eb17ee
+  kind: technology-profile
+  maturity: standard
+  priority: required
+  reasons:
+  - Explicit caller include.
+  - 'Non-Golden exception: explicit caller include.'
 - id: domain.plugin-platform
   version: 1.0.0
   path: domains/plugin-platform/overview.md
@@ -54,7 +59,50 @@ selection:
   maturity: standard
   priority: required
   reasons:
+  - 'Decision intent matches: plugin-runtime-topology.'
+  - 'Non-Golden exception: exact decision-intent match.'
   - Project profile or detected facts require plugin-platform.
+- id: foundation.evolutionary-architecture
+  version: 1.0.0
+  path: foundations/evolutionary-architecture.md
+  sha256: 6f04262de0936a1cffca25b6cadf5e2b0e4b8e7aa6724292ba1d9fd314413f3f
+  kind: foundation
+  maturity: standard
+  priority: required
+  reasons:
+  - 'Non-Golden exception: skill-required contract dependency.'
+  - Required foundation or lens for architecture-solution-advisor.
+  - 'Task matches trigger(s): migration'
+- id: foundation.quality-attributes
+  version: 1.0.0
+  path: foundations/quality-attributes.md
+  sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680
+  kind: foundation
+  maturity: standard
+  priority: required
+  reasons:
+  - 'Non-Golden exception: skill-required contract dependency.'
+  - Required foundation or lens for architecture-solution-advisor.
+- id: foundation.technology-selection
+  version: 1.0.0
+  path: foundations/technology-selection.md
+  sha256: 183032d368331cd7a3c47988a8f042be627dd5fd1104596d76516951ea0f5948
+  kind: foundation
+  maturity: standard
+  priority: required
+  reasons:
+  - 'Non-Golden exception: skill-required contract dependency.'
+  - Required foundation or lens for architecture-solution-advisor.
+- id: foundation.tradeoff-analysis
+  version: 1.0.0
+  path: foundations/tradeoff-analysis.md
+  sha256: 058c9756ba4d9306f42e0fb49365aff3564f3545e103c05812040ce2c9f8b9d5
+  kind: foundation
+  maturity: standard
+  priority: required
+  reasons:
+  - 'Non-Golden exception: skill-required contract dependency.'
+  - Required foundation or lens for architecture-solution-advisor.
 - id: domain.test-automation-platform
   version: 1.0.0
   path: domains/test-automation-platform/overview.md
@@ -63,23 +111,53 @@ selection:
   maturity: standard
   priority: required
   reasons:
+  - 'Non-Golden exception: profile-required domain has no declared Golden replacement.'
   - Project profile or detected facts require test-automation-platform.
-- id: foundation.compatibility
+- id: style.plugin-architecture
   version: 1.0.0
-  path: foundations/compatibility.md
-  sha256: 17d8e8c8557969246fe2e9a62e8a645aeac171c9c9d2cbeb5d0bdfc27e51330b
-  kind: foundation
+  path: architecture-styles/plugin-architecture.md
+  sha256: 9d72e896b0154e8ee979474c6d47579889705c751a32a172f4b1b72bdef13a8a
+  kind: architecture-style
   maturity: standard
+  priority: required
+  reasons:
+  - 'Decision intent matches: plugin-runtime-topology.'
+  - 'Non-Golden exception: exact decision-intent match.'
+- id: decision.optimistic-vs-pessimistic-update
+  version: 2.0.0
+  path: decision-guides/optimistic-vs-pessimistic-update.md
+  sha256: 935e92047bb3a9ce3b4ba8484b5cecc28c5c981a1c61453aff31bb892854ff64
+  kind: decision-guide
+  maturity: golden
   priority: recommended
   reasons:
-  - 'Task matches trigger(s): compatibility'
+  - 'Task matches trigger(s): rollback'
+- id: decision.state-management
+  version: 2.0.0
+  path: decision-guides/state-management.md
+  sha256: 486710b4fc5f052821b04c3706c133dac7cd25f6965b8fcf23d9faf2764baa66
+  kind: decision-guide
+  maturity: golden
+  priority: optional
+  reasons:
+  - One-hop relation from decision.optimistic-vs-pessimistic-update.
+- id: decision.local-first-vs-server-first
+  version: 2.0.0
+  path: decision-guides/local-first-vs-server-first.md
+  sha256: e240200929e13e48276dc33d036e5f2547c00911b712a9a45fe2f2a0012540c8
+  kind: decision-guide
+  maturity: golden
+  priority: optional
+  reasons:
+  - One-hop relation from decision.optimistic-vs-pessimistic-update.
 excluded:
 - id: anti-pattern.cache-without-invalidation
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: anti-pattern.distributed-monolith
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: anti-pattern.event-sourcing-for-crud
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Architecture solution advisor defaults to Golden discretionary knowledge;
+    this standard entry has no explicit exception.
 - id: anti-pattern.multi-agent-for-workflow
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: anti-pattern.premature-generic-platform
@@ -89,7 +167,7 @@ excluded:
 - id: anti-pattern.redis-everywhere
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: anti-pattern.repository-layer-everywhere
-  reason: Explicit caller exclusion.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: anti-pattern.shared-database-microservices
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: anti-pattern.websocket-for-rare-updates
@@ -107,30 +185,26 @@ excluded:
 - id: case-study.sse-task-progress
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.agent-orchestration-selection
-  reason: Explicit caller exclusion.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.build-vs-adopt
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.cache-strategy
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.client-data-model-selection
-  reason: Explicit caller exclusion.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.data-loading-and-refresh
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.data-store-selection
-  reason: Explicit caller exclusion.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.database-selection
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.integration-style-selection
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.layered-vs-modular-monolith
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: decision.local-first-vs-server-first
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.message-system-selection
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.monolith-vs-microservices
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: decision.optimistic-vs-pessimistic-update
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.polling-vs-sse-vs-websocket
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
@@ -143,8 +217,6 @@ excluded:
 - id: decision.single-agent-vs-multi-agent
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.ssr-vs-csr-vs-ssg
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: decision.state-management
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.sync-vs-async
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
@@ -188,8 +260,14 @@ excluded:
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.azure-well-architected
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: foundation.evolutionary-architecture
+- id: foundation.compatibility
+  reason: Architecture solution advisor defaults to Golden discretionary knowledge;
+    this standard entry has no explicit exception.
+- id: foundation.data-ownership
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
+- id: foundation.evidence-reasoning
+  reason: Architecture solution advisor defaults to Golden discretionary knowledge;
+    this standard entry has no explicit exception.
 - id: foundation.flexibility
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.functional-suitability
@@ -203,39 +281,41 @@ excluded:
 - id: foundation.performance-efficiency
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.quality-attribute-scenario
-  reason: Relevant but outside the configured foundation context budget.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.reliability
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.safety
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.security
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: foundation.technology-selection
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: foundation.tradeoff-analysis
+- id: foundation.system-boundaries
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.batch-to-incremental-stream
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.cache-introduction
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.client-only-to-hybrid-rendering
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Architecture solution advisor defaults to Golden discretionary knowledge;
+    this standard entry has no explicit exception.
 - id: migration.direct-write-to-outbox
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Architecture solution advisor defaults to Golden discretionary knowledge;
+    this standard entry has no explicit exception.
 - id: migration.expand-contract-migration
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Architecture solution advisor defaults to Golden discretionary knowledge;
+    this standard entry has no explicit exception.
 - id: migration.internal-extension-to-plugin
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: migration.layered-monolith-to-modular
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.offset-to-cursor-pagination
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Architecture solution advisor defaults to Golden discretionary knowledge;
+    this standard entry has no explicit exception.
 - id: migration.polling-to-sse
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Architecture solution advisor defaults to Golden discretionary knowledge;
+    this standard entry has no explicit exception.
 - id: migration.queue-to-durable-workflow
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.server-first-to-offline-capable
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Architecture solution advisor defaults to Golden discretionary knowledge;
+    this standard entry has no explicit exception.
 - id: migration.server-first-to-offline-first
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.shared-database-to-owned-data
@@ -245,11 +325,13 @@ excluded:
 - id: migration.single-region-to-multi-region
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.strangler-migration
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Architecture solution advisor defaults to Golden discretionary knowledge;
+    this standard entry has no explicit exception.
 - id: migration.sync-to-event-integration
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.synchronous-to-background-job
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Architecture solution advisor defaults to Golden discretionary knowledge;
+    this standard entry has no explicit exception.
 - id: pattern.anti-corruption-layer
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.api-aggregation
@@ -275,7 +357,8 @@ excluded:
 - id: pattern.cursor-pagination
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.dead-letter-replay
-  reason: Explicit caller exclusion.
+  reason: Architecture solution advisor defaults to Golden discretionary knowledge;
+    this standard entry has no explicit exception.
 - id: pattern.expand-contract
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.feature-flag
@@ -356,17 +439,11 @@ excluded:
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.layered-monolith
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: style.microservices
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: style.modular-monolith
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.multi-tenant-saas
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.offline-first
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.pipe-and-filter
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: style.plugin-architecture
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.serverless
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
@@ -397,7 +474,7 @@ excluded:
 - id: technology.dapr-workflow
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.dependency-cruiser
-  reason: Explicit caller exclusion.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.django
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.docker
@@ -407,8 +484,6 @@ excluded:
 - id: technology.fastapi
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.google-workflows
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: technology.import-linter
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.kubernetes
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
@@ -469,50 +544,51 @@ excluded:
 - id: technology.vue
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 inputs:
-  skill: project-architecture-audit
-  task: Audit current architecture governance trust boundaries, compatibility, source
-    ancestry, compact Context validation, and quality gates.
+  skill: architecture-solution-advisor
+  task: Keep archived governance evidence readable while requiring current outcome
+    replay for new trusted chains; compare compatibility, trust, migration, rollback,
+    and Git history retention.
   facts_sha256: 3e6d32b19fc0f0aa4a86d92ee29b6927e17bfb0b2badda1d74d927f093a823f7
   maintainer_mode: false
-  includes: []
-  excludes:
-  - anti-pattern.repository-layer-everywhere
-  - decision.agent-orchestration-selection
-  - decision.client-data-model-selection
-  - decision.data-store-selection
-  - pattern.dead-letter-replay
-  - technology.dependency-cruiser
-  decision_intents: []
+  includes:
+  - foundation.proportional-design
+  - migration.layered-monolith-to-modular
+  - style.microservices
+  - style.modular-monolith
+  - technology.import-linter
+  excludes: []
+  decision_intents:
+  - plugin-runtime-topology
   project_commit: cf254fafe51844275a8d2dd8e622a8e850703f03
   profile_sha256: 461d26a83ab20bf46a39fc250b06f3ebba897bc00b488aee39c3d0b4fb740eb6
 budget:
-  maximum_entries: 24
-  selected_entries: 8
+  maximum_entries: 16
+  selected_entries: 15
   per_kind:
     foundation:
       maximum_entries: 6
-      selected_entries: 6
+      selected_entries: 5
     domain:
       maximum_entries: 10
       selected_entries: 2
     decision-guide:
       maximum_entries: 3
-      selected_entries: 0
+      selected_entries: 3
     architecture-style:
-      maximum_entries: 2
-      selected_entries: 0
+      maximum_entries: 3
+      selected_entries: 3
     pattern:
       maximum_entries: 2
       selected_entries: 0
     technology-profile:
       maximum_entries: 3
-      selected_entries: 0
+      selected_entries: 1
     reference-architecture:
       maximum_entries: 1
       selected_entries: 0
     migration-guide:
       maximum_entries: 1
-      selected_entries: 0
+      selected_entries: 1
     anti-pattern:
       maximum_entries: 1
       selected_entries: 0
@@ -554,4 +630,4 @@ selector:
   knowledge_tree_sha256: ea5888ea3e93fe76444d0aea171f6e9182878498e3909eaf74a940e69e5423be
   selection_policy_version: '1.0'
   replay_mode: creation-time-lock
-result_sha256: a5cb96d270087a08ed99120f81d47934994ac4cebf3a9c388c0748bcd53cc9b3
+result_sha256: cff9bdb5c3914c31bd439ca04a8d5b1735326b3150ed0d553162b0d000734b20

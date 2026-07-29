@@ -64,6 +64,15 @@ selection:
   priority: required
   reasons:
   - Project profile or detected facts require test-automation-platform.
+- id: anti-pattern.event-sourcing-for-crud
+  version: 1.0.0
+  path: anti-patterns/event-sourcing-for-crud.md
+  sha256: 3e5df46fcfddb879c83002933514c0d9a865fca084bc6a177e6a5881ed89e48d
+  kind: anti-pattern
+  maturity: standard
+  priority: recommended
+  reasons:
+  - 'Task matches trigger(s): history'
 - id: foundation.compatibility
   version: 1.0.0
   path: foundations/compatibility.md
@@ -77,8 +86,6 @@ excluded:
 - id: anti-pattern.cache-without-invalidation
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: anti-pattern.distributed-monolith
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: anti-pattern.event-sourcing-for-crud
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: anti-pattern.multi-agent-for-workflow
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
@@ -470,9 +477,9 @@ excluded:
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 inputs:
   skill: project-architecture-audit
-  task: Audit current architecture governance trust boundaries, compatibility, source
-    ancestry, compact Context validation, and quality gates.
-  facts_sha256: 3e6d32b19fc0f0aa4a86d92ee29b6927e17bfb0b2badda1d74d927f093a823f7
+  task: Audit outcome provenance replay, compact Context consumption validation, Git
+    history retention, compatibility, and quality gates.
+  facts_sha256: 5370b7cd413b46730156cca878cdfd1dd6139b8a60ff1d29d8c9cf3eb1438383
   maintainer_mode: false
   includes: []
   excludes:
@@ -484,10 +491,10 @@ inputs:
   - technology.dependency-cruiser
   decision_intents: []
   project_commit: cf254fafe51844275a8d2dd8e622a8e850703f03
-  profile_sha256: 461d26a83ab20bf46a39fc250b06f3ebba897bc00b488aee39c3d0b4fb740eb6
+  profile_sha256: d8fb7ba29e6507ca293828e8cf5049506f25e3e5a6d17a162564b3b9d4c5104a
 budget:
   maximum_entries: 24
-  selected_entries: 8
+  selected_entries: 9
   per_kind:
     foundation:
       maximum_entries: 6
@@ -515,7 +522,7 @@ budget:
       selected_entries: 0
     anti-pattern:
       maximum_entries: 1
-      selected_entries: 0
+      selected_entries: 1
     case-study:
       maximum_entries: 1
       selected_entries: 0
@@ -554,4 +561,4 @@ selector:
   knowledge_tree_sha256: ea5888ea3e93fe76444d0aea171f6e9182878498e3909eaf74a940e69e5423be
   selection_policy_version: '1.0'
   replay_mode: creation-time-lock
-result_sha256: a5cb96d270087a08ed99120f81d47934994ac4cebf3a9c388c0748bcd53cc9b3
+result_sha256: 8830088d548f4f86caab0df7716a816e33e155aaea7f58413e4f038f13b987e0

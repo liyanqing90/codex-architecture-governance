@@ -1,6 +1,6 @@
 schema_version: '1.0'
-selection_lock_sha256: 938186cc28698b7d8541b42fe4bdb5726e3fbb3f7f82df63399a4d937de3d614
-selection_result_sha256: a5cb96d270087a08ed99120f81d47934994ac4cebf3a9c388c0748bcd53cc9b3
+selection_lock_sha256: 435bba84f0fbdfac07d4bb428354704d55e84c9b9366caefd419315d60c5da89
+selection_result_sha256: 8830088d548f4f86caab0df7716a816e33e155aaea7f58413e4f038f13b987e0
 selected:
 - id: foundation.quality-attributes
   path: foundations/quality-attributes.md
@@ -45,6 +45,12 @@ selected:
   priority: required
   reasons:
   - Project profile or detected facts require test-automation-platform.
+- id: anti-pattern.event-sourcing-for-crud
+  path: anti-patterns/event-sourcing-for-crud.md
+  sha256: 3e5df46fcfddb879c83002933514c0d9a865fca084bc6a177e6a5881ed89e48d
+  priority: recommended
+  reasons:
+  - 'Task matches trigger(s): history'
 - id: foundation.compatibility
   path: foundations/compatibility.md
   sha256: 17d8e8c8557969246fe2e9a62e8a645aeac171c9c9d2cbeb5d0bdfc27e51330b

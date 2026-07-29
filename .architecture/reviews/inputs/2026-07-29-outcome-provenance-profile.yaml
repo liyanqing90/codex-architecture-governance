@@ -110,14 +110,15 @@ project:
   - plugin-platform
   - test-automation-platform
   repository_facts:
-    path: .architecture/repository-facts.yaml
-    sha256: 3e6d32b19fc0f0aa4a86d92ee29b6927e17bfb0b2badda1d74d927f093a823f7
+    path: .architecture/reviews/inputs/2026-07-29-outcome-provenance-repository-facts.yaml
+    sha256: 5370b7cd413b46730156cca878cdfd1dd6139b8a60ff1d29d8c9cf3eb1438383
   profile_sources:
     detected:
-    - .architecture/repository-facts.yaml
+    - .architecture/reviews/inputs/2026-07-29-outcome-provenance-repository-facts.yaml
     declared:
     - .architecture/constraints.md
     - .architecture/critical-flows.md
+    - /Users/tangyuan/Documents/Codex/2026-07-28/doc-and-modernize-acquire-codebase-knowledge/outputs/codex-architecture-governance/.architecture/profile.yaml
     inferred:
     - inference: Python is the governance runtime; Swift occurs only in a mobile benchmark
         fixture.

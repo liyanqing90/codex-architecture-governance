@@ -3,8 +3,8 @@ decision:
   id: ADR-CAG-008
   decision_kind: remediation
   source_review: codex-architecture-governance-20260729-runtime-manifest-verified
-  source_review_sha256: e7b5330a55dc8013e04084785f71bb529abd72767047f87dba0752e2ca93630f
-  decided_at: '2026-07-29T12:46:00+00:00'
+  source_review_sha256: 31b57bf768c1c4dd6fe18c1e8d664aca0d44580a29f347068d8008a09fa9301e
+  decided_at: '2026-07-29T12:49:00+00:00'
   decision_makers:
   - architecture-owner
   status: accepted

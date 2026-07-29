@@ -26,7 +26,7 @@ review:
     sha256: 23efb3c02cd9e4e2ec2cb83d1505b30dd780aff2a9ac7157506b361cb783c5aa
   scope_manifest:
   - .
-  performed_at: '2026-07-29T12:44:00+00:00'
+  performed_at: '2026-07-29T12:47:00+00:00'
   verification_state: candidates
   reviewers:
   - architecture-auditor
@@ -492,15 +492,16 @@ findings:
   status: open
   evidence:
   - type: config
-    location: .architecture/profile.yaml:95
+    location: .architecture/constraints.md:6
     repository: codex-architecture-governance
     commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
-    path: .architecture/profile.yaml
-    line_start: 95
-    line_end: 125
-    blob_sha: 929ac26858fbd89cd6fb1e7b3225b92466357c4e
-    observation: The active Profile requires only plugin-platform and test-automation-platform
-      and explains their declared sources.
+    path: .architecture/constraints.md
+    line_start: 6
+    line_end: 16
+    blob_sha: cf3307418bc420336b4db8295adb178857f64bd8
+    observation: The declared product boundary is the eight public architecture governance
+      workflows, including verification and deterministic gating, rather than generic
+      storage, API, or cloud infrastructure.
     source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     freshness: current
   - type: test
@@ -565,15 +566,15 @@ findings:
   - project-profile
   - domain-routing
   - relevance
-  evidence_fingerprint: 9fb5ce00e182ac3f5d22f28e36a5a4445d172f83f3cc4d9df71aa99a32f1f585
-  fingerprint: c492cbdef9784e23849c1e1e4c74b4920ab3594d83099bb9b40cd26ca390e8fc
+  evidence_fingerprint: 70f34e241af258d8839987de1ac57f21e9a02d9a92c42afd7595af667dd6a979
+  fingerprint: 1f2581277c18adef97ce1736ef9f4f21310811c61119060878d5741a0ec7f81b
 evidence_sources:
 - resources/scripts/select_knowledge.py
 - resources/scripts/architecture_tool.py
 - resources/schemas/knowledge-selection.schema.json
 - tests/test_architecture_tool.py
 - tests/test_target_architecture.py
-- .architecture/profile.yaml
+- .architecture/constraints.md
 - skills/project-architecture-audit/SKILL.md
 limitations:
 - No new external-model A/B/C quality, token, cost, or tool-call outcome is asserted.

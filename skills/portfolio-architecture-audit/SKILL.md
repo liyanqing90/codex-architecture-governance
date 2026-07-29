@@ -37,13 +37,15 @@ Populate the explicit project registry and catalogs, then run `validate-portfoli
 1. Resolve every registered repository, profile, commit, owner, lifecycle state, and declared dependency. Record inaccessible projects.
 2. For each accessible registered repository, run `inspect-repository` and
    `select-knowledge --skill portfolio-architecture-audit` against that
-   repository's Profile. Persist facts and selections inside the registered
-   project only when the user authorized project writes; otherwise use a
-   temporary directory and record hashes in the portfolio evidence. Do not
-   derive one project's stack from another project's files.
-3. Read the selected Markdown entries completely, union them by canonical ID,
-   and retain every per-project inclusion and exclusion reason. Do not load
-   the whole knowledge tree.
+   repository's Profile with a compact `--context-output`. Persist facts,
+   selection locks, and context indexes inside the registered project only when
+   the user authorized project writes; otherwise use a temporary directory and
+   record hashes in the portfolio evidence. Do not derive one project's stack
+   from another project's files.
+3. Read each compact context index and its selected Markdown entries, union
+   them by canonical ID, and retain every per-project inclusion reason. Keep
+   exclusions in the machine lock rather than model context. Do not load the
+   whole knowledge tree.
 4. Normalize a portfolio inventory:
    - business and platform capabilities;
    - identity, permissions, notifications, scheduling, AI gateways, MCP/Skill/Agent runtimes, design systems, configuration, telemetry, and deployment;

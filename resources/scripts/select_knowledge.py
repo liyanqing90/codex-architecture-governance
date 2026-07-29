@@ -17,8 +17,24 @@ from jsonschema import Draft202012Validator, FormatChecker
 from knowledge_model import KnowledgeEntry, validate_knowledge_tree
 
 RESOURCE_ROOT = Path(__file__).resolve().parent.parent
+PLUGIN_ROOT = RESOURCE_ROOT.parent
 KNOWLEDGE_ROOT = RESOURCE_ROOT / "knowledge"
 SCHEMA_ROOT = RESOURCE_ROOT / "schemas"
+PLUGIN_MANIFEST_PATH = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
+SELECTOR_SOURCE_PATH = RESOURCE_ROOT / "selector-source.json"
+SELECTOR_IMPLEMENTATION_PATHS = (
+    "requirements-runtime.lock",
+    "resources/scripts/select_knowledge.py",
+    "resources/scripts/build_project_profile.py",
+    "resources/scripts/knowledge_model.py",
+    "resources/schemas/repository-facts.schema.json",
+    "resources/schemas/project-profile.schema.json",
+    "resources/schemas/knowledge-entry.schema.json",
+    "resources/schemas/knowledge-manifest.schema.json",
+    "resources/schemas/knowledge-context.schema.json",
+    "resources/schemas/knowledge-selection.schema.json",
+    "resources/schemas/selector-source.schema.json",
+)
 CANONICAL_DOMAIN_ID_MAP = {
     "ai-agent": "domain.ai-agent",
     "backend-api": "domain.backend-api",
@@ -138,7 +154,7 @@ DEFAULT_KIND_BUDGETS = {
     "anti-pattern": 1,
     "case-study": 1,
 }
-SELECTION_CONTRACT_VERSION = "1.0"
+SELECTION_CONTRACT_VERSION = "1.1"
 SELECTION_POLICY_VERSION = "1.0"
 DECISION_INTENT_ENTRIES = {
     "data-authority-topology": ("decision.local-first-vs-server-first",),
@@ -182,28 +198,84 @@ def canonical_sha256(value: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def knowledge_tree_sha256(entries: dict[str, KnowledgeEntry]) -> str:
-    return canonical_sha256(
-        [
-            {
-                "id": entry_id,
-                "version": entry.metadata["version"],
-                "path": entry.path.relative_to(KNOWLEDGE_ROOT).as_posix(),
-                "sha256": entry.sha256,
-                "kind": entry.metadata["kind"],
-                "maturity": entry.metadata.get("maturity", "standard"),
-            }
-            for entry_id, entry in sorted(entries.items())
-        ]
+def file_tree_manifest(root: Path) -> list[dict[str, str]]:
+    return [
+        {
+            "path": path.relative_to(root).as_posix(),
+            "sha256": file_sha256(path),
+        }
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    ]
+
+
+def knowledge_tree_sha256() -> str:
+    """Hash every bundled Knowledge file, not only parsed entry metadata."""
+    return canonical_sha256(file_tree_manifest(KNOWLEDGE_ROOT))
+
+
+def selector_runtime_source() -> dict[str, str]:
+    try:
+        source = json.loads(SELECTOR_SOURCE_PATH.read_text(encoding="utf-8"))
+        schema = json.loads(
+            (SCHEMA_ROOT / "selector-source.schema.json").read_text(encoding="utf-8")
+        )
+    except FileNotFoundError as exc:
+        raise SelectionError(
+            f"Missing Selector source contract: {exc.filename}"
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise SelectionError(f"Invalid Selector source contract: {exc}") from exc
+    errors = list(
+        Draft202012Validator(
+            schema,
+            format_checker=FormatChecker(),
+        ).iter_errors(source)
     )
+    if errors:
+        raise SelectionError(f"Invalid Selector source contract: {errors[0].message}")
+    plugin = json.loads(PLUGIN_MANIFEST_PATH.read_text(encoding="utf-8"))
+    if (
+        source["repository"] != plugin["repository"]
+        or source["plugin_version"] != plugin["version"]
+    ):
+        raise SelectionError(
+            "Selector source repository/version does not match plugin.json"
+        )
+    return source
 
 
-def selector_provenance(entries: dict[str, KnowledgeEntry]) -> dict[str, str]:
+def selector_implementation_inputs() -> list[dict[str, str]]:
+    return [
+        {
+            "path": relative_path,
+            "sha256": file_sha256(PLUGIN_ROOT / relative_path),
+        }
+        for relative_path in SELECTOR_IMPLEMENTATION_PATHS
+    ]
+
+
+def selector_provenance(
+    entries: dict[str, KnowledgeEntry] | None = None,
+) -> dict[str, Any]:
+    # The validated entries parameter keeps this public helper compatible with
+    # 1.3 callers. The 1.1 contract hashes raw Knowledge bytes so catalog and
+    # manifest changes cannot hide behind unchanged parsed metadata.
+    del entries
+    source = selector_runtime_source()
+    implementation_inputs = selector_implementation_inputs()
     return {
         "contract_version": SELECTION_CONTRACT_VERSION,
-        "implementation_sha256": file_sha256(Path(__file__).resolve()),
+        "source": {
+            "repository": source["repository"],
+            "commit": source["commit"],
+            "plugin_version": source["plugin_version"],
+            "plugin_manifest_sha256": file_sha256(PLUGIN_MANIFEST_PATH),
+        },
+        "implementation_inputs": implementation_inputs,
+        "implementation_bundle_sha256": canonical_sha256(implementation_inputs),
         "knowledge_manifest_sha256": file_sha256(KNOWLEDGE_ROOT / "manifest.yaml"),
-        "knowledge_tree_sha256": knowledge_tree_sha256(entries),
+        "knowledge_tree_sha256": knowledge_tree_sha256(),
         "selection_policy_version": SELECTION_POLICY_VERSION,
         "replay_mode": "creation-time-lock",
     }
@@ -213,6 +285,45 @@ def selection_result_sha256(selection: dict[str, Any]) -> str:
     return canonical_sha256(
         {key: value for key, value in selection.items() if key != "result_sha256"}
     )
+
+
+def knowledge_context(
+    selection: dict[str, Any],
+    *,
+    selection_lock_sha256: str,
+) -> dict[str, Any]:
+    context = {
+        "schema_version": "1.0",
+        "selection_lock_sha256": selection_lock_sha256,
+        "selection_result_sha256": selection.get(
+            "result_sha256",
+            selection_result_sha256(selection),
+        ),
+        "selected": [
+            {
+                "id": item["id"],
+                "path": item["path"],
+                "sha256": item["sha256"],
+                "priority": item["priority"],
+                "reasons": list(item["reasons"]),
+            }
+            for item in selection["selection"]
+        ],
+    }
+    schema = json.loads(
+        (SCHEMA_ROOT / "knowledge-context.schema.json").read_text(encoding="utf-8")
+    )
+    errors = list(
+        Draft202012Validator(
+            schema,
+            format_checker=FormatChecker(),
+        ).iter_errors(context)
+    )
+    if errors:
+        raise SelectionError(
+            f"Generated Knowledge context is invalid: {errors[0].message}"
+        )
+    return context
 
 
 def normalized_tokens(value: str) -> set[str]:
@@ -687,7 +798,7 @@ def select_knowledge(
             )
         excluded_records.append({"id": entry_id, "reason": reason})
     result = {
-        "schema_version": "1.3",
+        "schema_version": "1.4",
         "selection": selected,
         "excluded": excluded_records,
         "inputs": {
@@ -698,7 +809,7 @@ def select_knowledge(
             "includes": sorted(includes),
             "excludes": sorted(excludes),
             "decision_intents": decision_intents,
-            "source_commit": str(facts.get("repository", {}).get("commit", "unknown")),
+            "project_commit": str(facts.get("repository", {}).get("commit", "unknown")),
         },
         "budget": {
             "maximum_entries": maximum_entries,
@@ -766,6 +877,11 @@ def main() -> int:
         ),
     )
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--context-output",
+        type=Path,
+        help="Also write the compact model-facing selected-Knowledge sidecar.",
+    )
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
     try:
@@ -791,11 +907,34 @@ def main() -> int:
             raise SelectionError(
                 f"Refusing to overwrite existing output without --force: {output}"
             )
+        context_output = (
+            args.context_output.expanduser().resolve()
+            if args.context_output is not None
+            else None
+        )
+        if context_output is not None and context_output.exists() and not args.force:
+            raise SelectionError(
+                "Refusing to overwrite existing context output without --force: "
+                f"{context_output}"
+            )
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(
             yaml.safe_dump(result, sort_keys=False, allow_unicode=True),
             encoding="utf-8",
         )
+        if context_output is not None:
+            context_output.parent.mkdir(parents=True, exist_ok=True)
+            context_output.write_text(
+                yaml.safe_dump(
+                    knowledge_context(
+                        result,
+                        selection_lock_sha256=file_sha256(output),
+                    ),
+                    sort_keys=False,
+                    allow_unicode=True,
+                ),
+                encoding="utf-8",
+            )
     except (SelectionError, OSError) as exc:
         print(f"Knowledge selection failed: {exc}", file=sys.stderr)
         return 2
@@ -803,6 +942,8 @@ def main() -> int:
         f"Knowledge selection written: {args.output.resolve()} "
         f"({result['budget']['selected_entries']} entries)"
     )
+    if args.context_output is not None:
+        print(f"Knowledge context written: {args.context_output.resolve()}")
     return 0
 
 

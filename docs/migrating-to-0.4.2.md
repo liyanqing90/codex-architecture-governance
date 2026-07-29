@@ -47,7 +47,8 @@ python3 resources/scripts/architecture_tool.py select-knowledge \
   --profile .architecture/profile-current.yaml \
   --task "Current architecture audit" \
   --skill project-architecture-audit \
-  --output .architecture/knowledge-selection-current.yaml
+  --output .architecture/knowledge-selection-current.yaml \
+  --context-output .architecture/knowledge-context-current.yaml
 ```
 
 Bind those new inputs in a new candidate and independently verified Review.
@@ -56,11 +57,13 @@ all-facts-contribute behavior for compatibility.
 
 ## Use bounded Knowledge selections
 
-New selections use schema `1.3` and record every selected entry's `kind` and
+New selections use schema `1.4` and record every selected entry's `kind` and
 `maturity`, a total budget, a budget for all ten Knowledge kinds, the source
-commit, Selector implementation hash, Knowledge manifest/tree hashes,
-selection-policy version, and canonical result hash. Set a tighter cap without
-changing unrelated kinds:
+project commit, plugin source commit/version, the complete Selector Runtime
+Input Manifest, Knowledge manifest/tree hashes, selection-policy version, and
+canonical result hash. The two commits are intentionally separate when the
+plugin audits another repository. Set a tighter cap without changing unrelated
+kinds:
 
 ```bash
 python3 resources/scripts/architecture_tool.py select-knowledge \
@@ -73,7 +76,8 @@ python3 resources/scripts/architecture_tool.py select-knowledge \
   --kind-budget domain=3 \
   --kind-budget decision-guide=3 \
   --max-entries 14 \
-  --output .architecture/decision-knowledge-selection.yaml
+  --output .architecture/decision-knowledge-selection.yaml \
+  --context-output .architecture/decision-knowledge-context.yaml
 ```
 
 The Solution Advisor defaults discretionary context to Golden Knowledge.
@@ -85,11 +89,12 @@ also an auditable exception. `--maintainer` is for curation/maintenance
 workflows, not ordinary decision work.
 
 Schema `1.0`, `1.1`, and `1.2` selections remain readable as historical
-snapshots. Schema `1.3` selections replay deterministically only when their
-recorded Selector, Knowledge, and policy provenance equals the installed
-runtime. After any of those components evolves, validation uses the
-creation-time lock and does not let the new algorithm reinterpret the old
-selection:
+snapshots. Schema `1.3` remains readable but has no source anchor and cannot
+enter a new trusted Review, Decision, or Gate after the runtime changes.
+Schema `1.4` replays only when its complete Runtime Manifest equals the
+installed runtime. Otherwise the validator resolves the recorded plugin commit
+from the current checkout or `CAG_SELECTOR_SOURCE_ROOT`, verifies every
+historical Git blob, and never executes old code:
 
 ```bash
 python3 resources/scripts/architecture_tool.py validate-knowledge-selection \
@@ -97,6 +102,11 @@ python3 resources/scripts/architecture_tool.py validate-knowledge-selection \
   --facts .architecture/repository-facts-current.yaml \
   --profile .architecture/profile-current.yaml
 ```
+
+If the recorded source is unavailable, add `--read-only` only for historical
+inspection. Recreate and independently verify a new 1.4 chain before trusted
+enforcement. Skills read the compact `knowledge-context*.yaml`; scripts,
+Reviews, Decisions, and Gates continue to bind the full selection lock.
 
 Use `--decision-intent plugin-runtime-topology` for hosted-versus-local plugin
 execution. Use `--decision-intent data-authority-topology` only for client data

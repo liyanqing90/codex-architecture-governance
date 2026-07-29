@@ -1,4 +1,4 @@
-schema_version: "1.3"
+schema_version: "1.4"
 selection:
   - id: foundation.evidence-reasoning
     version: "1.0.0"
@@ -21,7 +21,7 @@ inputs:
   includes: []
   excludes: []
   decision_intents: []
-  source_commit: unknown
+  project_commit: unknown
 budget:
   maximum_entries: 24
   selected_entries: 1
@@ -37,8 +37,25 @@ budget:
     anti-pattern: {maximum_entries: 1, selected_entries: 0}
     case-study: {maximum_entries: 1, selected_entries: 0}
 selector:
-  contract_version: "1.0"
-  implementation_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  contract_version: "1.1"
+  source:
+    repository: https://github.com/liyanqing90/codex-architecture-governance
+    commit: "0000000000000000000000000000000000000000"
+    plugin_version: "0.4.2"
+    plugin_manifest_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  implementation_inputs:
+    - {path: requirements-runtime.lock, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/scripts/select_knowledge.py, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/scripts/build_project_profile.py, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/scripts/knowledge_model.py, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/repository-facts.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/project-profile.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/knowledge-entry.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/knowledge-manifest.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/knowledge-context.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/knowledge-selection.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+    - {path: resources/schemas/selector-source.schema.json, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+  implementation_bundle_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
   knowledge_manifest_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
   knowledge_tree_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
   selection_policy_version: "1.0"

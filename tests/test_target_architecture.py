@@ -481,7 +481,7 @@ setup(name="example", install_requires=RUNTIME_REQUIREMENTS)
             "required",
         )
         self.assertEqual(priorities["technology.fastapi"], "recommended")
-        self.assertEqual(selection["schema_version"], "1.3")
+        self.assertEqual(selection["schema_version"], "1.4")
         self.assertTrue(
             all({"kind", "maturity"}.issubset(item) for item in selection["selection"])
         )
@@ -677,11 +677,13 @@ setup(name="example", install_requires=RUNTIME_REQUIREMENTS)
         selected = {item["id"]: item["priority"] for item in selection["selection"]}
 
         self.assertEqual(selected["domain.plugin-platform"], "required")
-        self.assertEqual(selected["domain.data-platform"], "required")
         self.assertEqual(
             selected["domain.test-automation-platform"],
             "required",
         )
+        self.assertNotIn("domain.backend-api", selected)
+        self.assertNotIn("domain.data-platform", selected)
+        self.assertNotIn("domain.cloud-native-platform", selected)
         self.assertNotIn("reference.multi-tenant-knowledge-base", selected)
 
     def test_selector_expands_one_hop_as_optional_without_displacing_required(

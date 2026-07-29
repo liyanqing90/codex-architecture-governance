@@ -20,12 +20,15 @@ python3 ../../resources/scripts/architecture_tool.py select-knowledge \
   --profile <profile.yaml> \
   --task "<decision problem>" \
   --skill architecture-solution-advisor \
-  --output <repo>/.architecture/decision-knowledge-selection.yaml
+  --output <repo>/.architecture/decision-knowledge-selection.yaml \
+  --context-output <repo>/.architecture/decision-knowledge-context.yaml
 ```
 
-Read every selected Markdown entry. Every architecture style, pattern,
-technology, reference architecture, or migration cited by an option must be
-selected and SHA-256-bound.
+Read the compact context index and every selected Markdown entry. Do not place
+the full exclusion ledger in model context; scripts, Decisions, and Gates bind
+the complete lock. Every architecture style, pattern, technology, reference
+architecture, or migration cited by an option must be selected and
+SHA-256-bound.
 
 ## Create bindings
 

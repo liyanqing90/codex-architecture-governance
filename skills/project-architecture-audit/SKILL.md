@@ -76,11 +76,15 @@ python3 ../../resources/scripts/architecture_tool.py select-knowledge \
   --profile <profile.yaml> \
   --task "<current audit request>" \
   --skill project-architecture-audit \
-  --output <repo>/.architecture/knowledge-selection.yaml
+  --output <repo>/.architecture/knowledge-selection.yaml \
+  --context-output <repo>/.architecture/knowledge-context.yaml
 ```
 
-Read every selected entry completely. Do not load the full knowledge tree.
-Treat repository facts as observations, never as risk conclusions.
+Read `knowledge-context.yaml`, then read every Markdown path it selects
+completely. Do not load the full `knowledge-selection.yaml` exclusion ledger
+into model context; that lock is for scripts, Reviews, and Gates. Do not load
+the full knowledge tree. Treat repository facts as observations, never as risk
+conclusions.
 
 ### 2. Establish scope and provenance
 

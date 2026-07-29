@@ -30,7 +30,7 @@ The 0.3 evaluation sets have separate responsibilities:
 | Corpus | Proves |
 | --- | --- |
 | `routing.yaml` | Exact public Skill activation and negative boundaries |
-| `knowledge-selection.yaml` | Relevant inclusion, important exclusion, reasons, and budget |
+| `knowledge-selection.yaml` | Relevant inclusion, important exclusion, reasons, budget, runtime anchoring, and compact-context projection |
 | `decision-quality.yaml` | Quality-first comparison and prohibited shortcuts |
 | `false-positive.yaml` | Leads are not promoted without an invariant and failure path |
 | `artifact-validity.yaml` | Hash, fingerprint, coverage, and migration tampering fails |

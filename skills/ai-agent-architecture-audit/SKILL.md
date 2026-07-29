@@ -26,9 +26,12 @@ Load the project's profile, constraints, and critical flows. Use `project-archit
    a detected framework or dependency.
 2. Run `architecture_tool.py select-knowledge` with
    `--skill ai-agent-architecture-audit`, the exact task, repository facts, and
-   Profile. Persist the result as
-   `.architecture/knowledge-selection-ai-agent.yaml`, then read every selected
-   Markdown entry completely. Do not load unrelated packs.
+   Profile. Persist the full lock as
+   `.architecture/knowledge-selection-ai-agent.yaml` and pass
+   `--context-output .architecture/knowledge-context-ai-agent.yaml`. Read only
+   the compact context index and every Markdown path it selects; reserve the
+   full exclusion ledger for scripts, Reviews, and Gates. Do not load unrelated
+   packs.
 3. Draw the control path from user intent through orchestration, model calls, retrieval, tools, persisted state, human approval, and side effects.
 4. Separate deterministic services and policy enforcement from model judgment.
 5. Identify trust boundaries for user content, retrieved content, prompts, tools, credentials, memory, and model providers.

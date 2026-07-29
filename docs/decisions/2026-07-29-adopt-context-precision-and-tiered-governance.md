@@ -78,9 +78,13 @@ history and would not provide a new independent verification.
 
 - Test every observable non-product fact role and pruned vendor/generated
   tree against domain inference.
-- Bind schema 1.3 selections to the creation-time Selector, Knowledge tree,
-  policy, source commit, and canonical result; replay only against an identical
-  current runtime and reject tampered current or historical inputs.
+- Bind schema 1.4 selections to a source-anchored complete Selector Runtime
+  Input Manifest and keep the reviewed project commit distinct from the plugin
+  source commit. Replay only against an identical current runtime; otherwise
+  verify historical Git blobs without executing old code and reject
+  unreachable locks from trusted chains.
+- Give Skills a compact selected-only context sidecar while Reviews, Decisions,
+  and Gates retain the complete exclusion and provenance lock.
 - Namespace plugin-runtime and data-authority decisions so ambiguous
   `local-first` wording cannot select guidance from the wrong domain.
 - Validate all Base/Full/Compressed treatments, equal Full/Compressed Knowledge

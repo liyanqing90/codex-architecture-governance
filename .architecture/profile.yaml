@@ -30,7 +30,7 @@ project:
         trigger: A public Skill, CLI, or artifact contract changes.
         environment: Upgrade validation against retained 1.0 artifacts.
         target: Public plugin and artifact compatibility boundaries.
-        response: Legacy artifacts remain readable, trusted Reviews use 1.2, and new Knowledge selections use creation-time-bound 1.3 without invalidating historical records.
+        response: Legacy artifacts remain readable, trusted Reviews use 1.2, and new Knowledge selections use source-anchored Runtime Manifest 1.4 without invalidating historical records.
         measure: Compatibility and migration tests pass without silent contract change.
     - id: reliability.deterministic-enforcement
       priority: critical
@@ -101,9 +101,6 @@ project:
     migration_limits:
       - Read legacy 1.0 and trusted 1.1 artifacts; require 1.2 for new project review chains.
   required_knowledge_domains:
-    - backend-api
-    - data-platform
-    - cloud-native-platform
     - plugin-platform
     - test-automation-platform
   repository_facts:

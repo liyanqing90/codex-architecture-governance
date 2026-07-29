@@ -14,10 +14,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Repository-facts schema `1.1` roles, role-aware Profile/Knowledge routing,
   and regression coverage so tests, examples, documentation, generated code,
   vendor trees, and benchmark fixtures cannot infer product architecture.
-- Knowledge-selection schema `1.3` kind/maturity bindings, per-kind budgets,
-  creation-time Selector/Knowledge/policy provenance, current-runtime replay,
-  and a Golden-first Solution Advisor policy with narrowly recorded
-  standard-entry exceptions.
+- Knowledge-selection schema `1.4` kind/maturity bindings, per-kind budgets,
+  a source-anchored complete Selector Runtime Input Manifest, distinct project
+  and plugin commits, current-runtime replay, safe archived Git-blob
+  verification, and rejection of unverifiable locks from trusted chains.
+- Compact model-facing Knowledge context sidecars that omit the full exclusion
+  ledger while binding its machine-facing selection lock by SHA-256.
 - Decision-intent namespaces for data-authority and plugin-runtime topology,
   preventing ambiguous `local-first` wording from loading unrelated client
   state guidance.

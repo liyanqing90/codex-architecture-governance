@@ -133,9 +133,13 @@ vendor trees; only runtime and production facts infer product architecture.
 Before each audit or decision, `select-knowledge` creates a task-scoped
 `knowledge-selection.yaml` containing exact entry hashes, kind/maturity,
 reasons, exclusions, total/per-kind context budgets, and creation-time
-Selector/Knowledge/policy provenance. Schema 1.3 replays with the current
-runtime only when those provenance bindings still match, so a future Selector
-does not retroactively invalidate a historical selection.
+Selector/Knowledge/policy provenance. Schema 1.4 separates the reviewed
+project commit from the plugin source commit and binds the complete Selector
+Runtime Input Manifest. It replays an exact current runtime, verifies archived
+Git blobs without executing historical code, and rejects an unreachable
+runtime from trusted Reviews, Decisions, and Gates. `knowledge-context.yaml`
+contains only selected entries for model context; the full exclusion ledger
+remains a machine-facing lock.
 `constraints.md` records real limits. `critical-flows.md` defines protected
 runtime behavior. Findings, decisions, and plans are stored under `reviews/`.
 Organization rules can be versioned as Rule Packs under
@@ -187,7 +191,8 @@ python3 resources/scripts/architecture_tool.py select-knowledge \
   --profile /path/to/repository/.architecture/profile.yaml \
   --task "Current architecture audit" \
   --skill project-architecture-audit \
-  --output /path/to/repository/.architecture/knowledge-selection.yaml
+  --output /path/to/repository/.architecture/knowledge-selection.yaml \
+  --context-output /path/to/repository/.architecture/knowledge-context.yaml
 ```
 
 For an architecture decision whose wording could cross semantic domains, bind
@@ -201,7 +206,8 @@ python3 resources/scripts/architecture_tool.py select-knowledge \
   --task "Preserve the local-first plugin runtime" \
   --skill architecture-solution-advisor \
   --decision-intent plugin-runtime-topology \
-  --output .architecture/decision-knowledge-selection.yaml
+  --output .architecture/decision-knowledge-selection.yaml \
+  --context-output .architecture/decision-knowledge-context.yaml
 ```
 
 Then validate and resolve evidence:

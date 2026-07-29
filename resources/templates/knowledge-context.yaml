@@ -1,0 +1,10 @@
+schema_version: "1.0"
+selection_lock_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+selection_result_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+selected:
+  - id: foundation.evidence-reasoning
+    path: foundations/evidence-reasoning.md
+    sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    priority: required
+    reasons:
+      - Required foundation or lens for the selected Skill.

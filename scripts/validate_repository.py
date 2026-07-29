@@ -93,10 +93,13 @@ REQUIRED_FILES = (
     "resources/schemas/benchmark.schema.json",
     "resources/schemas/benchmark-context-manifest.schema.json",
     "resources/schemas/benchmark-observation.schema.json",
+    "resources/schemas/knowledge-context.schema.json",
     "resources/schemas/knowledge-manifest.schema.json",
     "resources/schemas/knowledge-selection.schema.json",
     "resources/schemas/repository-facts.schema.json",
+    "resources/schemas/selector-source.schema.json",
     "resources/schemas/governance-run-manifest.schema.json",
+    "resources/selector-source.json",
     "resources/scripts/build_project_profile.py",
     "resources/scripts/fingerprint_artifact.py",
     "resources/scripts/inspect_repository.py",
@@ -106,6 +109,7 @@ REQUIRED_FILES = (
     "resources/scripts/validate_coverage.py",
     "resources/scripts/validate_knowledge.py",
     "resources/templates/governance-run-manifest.yaml",
+    "resources/templates/knowledge-context.yaml",
     "third_party/PAAD-MIT.txt",
     ".github/dependabot.yml",
     ".github/ISSUE_TEMPLATE/bug_report.yml",
@@ -267,6 +271,36 @@ def validate_manifest(root: Path, errors: list[str]) -> dict[str, Any] | None:
                     f"plugin.interface.defaultPrompt[{index}] exceeds 128 characters"
                 )
     return manifest
+
+
+def validate_selector_source(
+    root: Path,
+    manifest: dict[str, Any] | None,
+    errors: list[str],
+) -> None:
+    source_path = root / "resources" / "selector-source.json"
+    schema_path = root / "resources" / "schemas" / "selector-source.schema.json"
+    source = load_json(source_path, errors)
+    schema = load_json(schema_path, errors)
+    if source is None or schema is None:
+        return
+    validator = Draft202012Validator(
+        schema,
+        format_checker=FormatChecker(),
+    )
+    for error in validator.iter_errors(source):
+        location = ".".join(str(part) for part in error.absolute_path)
+        errors.append(
+            f"{source_path} does not match selector-source.schema.json"
+            f"{f' at {location}' if location else ''}: {error.message}"
+        )
+    if manifest is not None and (
+        source.get("repository") != manifest.get("repository")
+        or source.get("plugin_version") != manifest.get("version")
+    ):
+        errors.append(
+            "resources/selector-source.json repository/version must match plugin.json"
+        )
 
 
 def split_frontmatter(path: Path, errors: list[str]) -> tuple[Any, str] | None:
@@ -501,6 +535,7 @@ def validate_schemas_and_yaml(root: Path, errors: list[str]) -> None:
         "evidence-providers.yaml": "evidence-provider-config.schema.json",
         "gate-policy.yaml": "gate-policy.schema.json",
         "governance-run-manifest.yaml": "governance-run-manifest.schema.json",
+        "knowledge-context.yaml": "knowledge-context.schema.json",
         "knowledge-selection.yaml": "knowledge-selection.schema.json",
         "portfolio-gate-policy.yaml": "gate-policy.schema.json",
         "portfolio.yaml": "portfolio.schema.json",
@@ -917,6 +952,7 @@ def validate_repository(root: Path) -> list[str]:
     errors: list[str] = []
     validate_repository_hygiene(root, errors)
     manifest = validate_manifest(root, errors)
+    validate_selector_source(root, manifest, errors)
     validate_skills(root, errors)
     validate_reference_paths(root, errors)
     validate_markdown_links(root, errors)

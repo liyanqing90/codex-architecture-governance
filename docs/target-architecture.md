@@ -56,6 +56,7 @@ Each audited repository owns:
 ├── profile.yaml
 ├── repository-facts.yaml
 ├── knowledge-selection.yaml
+├── knowledge-context.yaml
 ├── constraints.md
 ├── critical-flows.md
 ├── gate-policy.yaml

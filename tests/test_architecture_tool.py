@@ -11,6 +11,7 @@ import unittest
 from argparse import Namespace
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -588,7 +589,7 @@ class ArchitectureToolTests(unittest.TestCase):
                 decision_path=decision_path,
             )
 
-    def test_selection_v13_binds_creation_contract_and_current_replay(
+    def test_selection_v14_binds_runtime_manifest_and_current_replay(
         self,
     ) -> None:
         config_root = self.init_project()
@@ -602,20 +603,33 @@ class ArchitectureToolTests(unittest.TestCase):
             maximum_entries=16,
             kind_budgets={"foundation": 6, "domain": 2},
         )
-        selection_path = config_root / "selection-v13.yaml"
+        selection_path = config_root / "selection-v14.yaml"
         self.write_yaml(selection_path, selection)
         architecture_tool.validate_knowledge_selection_artifact(
             selection_path,
             facts_path=facts_path,
             profile_path=profile_path,
         )
-        self.assertEqual(selection["schema_version"], "1.3")
-        self.assertEqual(selection["selector"]["contract_version"], "1.0")
+        self.assertEqual(selection["schema_version"], "1.4")
+        self.assertEqual(selection["selector"]["contract_version"], "1.1")
         self.assertEqual(
             selection["selector"]["replay_mode"],
             "creation-time-lock",
         )
         self.assertEqual(selection["inputs"]["decision_intents"], [])
+        self.assertEqual(
+            selection["inputs"]["project_commit"],
+            architecture_tool.load_yaml(facts_path)["repository"]["commit"],
+        )
+        self.assertNotIn("source_commit", selection["inputs"])
+        self.assertEqual(
+            [item["path"] for item in selection["selector"]["implementation_inputs"]],
+            list(architecture_tool.SELECTOR_IMPLEMENTATION_PATHS),
+        )
+        self.assertNotEqual(
+            selection["selector"]["source"]["commit"],
+            selection["inputs"]["project_commit"],
+        )
 
         maturity_tampered = copy.deepcopy(selection)
         maturity_tampered["selection"][0]["maturity"] = "golden"
@@ -652,7 +666,7 @@ class ArchitectureToolTests(unittest.TestCase):
             )
 
         binding_tampered = copy.deepcopy(selection)
-        binding_tampered["selector"]["implementation_sha256"] = "0" * 64
+        binding_tampered["selector"]["implementation_inputs"][0]["sha256"] = "0" * 64
         binding_path = config_root / "selection-binding-tampered.yaml"
         self.write_yaml(binding_path, binding_tampered)
         with self.assertRaisesRegex(
@@ -666,7 +680,12 @@ class ArchitectureToolTests(unittest.TestCase):
             )
 
         historical = copy.deepcopy(selection)
-        historical["selector"]["implementation_sha256"] = "0" * 64
+        historical["selector"]["implementation_inputs"][0]["sha256"] = "0" * 64
+        historical["selector"]["implementation_bundle_sha256"] = (
+            architecture_tool.canonical_sha256(
+                historical["selector"]["implementation_inputs"]
+            )
+        )
         historical["selection"][0]["maturity"] = (
             "golden"
             if historical["selection"][0]["maturity"] == "standard"
@@ -677,17 +696,23 @@ class ArchitectureToolTests(unittest.TestCase):
         )
         historical_path = config_root / "selection-historical.yaml"
         self.write_yaml(historical_path, historical)
-        validated_historical = architecture_tool.validate_knowledge_selection_artifact(
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "historical input hash does not match",
+        ):
+            architecture_tool.validate_knowledge_selection_artifact(
+                historical_path,
+                facts_path=facts_path,
+                profile_path=profile_path,
+            )
+        readable_historical = architecture_tool.validate_knowledge_selection_artifact(
             historical_path,
             facts_path=facts_path,
             profile_path=profile_path,
-        )
-        self.assertEqual(
-            validated_historical["selector"]["implementation_sha256"],
-            "0" * 64,
+            require_trusted_runtime=False,
         )
         self.assertNotEqual(
-            validated_historical["selection"][0]["maturity"],
+            readable_historical["selection"][0]["maturity"],
             selection["selection"][0]["maturity"],
         )
 
@@ -696,7 +721,7 @@ class ArchitectureToolTests(unittest.TestCase):
         legacy.pop("selector")
         legacy.pop("result_sha256")
         legacy["inputs"].pop("decision_intents")
-        legacy["inputs"].pop("source_commit")
+        legacy["inputs"].pop("project_commit")
         legacy_path = config_root / "selection-legacy.yaml"
         self.write_yaml(legacy_path, legacy)
         self.assertEqual(
@@ -706,9 +731,98 @@ class ArchitectureToolTests(unittest.TestCase):
             "1.1",
         )
 
+    def test_selection_v14_verifies_archived_runtime_without_executing_it(
+        self,
+    ) -> None:
+        config_root = self.init_project()
+        facts_path = config_root / "repository-facts.yaml"
+        profile_path = config_root / "profile.yaml"
+        selection = architecture_tool.select_knowledge(
+            facts_path,
+            profile_path=profile_path,
+            task="Verify an archived Selector Runtime Manifest.",
+            skill="project-architecture-audit",
+            maximum_entries=16,
+            kind_budgets={"foundation": 6, "domain": 2},
+        )
+
+        source_root = self.root / "selector-source"
+        for relative_path in (
+            *architecture_tool.SELECTOR_IMPLEMENTATION_PATHS,
+            ".codex-plugin/plugin.json",
+        ):
+            source = ROOT / relative_path
+            destination = source_root / relative_path
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
+        shutil.copytree(
+            ROOT / "resources" / "knowledge",
+            source_root / "resources" / "knowledge",
+        )
+        subprocess.run(["git", "init", "-q", str(source_root)], check=True)
+        subprocess.run(
+            ["git", "-C", str(source_root), "config", "user.name", "Test"],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(source_root),
+                "config",
+                "user.email",
+                "test@example.com",
+            ],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(source_root),
+                "remote",
+                "add",
+                "origin",
+                selection["selector"]["source"]["repository"],
+            ],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(source_root), "add", "."],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(source_root), "commit", "-qm", "runtime"],
+            check=True,
+        )
+        commit = subprocess.run(
+            ["git", "-C", str(source_root), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+        selection["selector"]["source"]["commit"] = commit
+        selection["result_sha256"] = architecture_tool.selection_result_sha256(
+            selection
+        )
+        selection_path = config_root / "selection-archived.yaml"
+        self.write_yaml(selection_path, selection)
+        with patch.dict(
+            "os.environ",
+            {"CAG_SELECTOR_SOURCE_ROOT": str(source_root)},
+        ):
+            validated = architecture_tool.validate_knowledge_selection_artifact(
+                selection_path,
+                facts_path=facts_path,
+                profile_path=profile_path,
+            )
+        self.assertEqual(validated["selector"]["source"]["commit"], commit)
+
     def test_select_knowledge_cli_passes_decision_intent(self) -> None:
         config_root = self.init_project()
         output = config_root / "decision-intent-selection.yaml"
+        context_output = config_root / "decision-intent-context.yaml"
         args = architecture_tool.build_parser().parse_args(
             [
                 "select-knowledge",
@@ -726,6 +840,8 @@ class ArchitectureToolTests(unittest.TestCase):
                 "16",
                 "--output",
                 str(output),
+                "--context-output",
+                str(context_output),
             ]
         )
 
@@ -738,6 +854,16 @@ class ArchitectureToolTests(unittest.TestCase):
         selected = {item["id"] for item in selection["selection"]}
         self.assertIn("style.plugin-architecture", selected)
         self.assertNotIn("decision.local-first-vs-server-first", selected)
+        context = architecture_tool.load_yaml(context_output)
+        self.assertEqual(
+            context["selection_lock_sha256"],
+            architecture_tool.file_sha256(output),
+        )
+        self.assertEqual(
+            {item["id"] for item in context["selected"]},
+            selected,
+        )
+        self.assertNotIn("excluded", context)
 
     def test_governance_run_is_informational_and_path_contained(self) -> None:
         config_root = self.init_project()

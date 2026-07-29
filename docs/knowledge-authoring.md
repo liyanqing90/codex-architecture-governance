@@ -57,21 +57,32 @@ headings are expected; repeated generic mechanism prose is not.
 
 ## Selection budgets and maturity
 
-New selection artifacts use schema `1.3`. They bind each selected entry's
+New selection artifacts use schema `1.4`. They bind each selected entry's
 `kind` and `maturity`, retain a total entry cap, and account for all ten kinds
-individually. They also bind the Selector implementation, Knowledge manifest
-and tree, selection-policy version, source commit, and canonical result hash.
+individually. The Selector Runtime Input Manifest binds the plugin repository,
+plugin source commit and version, plugin manifest, exact transitive Python,
+dependency-lock, and schema inputs, the complete raw Knowledge tree, policy
+version, and canonical result hash. `inputs.project_commit` separately binds
+the repository being reviewed.
+
+Validation has three explicit states:
+
+- **Current replay**: the complete Runtime Manifest equals the installed
+  runtime, so selection is executed again and compared exactly.
+- **Archived lock**: the runtime differs, but `CAG_SELECTOR_SOURCE_ROOT`
+  or the plugin checkout resolves the recorded repository and commit. The
+  validator checks every Git blob and selected Knowledge record without
+  executing historical code.
+- **Unverifiable lock**: the source is unavailable or any anchored byte
+  differs. `--read-only` permits inspection, but trusted Reviews, Decisions,
+  and Gates reject the artifact.
+
 Use `--kind-budget KIND=LIMIT` to tighten a kind without letting another kind
 silently consume the freed context budget. Mandatory Skill and decision-intent
 contracts must fit both caps; the selector fails rather than silently dropping
-one.
-
-Validation uses creation-time locking. If every Selector, Knowledge, and policy
-binding still matches the installed runtime, validation deterministically
-replays the selection. If any runtime binding has evolved, validation preserves
-the historical artifact and checks its schema, result hash, facts/Profile
-bindings, selected-entry hashes recorded at creation, and budgets without
-running a future algorithm against old inputs.
+one. Pass `--context-output` to write a compact model-facing index containing
+only selected IDs, paths, priorities, reasons, and hashes. Keep exclusions and
+runtime provenance in the full machine lock.
 
 The Solution Advisor is Golden-only for discretionary context. A standard entry
 may appear only when its recorded reason is one of:

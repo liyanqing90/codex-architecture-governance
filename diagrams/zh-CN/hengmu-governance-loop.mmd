@@ -1,0 +1,30 @@
+flowchart LR
+    subgraph context["项目上下文"]
+        repo["仓库<br/>证据"]
+        profile["项目画像 +<br/>真实约束"]
+        knowledge["规则 + 已选择的<br/>知识"]
+    end
+
+    repo --> audit["候选<br/>架构审计"]
+    profile --> audit
+    knowledge --> audit
+    audit -->|"候选问题"| verify["独立<br/>核实"]
+    verify -->|"已确认的证据"| review["可信审核<br/>绑定来源"]
+    review --> decision["方案<br/>决策"]
+    decision --> plan["改造<br/>计划"]
+    plan --> gate["确定性<br/>质量门禁"]
+    review -.->|"问题策略"| gate
+    gate --> outcome["变更 / 发布<br/>决策"]
+
+    classDef contextNode fill:#F4F2EC,stroke:#6D7078,color:#161719,stroke-width:1.5px;
+    classDef reviewNode fill:#FFFFFF,stroke:#173FBE,color:#161719,stroke-width:2px;
+    classDef actionNode fill:#173FBE,stroke:#173FBE,color:#FFFFFF,stroke-width:2px;
+    classDef outcomeNode fill:#161719,stroke:#161719,color:#FFFFFF,stroke-width:2px;
+
+    class repo,profile,knowledge contextNode;
+    class audit,verify,review reviewNode;
+    class decision,plan,gate actionNode;
+    class outcome outcomeNode;
+
+    style context fill:#FFFFFF,stroke:#D9D9D2,stroke-width:1px
+    linkStyle default stroke:#6D7078,stroke-width:1.5px

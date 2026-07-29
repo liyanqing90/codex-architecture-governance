@@ -1,19 +1,24 @@
 # Hengmu README illustrations
 
-These two editorial illustrations explain Hengmu's core ideas without turning
-the README into a slide deck:
+The README uses two editorial figures, each maintained in English and
+Simplified Chinese:
 
-1. `01-from-critique-to-closure.png` — architecture review measures a real gap
-   against evidence and connects it to a practical remediation route.
-2. `02-one-method-many-projects.png` — one shared method adapts to each
-   project's Profile and constraints while preserving a portfolio view.
+| Idea | English | 简体中文 |
+| --- | --- | --- |
+| Evidence turns critique into a remediation route. | `en/01-from-critique-to-closure.png` | `zh-CN/01-from-critique-to-closure.png` |
+| One shared method adapts across projects and exposes hidden coupling. | `en/02-one-method-many-projects.png` | `zh-CN/02-one-method-many-projects.png` |
 
-They were generated on 2026-07-29 with the official
+The pairs share the same composition, character action, and semantic colors.
+Only visible labels change between locales.
+
+They were created on 2026-07-29 with the official
 [Ian Xiaohei Illustrations](https://github.com/helloianneo/ian-xiaohei-illustrations)
-Skill and visually constrained by Qingye's `v1.1 Refined` brand baseline:
-pure white, ink `#161719`, and brand blue `#173FBE`. Red and orange are used
-only as semantic accents.
+Skill, then recast with an original Qingye builder character. The character
+uses a Qingye-blue high-collar jacket, ink hair and trousers, and the public
+Qingye avatar's forward-looking silhouette. It replaces Xiaohei as the public
+Hengmu character while preserving the Skill's sparse, hand-drawn editorial
+method.
 
-The images are documentation assets. Do not treat their handwritten labels as
-machine-readable architecture contracts; the repository's schemas, Profiles,
-Reviews, Decisions, Plans, and gates remain authoritative.
+The figures remain explanatory documentation, not machine-readable
+architecture contracts. Schemas, Profiles, Reviews, Decisions, Plans, and
+gates remain authoritative.

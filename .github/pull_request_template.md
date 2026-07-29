@@ -30,3 +30,7 @@ proves and what remains unverified.
 - [ ] No credentials, personal data, proprietary artifacts, or generated caches
       are included.
 - [ ] `CHANGELOG.md` and public documentation are updated when required.
+- [ ] `README.md` and `README.zh-CN.md` remain equivalent when public behavior
+      or commands change.
+- [ ] Every changed README visual has matching `en/` and `zh-CN/` assets, and
+      diagrams include editable source plus rendered outputs.

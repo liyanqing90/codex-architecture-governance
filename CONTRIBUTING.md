@@ -78,6 +78,24 @@ Skill as `$skill-name`.
 - Add or update an adversarial fixture when a change affects diagnosis,
   false-positive resistance, solution proportionality, or evidence quality.
 
+## Maintaining bilingual documentation
+
+`README.md` and `README.zh-CN.md` are one public contract in two languages.
+When a user-visible capability, command, compatibility boundary, policy, or
+project claim changes, update both files in the same pull request.
+
+README visuals follow the same rule:
+
+- English assets live in `docs/assets/brand/en/`,
+  `assets/hengmu-readme-illustrations/en/`, and `diagrams/en/`;
+- Simplified Chinese assets live in the corresponding `zh-CN/` directories;
+- diagrams must include Mermaid, editable Excalidraw, rendered SVG, and PNG;
+- localized pairs must preserve the same meaning, structure, and semantic
+  colors, with only language-specific copy changing.
+
+The SVG and Mermaid files are sources of truth. Regenerate their PNG,
+SVG-derived, and Excalidraw outputs instead of editing rendered files alone.
+
 ## Required checks
 
 Run:

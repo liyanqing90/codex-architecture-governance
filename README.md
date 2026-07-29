@@ -1,14 +1,13 @@
 <p align="center">
-  <img src="docs/assets/brand/qingye-wordmark.svg" width="132" alt="青野">
+  <img
+    src="docs/assets/brand/en/hengmu-banner.svg"
+    width="100%"
+    alt="Hengmu — evidence-backed architecture decisions, a Qingye open-source project"
+  >
 </p>
 
-<h1 align="center">衡木 · Hengmu</h1>
-
 <p align="center">
-  <strong>让每一个架构判断，都有证据、有权衡、有去路。</strong>
-  <br>
-  Evidence-backed architecture decisions for repositories, specialized
-  systems, and project portfolios.
+  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
 <p align="center">
@@ -70,8 +69,8 @@ Hengmu is designed around a longer, evidence-bound chain.
 
 <p align="center">
   <img
-    src="assets/hengmu-readme-illustrations/01-from-critique-to-closure.png"
-    alt="小黑先用代码证据量出真实缺口，再为承重结构装上改造楔块"
+    src="assets/hengmu-readme-illustrations/en/01-from-critique-to-closure.png"
+    alt="The Qingye builder measures a real gap with code evidence and pulls a remediation wedge into the load-bearing structure"
     width="100%">
 </p>
 
@@ -180,14 +179,14 @@ useful input, not policy.
 
 <p align="center">
   <img
-    src="diagrams/hengmu-governance-loop.svg"
+    src="diagrams/en/hengmu-governance-loop.svg"
     alt="Repository evidence, Profile, constraints, rules, and selected knowledge flow through candidate audit, independent verification, trusted review, solution decision, remediation plan, and deterministic quality gate"
     width="100%">
 </p>
 
 The diagram is maintained as
-[Mermaid source](diagrams/hengmu-governance-loop.mmd) and an
-[editable Excalidraw scene](diagrams/hengmu-governance-loop.excalidraw).
+[Mermaid source](diagrams/en/hengmu-governance-loop.mmd) and an
+[editable Excalidraw scene](diagrams/en/hengmu-governance-loop.excalidraw).
 
 1. **Establish facts.** Inspect the repository without turning detected
    technologies or filenames into recommendations.
@@ -216,8 +215,8 @@ Instead, it carries only the context that makes its decisions different:
 
 <p align="center">
   <img
-    src="assets/hengmu-readme-illustrations/02-one-method-many-projects.png"
-    alt="一套共享方法横跨不同项目，小黑按项目画像和真实约束调整支点，并发现隐性耦合"
+    src="assets/hengmu-readme-illustrations/en/02-one-method-many-projects.png"
+    alt="One shared method spans different projects while the Qingye builder adjusts for project profiles and real constraints and exposes hidden coupling"
     width="100%">
 </p>
 
@@ -355,6 +354,7 @@ invoked gate always evaluates its policy.
 | [Release verification](docs/releasing.md) | Deterministic ZIPs, checksums, SBOMs, and attestations. |
 | [Implementation matrix](docs/comprehensive-review-implementation.md) | How review recommendations map to executable capability and evidence. |
 | [Dogfood review history](.architecture/reviews/README.md) | How Hengmu governs its own repository. |
+| [Visual assets](docs/assets/brand/README.md) | Bilingual icon, banner, editorial character, and diagram source conventions. |
 
 Accepted architecture decisions live in [docs/decisions](docs/decisions/).
 The repository's implemented target state is tracked in the
@@ -424,9 +424,10 @@ and is rejected by `validate-history-anchors`.
 Hengmu is a [Qingye](https://github.com/liyanqing90) open-source project:
 **理性结构中的持续进化，在不确定中，持续构建。**
 
-The README's editorial illustrations were created with
+The README's editorial illustration system was created with
 [Ian Xiaohei Illustrations](https://github.com/helloianneo/ian-xiaohei-illustrations)
-and adapted to the Qingye ink and brand-blue palette. The technical flow is
+and recast with an original Qingye builder character derived from the public
+Qingye avatar and brand palette. The technical flow is
 available as Mermaid, Excalidraw, SVG, and PNG so documentation remains
 editable.
 

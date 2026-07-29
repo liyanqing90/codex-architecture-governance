@@ -9,8 +9,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
-- Qingye brand assets, two Xiaohei editorial illustrations, and an editable
-  Mermaid/Excalidraw/SVG/PNG governance flow for the public README.
+- Localized Qingye/Hengmu icons and banners, an original Qingye editorial
+  character, two paired English/Chinese article illustrations, and paired
+  Mermaid/Excalidraw/SVG/PNG governance flows.
+- A full Simplified Chinese README that mirrors the English quick start,
+  trust model, workflows, development commands, and project policies.
 - Consumption-time `validate-knowledge-context` checks for the Selection lock,
   result hash, and exact ordered selected-entry projection.
 - CI and release ancestry checks for the Selector source and latest reviewed

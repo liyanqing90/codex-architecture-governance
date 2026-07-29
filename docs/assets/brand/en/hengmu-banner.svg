@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2172" height="724" viewBox="0 0 2172 724" role="img" aria-labelledby="title desc">
+  <title id="title">Hengmu project banner</title>
+  <desc id="desc">Hengmu, evidence-backed architecture decisions, presented in the Qingye visual system.</desc>
+  <rect width="2172" height="724" fill="#F4F2EC"/>
+  <path d="M0 0h54v724H0z" fill="#173FBE"/>
+  <g transform="translate(170 140)">
+    <rect width="444" height="444" rx="92" fill="#FFFFFF"/>
+    <path d="M92 148h260v56H92z" fill="#173FBE"/>
+    <path d="M205 148h34v56h-34z" fill="#FFFFFF"/>
+    <path d="m222 190 76 146H146z" fill="#161719"/>
+    <path d="m222 224 34 66h-68z" fill="#FFFFFF"/>
+    <path d="M108 126v100M336 126v100" fill="none" stroke="#161719" stroke-width="12"/>
+    <circle cx="222" cy="176" r="15" fill="#161719"/>
+  </g>
+  <g fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+    <text x="724" y="255" font-size="42" font-weight="600" letter-spacing="8">QINGYE OPEN SOURCE</text>
+    <text x="714" y="420" font-size="150" font-weight="700" letter-spacing="16">HENGMU</text>
+    <text x="724" y="512" font-size="42" font-weight="400" letter-spacing="1">Evidence-backed architecture decisions.</text>
+  </g>
+  <path d="M724 570h1206" stroke="#D9D9D2" stroke-width="3"/>
+  <path d="M1714 570h216" stroke="#173FBE" stroke-width="12"/>
+  <text x="1930" y="632" text-anchor="end" fill="#6D7078" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="24" letter-spacing="3">MEASURE · VERIFY · DECIDE · REMEDIATE</text>
+</svg>

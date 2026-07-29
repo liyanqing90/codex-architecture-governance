@@ -1787,6 +1787,49 @@ class ArchitectureToolTests(unittest.TestCase):
             )
         )
 
+    def test_contract_gate_ignores_untrusted_historical_review_candidate(
+        self,
+    ) -> None:
+        config_root = self.init_project()
+        current_review_path = self.write_review(self.review("needs-evidence"))
+        historical_review = architecture_tool.load_yaml(current_review_path)
+        historical_review["review"]["id"] = "2026-07-27-untrusted-historical"
+        historical_review["review"]["performed_at"] = "2026-07-27T10:00:00+00:00"
+        historical_review["review"]["profile_sha256"] = "0" * 64
+        historical_path = config_root / "reviews" / "000-historical-invalid.yaml"
+        self.write_yaml(historical_path, historical_review)
+        profile = architecture_tool.load_yaml(config_root / "profile.yaml")
+
+        completed = architecture_tool.completed_required_reviews(
+            self.root,
+            config_root,
+            profile,
+            head=architecture_tool.current_git_commit(self.root),
+            freshness_strategy="time-window",
+            evaluation_date=date(2026, 7, 28),
+            max_review_age_days=30,
+        )
+
+        self.assertEqual(
+            Path(completed["project-architecture"]),
+            current_review_path,
+        )
+
+        current_review_path.unlink()
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "has no trusted artifact",
+        ):
+            architecture_tool.completed_required_reviews(
+                self.root,
+                config_root,
+                profile,
+                head=architecture_tool.current_git_commit(self.root),
+                freshness_strategy="time-window",
+                evaluation_date=date(2026, 7, 28),
+                max_review_age_days=30,
+            )
+
     def test_policy_enforces_configured_role_separation(self) -> None:
         self.init_project()
         review_path = self.write_review(self.review("needs-evidence"))

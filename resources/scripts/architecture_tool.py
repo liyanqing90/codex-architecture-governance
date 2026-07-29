@@ -3504,12 +3504,19 @@ def completed_required_reviews(
                 continue
             if payload["review"].get("workflow") != requirement["id"]:
                 continue
-            review = validate_review(
-                path,
-                rule_pack_ids=profile["project"]["rule_packs"],
-                strict_trust=True,
-                repository_root=root,
-            )
+            try:
+                review = validate_review(
+                    path,
+                    rule_pack_ids=profile["project"]["rule_packs"],
+                    strict_trust=True,
+                    repository_root=root,
+                )
+            except ArchitectureError:
+                # Historical artifacts remain inspectable project records, but an
+                # invalid or unverifiable record cannot satisfy the current Gate.
+                # Continue searching so one stale record cannot poison a newer,
+                # independently trusted Review for the same workflow.
+                continue
             if review["review"]["kind"] != requirement["kind"]:
                 continue
             declared_packs = {item["id"] for item in review["review"]["rule_packs"]}

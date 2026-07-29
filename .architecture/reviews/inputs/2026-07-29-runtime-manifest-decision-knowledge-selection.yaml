@@ -533,7 +533,7 @@ inputs:
   task: Keep the source-anchored local plugin runtime while adding compatible Selection
     1.4 manifests and compact context sidecars; compare proportionality, trust, migration,
     and rollback.
-  facts_sha256: 6c4fc51782d7b9a3882bdd7fbd0720bf03a841471abde2f14bd604f4b940fa36
+  facts_sha256: 4b69b172313e4f8d1aa8abde949f8097484e7f530a964f3282d9425fe3f010d6
   maintainer_mode: false
   includes:
   - foundation.proportional-design
@@ -544,8 +544,8 @@ inputs:
   excludes: []
   decision_intents:
   - plugin-runtime-topology
-  project_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
-  profile_sha256: 4273a269fe6e98e93231877a7e9b7aea46ed42a8ccb7d1afff0a2a6bc96d81a8
+  project_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
+  profile_sha256: da0aedc8dd090d304119fd119a55d339143bf1a3901f70e3e56dfd4c47507285
 budget:
   maximum_entries: 16
   selected_entries: 12
@@ -615,4 +615,4 @@ selector:
   knowledge_tree_sha256: ea5888ea3e93fe76444d0aea171f6e9182878498e3909eaf74a940e69e5423be
   selection_policy_version: '1.0'
   replay_mode: creation-time-lock
-result_sha256: 7280a1cb6e9dad6abf931b9c5cca29422e35ff3b1eb34f049648bf274341f137
+result_sha256: 0d50d2491fdc86ad3ed6a7cdff3f22e94de0f1527c6c7c584d32d913eac78245

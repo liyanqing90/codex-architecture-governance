@@ -3,13 +3,13 @@ decision:
   id: ADR-CAG-008
   decision_kind: remediation
   source_review: codex-architecture-governance-20260729-runtime-manifest-verified
-  source_review_sha256: 9b1b3eb49e9c9842e69e8c5bc12898f43712cb701a25346a339eeb03ab029a15
-  decided_at: '2026-07-29T12:34:00+00:00'
+  source_review_sha256: e7b5330a55dc8013e04084785f71bb529abd72767047f87dba0752e2ca93630f
+  decided_at: '2026-07-29T12:46:00+00:00'
   decision_makers:
   - architecture-owner
   status: accepted
   knowledge_selection_path: .architecture/decision-knowledge-selection.yaml
-  knowledge_selection_sha256: a3512e9da688fe2b9a7aec4f43cdf6aff75657f3e30c2643aad49d6782f01f76
+  knowledge_selection_sha256: 0bd13b34edd21ab4be5612a635229914b1f65631646ee207ddcf3f6c0d2a11de
 problem:
   quality_attributes:
   - compatibility
@@ -33,7 +33,7 @@ problem:
   - The selected-only context sidecar is model input while the complete lock remains
     machine governance input.
   known_facts:
-  - The verified Review confirms four strengths, eleven resolved Git evidence records,
+  - The verified Review confirms four strengths, thirteen resolved Git evidence records,
     31 rules, six critical flows, and ten selected audit Knowledge entries.
   - Selector contract 1.1 binds eleven exact implementation inputs, plugin identity,
     dependency lock, and the raw Knowledge tree.
@@ -276,7 +276,7 @@ revisit_triggers:
 acceptance_evidence:
 - The repository owner authorized implementation and GitHub publication of the audit
   repairs.
-- The verified Review resolves all eleven Git evidence records and confirms the negative
+- The verified Review resolves all thirteen Git evidence records and confirms the negative
   tamper and archived-runtime regressions.
 - The implementation source tree is reachable on GitHub and exactly matches the locally
   validated tree SHA.

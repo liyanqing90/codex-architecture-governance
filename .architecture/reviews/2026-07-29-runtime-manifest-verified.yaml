@@ -7,12 +7,12 @@ review:
     id: codex-architecture-governance
     name: Codex Architecture Governance
     repository: .
-  commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+  commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
   scope:
   - .
   profile: .architecture/reviews/inputs/2026-07-29-runtime-manifest-profile.yaml
   repository_identity: codex-architecture-governance
-  profile_sha256: 4273a269fe6e98e93231877a7e9b7aea46ed42a8ccb7d1afff0a2a6bc96d81a8
+  profile_sha256: da0aedc8dd090d304119fd119a55d339143bf1a3901f70e3e56dfd4c47507285
   dirty_tree: false
   rule_packs:
   - id: project-core
@@ -26,19 +26,19 @@ review:
     sha256: 23efb3c02cd9e4e2ec2cb83d1505b30dd780aff2a9ac7157506b361cb783c5aa
   scope_manifest:
   - .
-  performed_at: '2026-07-29T12:33:00+00:00'
+  performed_at: '2026-07-29T12:45:00+00:00'
   verification_state: verified
   reviewers:
   - architecture-verifier
   verification_run:
-    id: runtime-manifest-verifier-20260729-123230
+    id: runtime-manifest-verifier-20260729-124430
     surface: codex-desktop
-    started_at: '2026-07-29T12:32:30+00:00'
-    completed_at: '2026-07-29T12:33:00+00:00'
+    started_at: '2026-07-29T12:44:30+00:00'
+    completed_at: '2026-07-29T12:45:00+00:00'
   source_candidate:
     path: .architecture/reviews/2026-07-29-runtime-manifest-candidates.yaml
     review_id: codex-architecture-governance-20260729-runtime-manifest-candidates
-    sha256: 2c1d906085101acbf2736ef7b4595d7daf8ef5b1e694c5529405715d74e9bbcd
+    sha256: ee1ae336f4df0e0d28d6a9af02b8384b1937306595eef6b17ded1240c0e377ea
 summary:
   architecture: A local-first Codex plugin with source-anchored Selector Runtime Manifests,
     selected-only model context, versioned Skills/Knowledge/Rule Packs, deterministic
@@ -161,54 +161,54 @@ findings:
       commit, tested the strongest counter-hypothesis, and observed the focused negative
       and positive regressions pass.
     verified_by: architecture-verifier
-    verified_at: '2026-07-29T12:33:00+00:00'
+    verified_at: '2026-07-29T12:45:00+00:00'
     level: V2
     verifier:
       type: agent
       identity: architecture-verifier
-      run_id: runtime-manifest-verifier-20260729-123230
+      run_id: runtime-manifest-verifier-20260729-124430
     source_candidate:
       review_id: codex-architecture-governance-20260729-runtime-manifest-candidates
-      sha256: 2c1d906085101acbf2736ef7b4595d7daf8ef5b1e694c5529405715d74e9bbcd
+      sha256: ee1ae336f4df0e0d28d6a9af02b8384b1937306595eef6b17ded1240c0e377ea
   status: open
   evidence:
   - type: source
     location: resources/scripts/select_knowledge.py:19
     repository: codex-architecture-governance
-    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     path: resources/scripts/select_knowledge.py
     line_start: 19
     line_end: 37
     blob_sha: 73422f2950c48a3254ccf97e7785583f086ec90f
     observation: The fixed contract enumerates the dependency lock, all transitive
       Selector modules, and every schema that affects selection or context projection.
-    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     freshness: current
     symbol: SELECTOR_IMPLEMENTATION_PATHS
   - type: source
     location: resources/scripts/select_knowledge.py:258
     repository: codex-architecture-governance
-    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     path: resources/scripts/select_knowledge.py
     line_start: 258
     line_end: 281
     blob_sha: 73422f2950c48a3254ccf97e7785583f086ec90f
     observation: The Runtime Manifest binds plugin repository, source commit/version,
       plugin manifest, exact input hashes, raw Knowledge tree, and policy.
-    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     freshness: current
     symbol: selector_provenance
   - type: source
     location: resources/scripts/select_knowledge.py:800
     repository: codex-architecture-governance
-    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     path: resources/scripts/select_knowledge.py
     line_start: 800
     line_end: 813
     blob_sha: 73422f2950c48a3254ccf97e7785583f086ec90f
     observation: Selection schema 1.4 records the reviewed repository commit as project_commit
       rather than reusing the plugin source field.
-    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     freshness: current
     symbol: project_commit
   impact:
@@ -260,8 +260,8 @@ findings:
   - knowledge-selection
   - runtime-manifest
   - provenance
-  evidence_fingerprint: d0c2d7da466c176aab95a59c01d182ef21d54832723f31da9dac62c5fb89ff3c
-  fingerprint: bd04a97413320eb14ce6ba8ced7b9e31e07d83adfd2ae8e6947209ee3b3cf106
+  evidence_fingerprint: def708a6a4e9c6a4fe708b937632cab272d0b13f7a2d2bf0bdf327cd0506b19b
+  fingerprint: 83eb3ec8882dea9198fd56443d5da635bf16a2c2200807605403edea40890c88
 - id: CAG-ARCHIVED-LOCK-001
   kind: strength
   rule_id: PROJECT.CHANGE.001
@@ -277,57 +277,84 @@ findings:
       commit, tested the strongest counter-hypothesis, and observed the focused negative
       and positive regressions pass.
     verified_by: architecture-verifier
-    verified_at: '2026-07-29T12:33:00+00:00'
+    verified_at: '2026-07-29T12:45:00+00:00'
     level: V2
     verifier:
       type: agent
       identity: architecture-verifier
-      run_id: runtime-manifest-verifier-20260729-123230
+      run_id: runtime-manifest-verifier-20260729-124430
     source_candidate:
       review_id: codex-architecture-governance-20260729-runtime-manifest-candidates
-      sha256: 2c1d906085101acbf2736ef7b4595d7daf8ef5b1e694c5529405715d74e9bbcd
+      sha256: ee1ae336f4df0e0d28d6a9af02b8384b1937306595eef6b17ded1240c0e377ea
   status: open
   evidence:
   - type: source
     location: resources/scripts/architecture_tool.py:290
     repository: codex-architecture-governance
-    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     path: resources/scripts/architecture_tool.py
     line_start: 290
     line_end: 530
-    blob_sha: c2804518cc51c50a687447fbd0bf86ce5b66908a
+    blob_sha: 4ebaf125c6aec6ecfe285dd9c3940c304126c9c7
     observation: Archived validation resolves the declared repository and commit,
       verifies the exact implementation set, plugin identity, raw Knowledge tree,
       and every selected record without executing old code.
-    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     freshness: current
     symbol: verify_archived_selector_runtime
   - type: source
     location: resources/scripts/architecture_tool.py:532
     repository: codex-architecture-governance
-    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     path: resources/scripts/architecture_tool.py
     line_start: 532
     line_end: 574
-    blob_sha: c2804518cc51c50a687447fbd0bf86ce5b66908a
+    blob_sha: 4ebaf125c6aec6ecfe285dd9c3940c304126c9c7
     observation: Validation has explicit current replay, archived lock, and unverifiable
       legacy rejection paths.
-    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     freshness: current
     symbol: validate_knowledge_selection_artifact
   - type: test
     location: tests/test_architecture_tool.py:592
     repository: codex-architecture-governance
-    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     path: tests/test_architecture_tool.py
     line_start: 592
     line_end: 820
-    blob_sha: 8f5bf382d22a4924285988f23ec2466955c13ccc
+    blob_sha: 56e717a31ef029fe5534a7008144968883f1959c
     observation: Negative tests reject recomputed tampering and positive tests verify
       a historical Git runtime without executing it.
-    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     freshness: current
     symbol: test_selection_v14_binds_runtime_manifest_and_current_replay
+  - type: source
+    location: resources/scripts/architecture_tool.py:3482
+    repository: codex-architecture-governance
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
+    path: resources/scripts/architecture_tool.py
+    line_start: 3482
+    line_end: 3556
+    blob_sha: 4ebaf125c6aec6ecfe285dd9c3940c304126c9c7
+    observation: Required-review discovery ignores records that fail strict trust,
+      continues to a newer valid candidate, and still fails closed when no trusted
+      workflow candidate remains.
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
+    freshness: current
+    symbol: completed_required_reviews
+  - type: test
+    location: tests/test_architecture_tool.py:1790
+    repository: codex-architecture-governance
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
+    path: tests/test_architecture_tool.py
+    line_start: 1790
+    line_end: 1831
+    blob_sha: 56e717a31ef029fe5534a7008144968883f1959c
+    observation: The regression proves that an invalid historical record cannot poison
+      a current trusted review and cannot satisfy the workflow by itself.
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
+    freshness: current
+    symbol: test_contract_gate_ignores_untrusted_historical_review_candidate
   impact:
     affected_components:
     - trusted-review-validation
@@ -355,6 +382,8 @@ findings:
     - A mismatched schema 1.3 lock is rejected in trusted mode.
     - A schema 1.4 mismatch must resolve and hash every historical Git input.
     - Read-only mode remains explicit for historical inspection.
+    - Required-review discovery skips unverifiable historical records but requires
+      at least one strictly trusted current candidate.
     inferences:
     - The validator now fails closed for unverifiable creation-time claims while preserving
       safe historical readability.
@@ -376,8 +405,8 @@ findings:
   - historical-lock
   - fail-closed
   - trusted-gate
-  evidence_fingerprint: 87e78eadba729c953d77f3472056368dd85e89d4b11cd5e9b687ff98793f1a1b
-  fingerprint: 8cd8c2a18ce805c2c411d9bf3f64713b845ee58c4d01c17346dea6b8f87961a0
+  evidence_fingerprint: dbbc8bf7386a5e5b79d9af797acf2bc1e8ac6e2bb664aa9db03d2acc9341c08a
+  fingerprint: c77436d562233c68406c1e2ea269d326e6715ef31ebab62e85e449376aa0eed2
 - id: CAG-CONTEXT-PROJECTION-001
   kind: strength
   rule_id: PROJECT.PERFORMANCE.001
@@ -392,54 +421,54 @@ findings:
       commit, tested the strongest counter-hypothesis, and observed the focused negative
       and positive regressions pass.
     verified_by: architecture-verifier
-    verified_at: '2026-07-29T12:33:00+00:00'
+    verified_at: '2026-07-29T12:45:00+00:00'
     level: V2
     verifier:
       type: agent
       identity: architecture-verifier
-      run_id: runtime-manifest-verifier-20260729-123230
+      run_id: runtime-manifest-verifier-20260729-124430
     source_candidate:
       review_id: codex-architecture-governance-20260729-runtime-manifest-candidates
-      sha256: 2c1d906085101acbf2736ef7b4595d7daf8ef5b1e694c5529405715d74e9bbcd
+      sha256: ee1ae336f4df0e0d28d6a9af02b8384b1937306595eef6b17ded1240c0e377ea
   status: open
   evidence:
   - type: source
     location: resources/scripts/select_knowledge.py:290
     repository: codex-architecture-governance
-    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     path: resources/scripts/select_knowledge.py
     line_start: 290
     line_end: 326
     blob_sha: 73422f2950c48a3254ccf97e7785583f086ec90f
     observation: The compact projection contains only lock/result hashes and selected
       ID, path, hash, priority, and reasons.
-    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     freshness: current
     symbol: knowledge_context
   - type: test
     location: tests/test_architecture_tool.py:822
     repository: codex-architecture-governance
-    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     path: tests/test_architecture_tool.py
     line_start: 822
     line_end: 866
-    blob_sha: 8f5bf382d22a4924285988f23ec2466955c13ccc
+    blob_sha: 56e717a31ef029fe5534a7008144968883f1959c
     observation: The CLI regression binds the context sidecar to the lock and asserts
       that excluded is absent.
-    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     freshness: current
     symbol: test_select_knowledge_cli_passes_decision_intent
   - type: source
     location: skills/project-architecture-audit/SKILL.md:74
     repository: codex-architecture-governance
-    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     path: skills/project-architecture-audit/SKILL.md
     line_start: 74
     line_end: 88
     blob_sha: 8688e9e7726f240b49737c5449f739c67d01e3af
     observation: The public audit workflow instructs the model to read the compact
       context and selected Markdown, reserving the full ledger for scripts and gates.
-    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     freshness: current
   impact:
     affected_components:
@@ -488,8 +517,8 @@ findings:
   - context-precision
   - knowledge-context
   - prompt-budget
-  evidence_fingerprint: f4bb6ceb197974520c7115c752795d0acf3cea825aeeaa3e6f04057d1f6acdb5
-  fingerprint: 6283d5f4db028656410eafcc2bfc966ebed1b1479f87fbd5e96b14a4e90f4040
+  evidence_fingerprint: d291286da7b646b53aa991409d05e6ce0a76b5b71780a34ac9cec5602d3bb1bc
+  fingerprint: d06a63977a14cc223fb6ed9645e990a977f49e4bfb54f3e39cbab0b56abc24b5
 - id: CAG-PROFILE-RELEVANCE-001
   kind: strength
   rule_id: PROJECT.DESIGN.001
@@ -504,40 +533,40 @@ findings:
       commit, tested the strongest counter-hypothesis, and observed the focused negative
       and positive regressions pass.
     verified_by: architecture-verifier
-    verified_at: '2026-07-29T12:33:00+00:00'
+    verified_at: '2026-07-29T12:45:00+00:00'
     level: V2
     verifier:
       type: agent
       identity: architecture-verifier
-      run_id: runtime-manifest-verifier-20260729-123230
+      run_id: runtime-manifest-verifier-20260729-124430
     source_candidate:
       review_id: codex-architecture-governance-20260729-runtime-manifest-candidates
-      sha256: 2c1d906085101acbf2736ef7b4595d7daf8ef5b1e694c5529405715d74e9bbcd
+      sha256: ee1ae336f4df0e0d28d6a9af02b8384b1937306595eef6b17ded1240c0e377ea
   status: open
   evidence:
   - type: config
     location: .architecture/profile.yaml:95
     repository: codex-architecture-governance
-    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     path: .architecture/profile.yaml
     line_start: 95
     line_end: 125
-    blob_sha: fd31a751f03c5b6d781f49e1289853a5f5cfd409
+    blob_sha: 929ac26858fbd89cd6fb1e7b3225b92466357c4e
     observation: The active Profile requires only plugin-platform and test-automation-platform
       and explains their declared sources.
-    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     freshness: current
   - type: test
     location: tests/test_target_architecture.py:667
     repository: codex-architecture-governance
-    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     path: tests/test_target_architecture.py
     line_start: 667
     line_end: 687
     blob_sha: 746b520ebe4993c756e6f967853f255957d580b5
     observation: The dogfood routing regression requires the two relevant domains
       and excludes backend, data, and cloud-native domains.
-    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    source_commit: 074c755fafd5e36ba55fb20b085beee0c375ed26
     freshness: current
     symbol: test_selector_uses_canonical_profile_domains_and_avoids_generic_reference
   impact:
@@ -589,8 +618,8 @@ findings:
   - project-profile
   - domain-routing
   - relevance
-  evidence_fingerprint: 96c67c7d1a4580dcb2a216c2aaa4d82821941840808e683be0bbada3a5b3fc55
-  fingerprint: b88f157ca9c1eb46f9e19b8e7278e743bac778080ae6223edced018e2ece1e50
+  evidence_fingerprint: 9fb5ce00e182ac3f5d22f28e36a5a4445d172f83f3cc4d9df71aa99a32f1f585
+  fingerprint: c492cbdef9784e23849c1e1e4c74b4920ab3594d83099bb9b40cd26ca390e8fc
 evidence_sources:
 - resources/scripts/select_knowledge.py
 - resources/scripts/architecture_tool.py
@@ -608,10 +637,10 @@ limitations:
 coverage_complete: true
 repository_facts:
   path: .architecture/reviews/inputs/2026-07-29-runtime-manifest-repository-facts.yaml
-  sha256: 6c4fc51782d7b9a3882bdd7fbd0720bf03a841471abde2f14bd604f4b940fa36
+  sha256: 4b69b172313e4f8d1aa8abde949f8097484e7f530a964f3282d9425fe3f010d6
 knowledge_selection:
   path: .architecture/reviews/inputs/2026-07-29-runtime-manifest-knowledge-selection.yaml
-  sha256: 5da62a5b113e7c258bfe33d758e92ac233cade25915b5999dc18abd3c3deb793
+  sha256: 2e765947fad6ebd57ddfe927c7a7cd5bb19391f969c11fe4c259719237a65f0f
 selected_knowledge:
 - id: foundation.quality-attributes
   version: 1.0.0

@@ -4,7 +4,7 @@
 
 - Subject: Codex Architecture Governance
 - Reviewed implementation commit:
-  `53335fa7225ac2fba27c6a9b68892aeca7ea8ccf`
+  `074c755fafd5e36ba55fb20b085beee0c375ed26`
 - Selector source anchor:
   `d48119c17576ce433dd81d7e61bccb366e8ecdc1`
 - Scope: repository-wide correction of Selection provenance, historical trust,
@@ -37,9 +37,11 @@ project commit and the plugin Selector commit are separate identities.
    models. Skills now consume a compact, lock-bound Context containing only the
    selected entries; scripts and Gates retain the exhaustive lock.
 
-The final compatibility correction also lets legacy Decisions remain readable
+The final compatibility corrections also let legacy Decisions remain readable
 when their frozen Facts and Profile no longer match the active project inputs,
-while new trusted Decisions continue to require current bindings.
+and prevent an invalid historical Review from poisoning discovery of a newer
+trusted Review. An invalid record still cannot satisfy a required workflow by
+itself, while new trusted Decisions continue to require current bindings.
 
 ## Verified strengths
 
@@ -52,7 +54,7 @@ while new trusted Decisions continue to require current bindings.
 4. `CAG-PROFILE-RELEVANCE-001` — required Domain Knowledge follows evidenced
    product boundaries.
 
-All eleven Git-bound evidence records resolve at the reviewed commit. The
+All thirteen Git-bound evidence records resolve at the reviewed commit. The
 candidate-to-verified binding, 31 Rule Pack rows, six critical flows, ten audit
 Knowledge entries, and the accepted architecture Decision validate.
 

@@ -27,6 +27,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   dependencies, configuration, plugin manifest and Skill version, fixtures,
   runner and adapter bytes, reconstructible command templates, exact trial
   commands, external runtime fingerprints, and hash-verified execution logs.
+- A Git-bound archived benchmark verification mode for cross-platform
+  reviewers; strict current-runtime replay remains the default.
 - Severity- and stage-aware verification policy: critical V3, high V2,
   medium/low V1, and V4 for risk acceptance and release.
 

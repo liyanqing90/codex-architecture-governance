@@ -333,6 +333,11 @@ python3 resources/scripts/architecture_tool.py benchmark-score \
   --output benchmark-score.json
 ```
 
+The default score mode strictly replays runtime identity checks. For portable
+review of a committed run on a different host, add
+`--runtime-verification archived --artifact-commit COMMIT`; this binds the run
+and JSONL bytes to Git and reports, rather than conceals, host-runtime mismatch.
+
 The runner writes `benchmark-run.log.jsonl` beside the YAML result. Preserve
 both files; the scorer rejects a missing, modified, incomplete, or
 source-inconsistent provenance chain.

@@ -118,7 +118,13 @@ class BehaviorBenchmarkTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(score.returncode, 0, score.stderr)
-            self.assertTrue(json.loads(score.stdout)["provenance"]["valid"])
+            score_payload = json.loads(score.stdout)
+            self.assertTrue(score_payload["provenance"]["valid"])
+            self.assertTrue(
+                score_payload["provenance"]["runtime_verification"][
+                    "current_host_match"
+                ]
+            )
 
             original_version = provenance["runtime_executables"][0]["version_output"]
             provenance["runtime_executables"][0]["version_output"] = "tampered"
@@ -141,7 +147,10 @@ class BehaviorBenchmarkTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(runtime_tampered.returncode, 2)
-            self.assertIn("runtime version mismatch", runtime_tampered.stderr)
+            self.assertIn(
+                "recorded runtime version hash mismatch",
+                runtime_tampered.stderr,
+            )
             provenance["runtime_executables"][0]["version_output"] = original_version
             output.write_text(
                 yaml.safe_dump(result, sort_keys=False, allow_unicode=True),
@@ -168,6 +177,72 @@ class BehaviorBenchmarkTests(unittest.TestCase):
             )
             self.assertEqual(tampered.returncode, 2)
             self.assertIn("execution log hash mismatch", tampered.stderr)
+
+    def test_archived_runtime_verification_binds_git_artifacts(self) -> None:
+        head = subprocess.run(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        run_path = ROOT / "benchmarks" / "results" / "gpt-5.6-terra.yaml"
+        process = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "resources" / "scripts" / "architecture_tool.py"),
+                "benchmark-score",
+                "--ground-truth",
+                str(ROOT / "benchmarks" / "ground-truth.yaml"),
+                "--run",
+                str(run_path),
+                "--runtime-verification",
+                "archived",
+                "--artifact-commit",
+                head,
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(process.returncode, 0, process.stderr)
+        score = json.loads(process.stdout)
+        provenance = score["provenance"]
+        self.assertTrue(provenance["valid"])
+        self.assertEqual(
+            provenance["archive_binding"]["run_path"],
+            "benchmarks/results/gpt-5.6-terra.yaml",
+        )
+        self.assertEqual(
+            provenance["archive_binding"]["execution_log_path"],
+            "benchmarks/results/gpt-5.6-terra.log.jsonl",
+        )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            tampered = Path(temporary) / run_path.name
+            tampered.write_bytes(run_path.read_bytes() + b"\n")
+            rejected = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "resources" / "scripts" / "architecture_tool.py"),
+                    "benchmark-score",
+                    "--ground-truth",
+                    str(ROOT / "benchmarks" / "ground-truth.yaml"),
+                    "--run",
+                    str(tampered),
+                    "--runtime-verification",
+                    "archived",
+                    "--artifact-commit",
+                    head,
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn(
+                "Archived benchmark run must be inside the repository",
+                rejected.stderr,
+            )
 
     def test_failed_trial_preserves_a_hash_only_execution_log(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

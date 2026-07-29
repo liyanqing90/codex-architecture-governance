@@ -4123,6 +4123,8 @@ def validate_benchmark_provenance(
     root: Path,
     run_path: Path,
     observed: dict[str, Any],
+    runtime_verification: str = "strict",
+    artifact_commit: str | None = None,
 ) -> dict[str, Any] | None:
     if observed["schema_version"] not in {"1.3", "1.4"}:
         return None
@@ -4131,6 +4133,33 @@ def validate_benchmark_provenance(
     source = provenance["source"]
     commit = source["commit"]
     git_output(root, "cat-file", "-e", f"{commit}^{{commit}}")
+    archive_binding: dict[str, Any] | None = None
+    if runtime_verification == "archived":
+        if artifact_commit is None:
+            raise ArchitectureError(
+                "Archived runtime verification requires --artifact-commit"
+            )
+        git_output(root, "cat-file", "-e", f"{artifact_commit}^{{commit}}")
+        try:
+            relative_run = run_path.resolve().relative_to(root)
+        except ValueError as exc:
+            raise ArchitectureError(
+                "Archived benchmark run must be inside the repository"
+            ) from exc
+        archived_run = git_blob_bytes(root, artifact_commit, relative_run.as_posix())
+        if archived_run != run_path.read_bytes():
+            raise ArchitectureError(
+                "Benchmark run does not match the archived Git artifact"
+            )
+        archive_binding = {
+            "commit": artifact_commit,
+            "run_path": relative_run.as_posix(),
+            "run_blob_sha": git_output(
+                root,
+                "rev-parse",
+                f"{artifact_commit}:{relative_run.as_posix()}",
+            ),
+        }
     if source["dirty"]:
         raise ArchitectureError(
             "Benchmark release evidence must originate from clean relevant inputs"
@@ -4191,23 +4220,32 @@ def validate_benchmark_provenance(
             raise ArchitectureError(
                 "Benchmark provenance requires command and model runtimes"
             )
+        runtime_checks = []
         for runtime in runtimes:
-            resolved_value = shutil.which(runtime["requested"])
-            if resolved_value is None:
-                raise ArchitectureError(
-                    "Benchmark runtime executable is unavailable: "
-                    + runtime["requested"]
-                )
-            resolved = Path(resolved_value).resolve()
             if (
-                resolved.name != runtime["resolved_name"]
-                or sha256_bytes(str(resolved).encode("utf-8"))
-                != runtime["resolved_path_sha256"]
-                or file_sha256(resolved) != runtime["executable_sha256"]
+                sha256_bytes(runtime["version_output"].encode("utf-8"))
+                != runtime["version_output_sha256"]
             ):
                 raise ArchitectureError(
-                    f"Benchmark runtime executable mismatch: {runtime['id']}"
+                    f"Benchmark recorded runtime version hash mismatch: {runtime['id']}"
                 )
+            resolved_value = shutil.which(runtime["requested"])
+            if resolved_value is None:
+                runtime_checks.append(
+                    {
+                        "id": runtime["id"],
+                        "current_host_match": False,
+                        "reason": "unavailable",
+                    }
+                )
+                continue
+            resolved = Path(resolved_value).resolve()
+            executable_match = (
+                resolved.name == runtime["resolved_name"]
+                and sha256_bytes(str(resolved).encode("utf-8"))
+                == runtime["resolved_path_sha256"]
+                and file_sha256(resolved) == runtime["executable_sha256"]
+            )
             process = subprocess.run(
                 [str(resolved), *runtime["version_arguments"]],
                 check=False,
@@ -4219,17 +4257,44 @@ def validate_benchmark_provenance(
                 for part in (process.stdout.strip(), process.stderr.strip())
                 if part
             )
-            if process.returncode != 0 or version_output != runtime["version_output"]:
-                raise ArchitectureError(
-                    f"Benchmark runtime version mismatch: {runtime['id']}"
+            version_match = (
+                process.returncode == 0
+                and version_output == runtime["version_output"]
+                and sha256_bytes(version_output.encode("utf-8"))
+                == runtime["version_output_sha256"]
+            )
+            current_host_match = executable_match and version_match
+            reason = (
+                "matched"
+                if current_host_match
+                else (
+                    "executable-mismatch"
+                    if not executable_match
+                    else "version-mismatch"
                 )
-            if (
-                sha256_bytes(version_output.encode("utf-8"))
-                != runtime["version_output_sha256"]
-            ):
+            )
+            runtime_checks.append(
+                {
+                    "id": runtime["id"],
+                    "current_host_match": current_host_match,
+                    "reason": reason,
+                }
+            )
+        runtime_mismatches = [
+            item for item in runtime_checks if not item["current_host_match"]
+        ]
+        if runtime_mismatches and runtime_verification == "strict":
+            first = runtime_mismatches[0]
+            if first["reason"] == "unavailable":
                 raise ArchitectureError(
-                    f"Benchmark runtime version hash mismatch: {runtime['id']}"
+                    f"Benchmark runtime executable is unavailable: {first['id']}"
                 )
+            label = (
+                "executable" if first["reason"] == "executable-mismatch" else "version"
+            )
+            raise ArchitectureError(
+                f"Benchmark runtime {label} mismatch: {first['id']}"
+            )
         model_versions = {
             item["version_output"] for item in runtimes if item["role"] == "model"
         }
@@ -4280,6 +4345,23 @@ def validate_benchmark_provenance(
     )
     if file_sha256(log_path) != log["sha256"]:
         raise ArchitectureError("Benchmark execution log hash mismatch")
+    if archive_binding is not None:
+        relative_log_path = log_path.resolve().relative_to(root)
+        archived_log = git_blob_bytes(
+            root,
+            artifact_commit,
+            relative_log_path.as_posix(),
+        )
+        if archived_log != log_path.read_bytes():
+            raise ArchitectureError(
+                "Benchmark execution log does not match the archived Git artifact"
+            )
+        archive_binding["execution_log_path"] = relative_log_path.as_posix()
+        archive_binding["execution_log_blob_sha"] = git_output(
+            root,
+            "rev-parse",
+            f"{artifact_commit}:{relative_log_path.as_posix()}",
+        )
     lines = log_path.read_text(encoding="utf-8").splitlines()
     if len(lines) != log["records"]:
         raise ArchitectureError("Benchmark execution log record count mismatch")
@@ -4387,12 +4469,27 @@ def validate_benchmark_provenance(
         "runtime_executables": (
             provenance.get("runtime_executables") if extended_provenance else None
         ),
+        "runtime_verification": (
+            {
+                "mode": runtime_verification,
+                "current_host_match": all(
+                    item["current_host_match"] for item in runtime_checks
+                ),
+                "checks": runtime_checks,
+            }
+            if extended_provenance
+            else None
+        ),
+        "archive_binding": archive_binding,
     }
 
 
 def score_benchmark(
     ground_truth_path: Path,
     run_path: Path,
+    *,
+    runtime_verification: str = "strict",
+    artifact_commit: str | None = None,
 ) -> dict[str, Any]:
     truth = validate_file(ground_truth_path, "benchmark.schema.json")
     observed = validate_file(run_path, "benchmark.schema.json")
@@ -4404,6 +4501,8 @@ def score_benchmark(
         root=ground_truth_path.parent.parent.resolve(),
         run_path=run_path.resolve(),
         observed=observed,
+        runtime_verification=runtime_verification,
+        artifact_commit=artifact_commit,
     )
     for field in ("id", "version"):
         if truth["benchmark"][field] != observed["benchmark"][field]:
@@ -5006,6 +5105,19 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark_parser.add_argument("--ground-truth", required=True)
     benchmark_parser.add_argument("--run", required=True)
     benchmark_parser.add_argument(
+        "--runtime-verification",
+        choices=["strict", "archived"],
+        default="strict",
+        help=(
+            "Require current-host runtime identity, or verify immutable archived "
+            "run/log bytes while reporting current-host mismatches."
+        ),
+    )
+    benchmark_parser.add_argument(
+        "--artifact-commit",
+        help="Git commit that immutably contains the run and execution log.",
+    )
+    benchmark_parser.add_argument(
         "--output",
         type=Path,
         help="Also write the score as deterministic UTF-8 JSON.",
@@ -5426,6 +5538,8 @@ def run(args: argparse.Namespace) -> int:
         result = score_benchmark(
             Path(args.ground_truth).resolve(),
             Path(args.run).resolve(),
+            runtime_verification=args.runtime_verification,
+            artifact_commit=args.artifact_commit,
         )
         rendered = json.dumps(result, indent=2, ensure_ascii=False)
         if args.output:

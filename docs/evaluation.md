@@ -156,6 +156,13 @@ executables and version commands on the scoring host. A failed or interrupted
 run leaves a hash-only execution-log record and must not be rewritten as a
 passing model result.
 
+Strict scoring is the default and fails when the current host does not match
+the recorded command/model runtimes. Cross-platform reviewers may instead use
+`--runtime-verification archived --artifact-commit COMMIT`. Archived mode
+requires the exact run YAML and JSONL log bytes to exist in that Git commit,
+keeps all source/log/command checks, and reports current-host runtime mismatch
+without pretending the original runtime was replayed.
+
 ## Release evidence
 
 A release may state behavioral results only when the run artifact is preserved

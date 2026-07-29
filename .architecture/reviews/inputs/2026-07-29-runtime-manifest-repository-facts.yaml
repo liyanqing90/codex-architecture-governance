@@ -1,9 +1,9 @@
 schema_version: '1.1'
 repository:
   root: .
-  commit: e40a46d463ed725256bc361d3e2ee466a95beac7
+  commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
   dirty: false
-  scanned_at: '2026-07-29T12:18:00.419652+00:00'
+  scanned_at: '2026-07-29T12:29:53.679702+00:00'
   scope:
   - .
 languages:

@@ -1,6 +1,6 @@
 schema_version: '1.0'
-selection_lock_sha256: 0a43b3611d8532faac5e830e7c0430f33ca46b15e5f497e7cf8846ece905f4ad
-selection_result_sha256: 8d352e73b7eab407e98abbbe4661a95497acecb3fa7898f34ac4d83a60094bae
+selection_lock_sha256: 5da62a5b113e7c258bfe33d758e92ac233cade25915b5999dc18abd3c3deb793
+selection_result_sha256: 40dfe612a352c9220b2a805e610eb2a1cb9d9443a3b7bd1d1ceb6a2427eced61
 selected:
 - id: foundation.quality-attributes
   path: foundations/quality-attributes.md

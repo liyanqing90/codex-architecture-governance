@@ -1,0 +1,621 @@
+schema_version: '1.2'
+review:
+  id: codex-architecture-governance-20260729-runtime-manifest-candidates
+  kind: project
+  workflow: project-architecture
+  subject:
+    id: codex-architecture-governance
+    name: Codex Architecture Governance
+    repository: .
+  commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+  scope:
+  - .
+  profile: .architecture/reviews/inputs/2026-07-29-runtime-manifest-profile.yaml
+  repository_identity: codex-architecture-governance
+  profile_sha256: 4273a269fe6e98e93231877a7e9b7aea46ed42a8ccb7d1afff0a2a6bc96d81a8
+  dirty_tree: false
+  rule_packs:
+  - id: project-core
+    version: 1.0.0
+    sha256: b211d548ad5fe367b9dab8416051c43f3a206da81bd2a8e7596cd788ed3f100c
+  - id: plugin-platform
+    version: 1.0.0
+    sha256: 7ae17488df7a78ce1b857d3f842bd51b87de4ec30576fbe250cfa991472b3700
+  - id: test-automation-platform
+    version: 1.0.0
+    sha256: 23efb3c02cd9e4e2ec2cb83d1505b30dd780aff2a9ac7157506b361cb783c5aa
+  scope_manifest:
+  - .
+  performed_at: '2026-07-29T12:32:00+00:00'
+  verification_state: candidates
+  reviewers:
+  - architecture-auditor
+summary:
+  architecture: A local-first Codex plugin with source-anchored Selector Runtime Manifests,
+    selected-only model context, versioned Skills/Knowledge/Rule Packs, deterministic
+    governance, and reproducible packaging.
+  raw_findings: 4
+  confirmed: 0
+  rejected: 0
+  needs_evidence: 0
+coverage:
+- rule_id: PROJECT.BOUNDARY.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.DEPENDENCY.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.COHESION.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.FRONTEND.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.DATA.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.OWNERSHIP.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.CONTRACT.001
+  status: assessed
+  finding_ids:
+  - CAG-RUNTIME-MANIFEST-001
+- rule_id: PROJECT.TRANSACTION.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.IDEMPOTENCY.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.RELIABILITY.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.STATE.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.SECURITY.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.PRIVACY.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.OBSERVABILITY.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.CONFIG.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.PERFORMANCE.001
+  status: assessed
+  finding_ids:
+  - CAG-CONTEXT-PROJECTION-001
+- rule_id: PROJECT.TEST.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.DEPLOY.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.CHANGE.001
+  status: assessed
+  finding_ids:
+  - CAG-ARCHIVED-LOCK-001
+- rule_id: PROJECT.DEBT.001
+  status: assessed
+  finding_ids: []
+- rule_id: PROJECT.DESIGN.001
+  status: assessed
+  finding_ids:
+  - CAG-PROFILE-RELEVANCE-001
+- rule_id: PLUGIN.MANIFEST.001
+  status: assessed
+  finding_ids: []
+- rule_id: PLUGIN.AUTHORITY.001
+  status: assessed
+  finding_ids: []
+- rule_id: PLUGIN.ISOLATION.001
+  status: assessed
+  finding_ids: []
+- rule_id: PLUGIN.LIFECYCLE.001
+  status: assessed
+  finding_ids: []
+- rule_id: PLUGIN.SUPPLYCHAIN.001
+  status: assessed
+  finding_ids: []
+- rule_id: TESTPLATFORM.RUN.001
+  status: assessed
+  finding_ids: []
+- rule_id: TESTPLATFORM.ISOLATION.001
+  status: assessed
+  finding_ids: []
+- rule_id: TESTPLATFORM.EVIDENCE.001
+  status: assessed
+  finding_ids: []
+- rule_id: TESTPLATFORM.SCHEDULE.001
+  status: assessed
+  finding_ids: []
+- rule_id: TESTPLATFORM.FLAKE.001
+  status: assessed
+  finding_ids: []
+findings:
+- id: CAG-RUNTIME-MANIFEST-001
+  kind: strength
+  rule_id: PROJECT.CONTRACT.001
+  title: Selector locks bind the complete runtime and separate project and plugin
+    commits
+  invariant: A trusted Selection identifies both the reviewed project snapshot and
+    every source-controlled input that determined Selector behavior.
+  severity: info
+  confidence: 0.99
+  verification:
+    status: candidate
+    rationale: Direct source, schema, configuration, and regression evidence requires
+      independent verification before confirmation.
+  status: open
+  evidence:
+  - type: source
+    location: resources/scripts/select_knowledge.py:19
+    repository: codex-architecture-governance
+    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    path: resources/scripts/select_knowledge.py
+    line_start: 19
+    line_end: 37
+    blob_sha: 73422f2950c48a3254ccf97e7785583f086ec90f
+    observation: The fixed contract enumerates the dependency lock, all transitive
+      Selector modules, and every schema that affects selection or context projection.
+    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    freshness: current
+    symbol: SELECTOR_IMPLEMENTATION_PATHS
+  - type: source
+    location: resources/scripts/select_knowledge.py:258
+    repository: codex-architecture-governance
+    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    path: resources/scripts/select_knowledge.py
+    line_start: 258
+    line_end: 281
+    blob_sha: 73422f2950c48a3254ccf97e7785583f086ec90f
+    observation: The Runtime Manifest binds plugin repository, source commit/version,
+      plugin manifest, exact input hashes, raw Knowledge tree, and policy.
+    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    freshness: current
+    symbol: selector_provenance
+  - type: source
+    location: resources/scripts/select_knowledge.py:800
+    repository: codex-architecture-governance
+    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    path: resources/scripts/select_knowledge.py
+    line_start: 800
+    line_end: 813
+    blob_sha: 73422f2950c48a3254ccf97e7785583f086ec90f
+    observation: Selection schema 1.4 records the reviewed repository commit as project_commit
+      rather than reusing the plugin source field.
+    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    freshness: current
+    symbol: project_commit
+  impact:
+    affected_components:
+    - knowledge-selection
+    - selector-runtime
+    - cross-repository-audits
+    failure_mode: A transitive code, schema, dependency, or Knowledge change cannot
+      masquerade as the same Selector runtime.
+    blast_radius: All new schema 1.4 audit and decision selections, including external
+      repositories where the two commits differ.
+  counter_evidence:
+  - Legacy Selection schemas remain readable but do not gain manufactured provenance.
+  - The contract does not claim new external-model A/B/C quality results.
+  first_seen: '2026-07-29'
+  last_seen: '2026-07-29'
+  found_by:
+  - architecture-auditor
+  related_findings: []
+  quality_attribute_impacts:
+  - compatibility
+  - deterministic-enforcement
+  - traceability
+  evidence_level: E3
+  fact_inference_boundary:
+    facts:
+    - The manifest contains eleven fixed implementation inputs plus plugin and Knowledge
+      identities.
+    - Selection inputs use project_commit while selector.source.commit identifies
+      plugin source.
+    inferences:
+    - The former single-file and overloaded-commit provenance gaps are closed at their
+      owning contract boundary.
+    unknowns:
+    - A future contract extension will require a new version and an updated exact
+      input set.
+  applicability:
+    profile_conditions:
+    - Compatibility, deterministic enforcement, safety, and traceability are critical
+      project qualities.
+    - Trusted Reviews and Decisions bind task-scoped Knowledge selections across plugin
+      versions.
+  source_candidate_ids:
+  - codex-architecture-governance-20260729-runtime-manifest-candidates
+  rule_pack_version: 1.0.0
+  staleness_state: current
+  decision_references: []
+  tags:
+  - knowledge-selection
+  - runtime-manifest
+  - provenance
+  evidence_fingerprint: d0c2d7da466c176aab95a59c01d182ef21d54832723f31da9dac62c5fb89ff3c
+  fingerprint: bd04a97413320eb14ce6ba8ced7b9e31e07d83adfd2ae8e6947209ee3b3cf106
+- id: CAG-ARCHIVED-LOCK-001
+  kind: strength
+  rule_id: PROJECT.CHANGE.001
+  title: Trusted runtime mismatches require current replay or anchored historical
+    blobs
+  invariant: A provenance mismatch never bypasses Knowledge semantics in a trusted
+    Review, Decision, or Gate.
+  severity: info
+  confidence: 0.99
+  verification:
+    status: candidate
+    rationale: Direct source, schema, configuration, and regression evidence requires
+      independent verification before confirmation.
+  status: open
+  evidence:
+  - type: source
+    location: resources/scripts/architecture_tool.py:290
+    repository: codex-architecture-governance
+    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    path: resources/scripts/architecture_tool.py
+    line_start: 290
+    line_end: 530
+    blob_sha: c2804518cc51c50a687447fbd0bf86ce5b66908a
+    observation: Archived validation resolves the declared repository and commit,
+      verifies the exact implementation set, plugin identity, raw Knowledge tree,
+      and every selected record without executing old code.
+    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    freshness: current
+    symbol: verify_archived_selector_runtime
+  - type: source
+    location: resources/scripts/architecture_tool.py:532
+    repository: codex-architecture-governance
+    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    path: resources/scripts/architecture_tool.py
+    line_start: 532
+    line_end: 574
+    blob_sha: c2804518cc51c50a687447fbd0bf86ce5b66908a
+    observation: Validation has explicit current replay, archived lock, and unverifiable
+      legacy rejection paths.
+    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    freshness: current
+    symbol: validate_knowledge_selection_artifact
+  - type: test
+    location: tests/test_architecture_tool.py:592
+    repository: codex-architecture-governance
+    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    path: tests/test_architecture_tool.py
+    line_start: 592
+    line_end: 820
+    blob_sha: 8f5bf382d22a4924285988f23ec2466955c13ccc
+    observation: Negative tests reject recomputed tampering and positive tests verify
+      a historical Git runtime without executing it.
+    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    freshness: current
+    symbol: test_selection_v14_binds_runtime_manifest_and_current_replay
+  impact:
+    affected_components:
+    - trusted-review-validation
+    - architecture-decision
+    - quality-gate
+    failure_mode: An attacker cannot change an implementation hash and Knowledge maturity,
+      recompute result_sha256, and enter the trusted historical path.
+    blast_radius: Trusted Review, Decision, binding, coverage, and Gate operations
+      that consume schema 1.4 selections.
+  counter_evidence:
+  - Legacy Selection schemas remain readable but do not gain manufactured provenance.
+  - The contract does not claim new external-model A/B/C quality results.
+  first_seen: '2026-07-29'
+  last_seen: '2026-07-29'
+  found_by:
+  - architecture-auditor
+  related_findings: []
+  quality_attribute_impacts:
+  - compatibility
+  - safety
+  - traceability
+  evidence_level: E3
+  fact_inference_boundary:
+    facts:
+    - A mismatched schema 1.3 lock is rejected in trusted mode.
+    - A schema 1.4 mismatch must resolve and hash every historical Git input.
+    - Read-only mode remains explicit for historical inspection.
+    inferences:
+    - The validator now fails closed for unverifiable creation-time claims while preserving
+      safe historical readability.
+    unknowns:
+    - Installed archives without a Git clone need a future release-attestation resolver
+      to remain verifiable after upgrade.
+  applicability:
+    profile_conditions:
+    - Compatibility, deterministic enforcement, safety, and traceability are critical
+      project qualities.
+    - Trusted Reviews and Decisions bind task-scoped Knowledge selections across plugin
+      versions.
+  source_candidate_ids:
+  - codex-architecture-governance-20260729-runtime-manifest-candidates
+  rule_pack_version: 1.0.0
+  staleness_state: current
+  decision_references: []
+  tags:
+  - historical-lock
+  - fail-closed
+  - trusted-gate
+  evidence_fingerprint: 87e78eadba729c953d77f3472056368dd85e89d4b11cd5e9b687ff98793f1a1b
+  fingerprint: 8cd8c2a18ce805c2c411d9bf3f64713b845ee58c4d01c17346dea6b8f87961a0
+- id: CAG-CONTEXT-PROJECTION-001
+  kind: strength
+  rule_id: PROJECT.PERFORMANCE.001
+  title: Model context excludes the full Knowledge rejection ledger
+  invariant: The model receives only selected Knowledge identities and reasons while
+    machine governance retains the exhaustive lock.
+  severity: info
+  confidence: 0.99
+  verification:
+    status: candidate
+    rationale: Direct source, schema, configuration, and regression evidence requires
+      independent verification before confirmation.
+  status: open
+  evidence:
+  - type: source
+    location: resources/scripts/select_knowledge.py:290
+    repository: codex-architecture-governance
+    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    path: resources/scripts/select_knowledge.py
+    line_start: 290
+    line_end: 326
+    blob_sha: 73422f2950c48a3254ccf97e7785583f086ec90f
+    observation: The compact projection contains only lock/result hashes and selected
+      ID, path, hash, priority, and reasons.
+    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    freshness: current
+    symbol: knowledge_context
+  - type: test
+    location: tests/test_architecture_tool.py:822
+    repository: codex-architecture-governance
+    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    path: tests/test_architecture_tool.py
+    line_start: 822
+    line_end: 866
+    blob_sha: 8f5bf382d22a4924285988f23ec2466955c13ccc
+    observation: The CLI regression binds the context sidecar to the lock and asserts
+      that excluded is absent.
+    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    freshness: current
+    symbol: test_select_knowledge_cli_passes_decision_intent
+  - type: source
+    location: skills/project-architecture-audit/SKILL.md:74
+    repository: codex-architecture-governance
+    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    path: skills/project-architecture-audit/SKILL.md
+    line_start: 74
+    line_end: 88
+    blob_sha: 8688e9e7726f240b49737c5449f739c67d01e3af
+    observation: The public audit workflow instructs the model to read the compact
+      context and selected Markdown, reserving the full ledger for scripts and gates.
+    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    freshness: current
+  impact:
+    affected_components:
+    - model-context
+    - knowledge-selection
+    - public-skills
+    failure_mode: Hundreds of irrelevant excluded Knowledge names no longer pollute
+      audit and decision prompts.
+    blast_radius: Project, AI-agent, mobile, portfolio, and solution-advisor workflows
+      using context sidecars.
+  counter_evidence:
+  - Legacy Selection schemas remain readable but do not gain manufactured provenance.
+  - The contract does not claim new external-model A/B/C quality results.
+  first_seen: '2026-07-29'
+  last_seen: '2026-07-29'
+  found_by:
+  - architecture-auditor
+  related_findings: []
+  quality_attribute_impacts:
+  - performance-efficiency
+  - traceability
+  - maintainability
+  evidence_level: E3
+  fact_inference_boundary:
+    facts:
+    - The lock retains all 205 selected/excluded entries.
+    - The sidecar contains only the ten task-selected entries in the dogfood audit.
+    - The sidecar is SHA-256-bound to the full lock.
+    inferences:
+    - Context precision improves without weakening the machine audit trail.
+    unknowns:
+    - External model token and quality deltas require real production-selected A/B/C
+      runs.
+  applicability:
+    profile_conditions:
+    - Compatibility, deterministic enforcement, safety, and traceability are critical
+      project qualities.
+    - Trusted Reviews and Decisions bind task-scoped Knowledge selections across plugin
+      versions.
+  source_candidate_ids:
+  - codex-architecture-governance-20260729-runtime-manifest-candidates
+  rule_pack_version: 1.0.0
+  staleness_state: current
+  decision_references: []
+  tags:
+  - context-precision
+  - knowledge-context
+  - prompt-budget
+  evidence_fingerprint: f4bb6ceb197974520c7115c752795d0acf3cea825aeeaa3e6f04057d1f6acdb5
+  fingerprint: 6283d5f4db028656410eafcc2bfc966ebed1b1479f87fbd5e96b14a4e90f4040
+- id: CAG-PROFILE-RELEVANCE-001
+  kind: strength
+  rule_id: PROJECT.DESIGN.001
+  title: The project Profile loads only evidenced product domains
+  invariant: Required Domain Knowledge reflects the product boundary rather than generic
+    YAML handling or CI infrastructure.
+  severity: info
+  confidence: 0.99
+  verification:
+    status: candidate
+    rationale: Direct source, schema, configuration, and regression evidence requires
+      independent verification before confirmation.
+  status: open
+  evidence:
+  - type: config
+    location: .architecture/profile.yaml:95
+    repository: codex-architecture-governance
+    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    path: .architecture/profile.yaml
+    line_start: 95
+    line_end: 125
+    blob_sha: fd31a751f03c5b6d781f49e1289853a5f5cfd409
+    observation: The active Profile requires only plugin-platform and test-automation-platform
+      and explains their declared sources.
+    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    freshness: current
+  - type: test
+    location: tests/test_target_architecture.py:667
+    repository: codex-architecture-governance
+    commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    path: tests/test_target_architecture.py
+    line_start: 667
+    line_end: 687
+    blob_sha: 746b520ebe4993c756e6f967853f255957d580b5
+    observation: The dogfood routing regression requires the two relevant domains
+      and excludes backend, data, and cloud-native domains.
+    source_commit: 53335fa7225ac2fba27c6a9b68892aeca7ea8ccf
+    freshness: current
+    symbol: test_selector_uses_canonical_profile_domains_and_avoids_generic_reference
+  impact:
+    affected_components:
+    - project-profile
+    - knowledge-routing
+    - audit-relevance
+    failure_mode: Backend API, Data Platform, and Cloud-native Platform guidance is
+      no longer mandatory without contributing product facts.
+    blast_radius: Every project audit and solution decision generated from the active
+      dogfood Profile.
+  counter_evidence:
+  - Legacy Selection schemas remain readable but do not gain manufactured provenance.
+  - The contract does not claim new external-model A/B/C quality results.
+  first_seen: '2026-07-29'
+  last_seen: '2026-07-29'
+  found_by:
+  - architecture-auditor
+  related_findings: []
+  quality_attribute_impacts:
+  - maintainability
+  - functional-suitability
+  - performance-efficiency
+  evidence_level: E3
+  fact_inference_boundary:
+    facts:
+    - Repository facts contain no contributing framework, storage, interface, or infrastructure
+      entries.
+    - Profile sources explicitly justify plugin and test-automation product domains.
+    - The selected audit context contains only those two Domain entries.
+    inferences:
+    - Foundations and Rule Packs cover generic contracts and CI concerns without misclassifying
+      the product.
+    unknowns:
+    - New runtime dependencies may justify additional domains in a future sourced
+      Profile.
+  applicability:
+    profile_conditions:
+    - Compatibility, deterministic enforcement, safety, and traceability are critical
+      project qualities.
+    - Trusted Reviews and Decisions bind task-scoped Knowledge selections across plugin
+      versions.
+  source_candidate_ids:
+  - codex-architecture-governance-20260729-runtime-manifest-candidates
+  rule_pack_version: 1.0.0
+  staleness_state: current
+  decision_references: []
+  tags:
+  - project-profile
+  - domain-routing
+  - relevance
+  evidence_fingerprint: 96c67c7d1a4580dcb2a216c2aaa4d82821941840808e683be0bbada3a5b3fc55
+  fingerprint: b88f157ca9c1eb46f9e19b8e7278e743bac778080ae6223edced018e2ece1e50
+evidence_sources:
+- resources/scripts/select_knowledge.py
+- resources/scripts/architecture_tool.py
+- resources/schemas/knowledge-selection.schema.json
+- tests/test_architecture_tool.py
+- tests/test_target_architecture.py
+- .architecture/profile.yaml
+- skills/project-architecture-audit/SKILL.md
+limitations:
+- No new external-model A/B/C quality, token, cost, or tool-call outcome is asserted.
+- Historical Git verification requires a matching local clone when the installed runtime
+  no longer matches; release attestation resolution remains future work.
+- GitHub-hosted CI for the final governance commit had not completed when candidates
+  were formed.
+coverage_complete: true
+repository_facts:
+  path: .architecture/reviews/inputs/2026-07-29-runtime-manifest-repository-facts.yaml
+  sha256: 6c4fc51782d7b9a3882bdd7fbd0720bf03a841471abde2f14bd604f4b940fa36
+knowledge_selection:
+  path: .architecture/reviews/inputs/2026-07-29-runtime-manifest-knowledge-selection.yaml
+  sha256: 5da62a5b113e7c258bfe33d758e92ac233cade25915b5999dc18abd3c3deb793
+selected_knowledge:
+- id: foundation.quality-attributes
+  version: 1.0.0
+  sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680
+- id: domain.plugin-platform
+  version: 1.0.0
+  sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c
+- id: foundation.data-ownership
+  version: 1.0.0
+  sha256: 260f240ec9782f5a42a68481652912532cfcd6a0b07fdc5366d44388cc3d0204
+- id: foundation.evidence-reasoning
+  version: 1.0.0
+  sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f
+- id: foundation.proportional-design
+  version: 1.0.0
+  sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df
+- id: foundation.system-boundaries
+  version: 1.0.0
+  sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db
+- id: domain.test-automation-platform
+  version: 1.0.0
+  sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016
+- id: foundation.quality-attribute-scenario
+  version: 1.0.0
+  sha256: 5ac5810dc0f9f168080d03ee43270407bd8ed0945fafd73de32e0447c22ffe42
+- id: migration.internal-extension-to-plugin
+  version: 1.0.0
+  sha256: a54900d935353aa5f91741743a936e2b7f2967fdbdfaecbce6cde6f7847215f2
+- id: style.plugin-architecture
+  version: 1.0.0
+  sha256: 9d72e896b0154e8ee979474c6d47579889705c751a32a172f4b1b72bdef13a8a
+critical_flow_coverage:
+- id: plugin-discovery-and-skill-execution
+  status: assessed
+  reason: Manifest, Skill context projection, selected Knowledge, and package inventory
+    were traced at the reviewed commit.
+- id: finding-verification-and-policy-enforcement
+  status: assessed
+  reason: Current replay, archived Git verification, unverifiable rejection, Review
+    bindings, and Gate entry paths were traced and tested.
+- id: architecture-knowledge-and-behavior-evaluation
+  status: assessed
+  reason: Profile routing, exhaustive locks, compact context projection, benchmark
+    limitations, and negative tamper cases were traced.
+- id: greenfield-architecture-decision
+  status: assessed
+  reason: Decision-specific schema 1.4 selections and additive Decision schema compatibility
+    were validated.
+- id: safe-project-initialization
+  status: assessed
+  reason: Initialization and refusal-to-overwrite behavior remain covered by the complete
+    regression suite.
+- id: deterministic-release-packaging
+  status: assessed
+  reason: Source anchor metadata, runtime allowlist, checksum, license, and SPDX paths
+    were validated locally.
+unknowns:
+- External-model production-selected A/B/C results remain unmeasured.
+- Final GitHub matrix and dependency-review results remain pending until the governance
+  commit is published.

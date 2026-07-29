@@ -105,7 +105,7 @@ project:
     - test-automation-platform
   repository_facts:
     path: .architecture/reviews/inputs/2026-07-29-runtime-manifest-repository-facts.yaml
-    sha256: c1696b55b03a2e7bb1162c7ad34b68320c35425cab74365853754604d48954dd
+    sha256: 6c4fc51782d7b9a3882bdd7fbd0720bf03a841471abde2f14bd604f4b940fa36
   profile_sources:
     detected:
       - .architecture/reviews/inputs/2026-07-29-runtime-manifest-repository-facts.yaml

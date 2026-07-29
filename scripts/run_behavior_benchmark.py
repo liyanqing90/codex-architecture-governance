@@ -44,13 +44,14 @@ def relative_to_root(root: Path, path: Path, label: str) -> str:
 
 def tree_manifest(path: Path) -> tuple[str, int]:
     records = []
-    for child in sorted(item for item in path.rglob("*") if item.is_file()):
+    for child in (item for item in path.rglob("*") if item.is_file()):
         records.append(
             {
                 "path": child.relative_to(path).as_posix(),
                 "sha256": file_sha256(child),
             }
         )
+    records.sort(key=lambda record: record["path"])
     return sha256_bytes(canonical_json(records).encode()), len(records)
 
 

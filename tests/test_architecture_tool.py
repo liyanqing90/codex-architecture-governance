@@ -240,7 +240,7 @@ class ArchitectureToolTests(unittest.TestCase):
                     "name": "Test Portfolio" if portfolio else "Test Project",
                 },
                 "verification_state": "candidates",
-                "profile": str(profile_path.relative_to(self.root)),
+                "profile": profile_path.relative_to(self.root).as_posix(),
             }
         )
         if portfolio:
@@ -287,7 +287,7 @@ class ArchitectureToolTests(unittest.TestCase):
                 "workflow": workflow,
                 "subject": candidate["review"]["subject"],
                 "repository_identity": subject_id,
-                "profile": str(profile_path.relative_to(self.root)),
+                "profile": profile_path.relative_to(self.root).as_posix(),
                 "profile_sha256": architecture_tool.file_sha256(profile_path),
                 "dirty_tree": False,
                 "rule_packs": [
@@ -307,7 +307,7 @@ class ArchitectureToolTests(unittest.TestCase):
                     "completed_at": "2026-07-28T10:00:00+00:00",
                 },
                 "source_candidate": {
-                    "path": str(candidate_path.relative_to(self.root)),
+                    "path": candidate_path.relative_to(self.root).as_posix(),
                     "review_id": candidate["review"]["id"],
                     "sha256": candidate_hash,
                 },
@@ -477,7 +477,7 @@ class ArchitectureToolTests(unittest.TestCase):
             "completed_at": "2026-07-28T10:01:00+00:00",
         }
         verified["review"]["source_candidate"] = {
-            "path": str(migrated_path.relative_to(self.root)),
+            "path": migrated_path.relative_to(self.root).as_posix(),
             "review_id": migrated["review"]["id"],
             "sha256": architecture_tool.file_sha256(migrated_path),
         }
@@ -751,7 +751,7 @@ class ArchitectureToolTests(unittest.TestCase):
             "format": "ssh",
             "identity": "architecture-verifier",
             "namespace": "architecture-governance",
-            "path": str(signature_path.relative_to(self.root)),
+            "path": signature_path.relative_to(self.root).as_posix(),
         }
         self.write_yaml(review_path, review)
 
@@ -928,9 +928,11 @@ class ArchitectureToolTests(unittest.TestCase):
             {
                 "id": "ADR-GREENFIELD-001",
                 "decision_kind": "greenfield",
-                "source_context": str(brief_path.relative_to(self.root)),
+                "source_context": brief_path.relative_to(self.root).as_posix(),
                 "source_context_sha256": architecture_tool.file_sha256(brief_path),
-                "knowledge_selection_path": str(selection_path.relative_to(self.root)),
+                "knowledge_selection_path": selection_path.relative_to(
+                    self.root
+                ).as_posix(),
                 "knowledge_selection_sha256": architecture_tool.file_sha256(
                     selection_path
                 ),
@@ -1056,7 +1058,7 @@ class ArchitectureToolTests(unittest.TestCase):
         plan["items"][0]["completion_evidence"] = [
             {
                 "type": evidence_type,
-                "location": str(completion_path.relative_to(self.root)),
+                "location": completion_path.relative_to(self.root).as_posix(),
                 "sha256": completion_hash,
                 "result": "Required acceptance outcome passed.",
                 "observed_at": "2026-07-28T11:30:00+00:00",

@@ -4028,10 +4028,10 @@ def review_bindings(project_root: Path, candidate_path: Path) -> dict[str, Any]:
         "repository_identity": profile["project"]["id"],
         "commit": current_git_commit(root),
         "dirty_tree": not git_is_clean(root),
-        "profile": str(profile_path.relative_to(root)),
+        "profile": profile_path.relative_to(root).as_posix(),
         "profile_sha256": file_sha256(profile_path),
         "source_candidate": {
-            "path": str(candidate_path.relative_to(root)),
+            "path": candidate_path.relative_to(root).as_posix(),
             "review_id": candidate["review"]["id"],
             "sha256": file_sha256(candidate_path),
         },

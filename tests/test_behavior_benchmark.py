@@ -22,6 +22,32 @@ SPEC.loader.exec_module(run_behavior_benchmark)
 
 
 class BehaviorBenchmarkTests(unittest.TestCase):
+    def test_tree_manifest_uses_portable_case_sensitive_order(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = Path(temporary)
+            readme = fixture / "README.md"
+            source = fixture / "catalog.py"
+            readme.write_text("fixture\n", encoding="utf-8")
+            source.write_text("VALUE = 1\n", encoding="utf-8")
+            expected_records = [
+                {
+                    "path": "README.md",
+                    "sha256": hashlib.sha256(readme.read_bytes()).hexdigest(),
+                },
+                {
+                    "path": "catalog.py",
+                    "sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                },
+            ]
+            expected = hashlib.sha256(
+                run_behavior_benchmark.canonical_json(expected_records).encode()
+            ).hexdigest()
+
+            self.assertEqual(
+                run_behavior_benchmark.tree_manifest(fixture),
+                (expected, 2),
+            )
+
     def test_runner_executes_every_fixture_without_ground_truth_leakage(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "run.yaml"

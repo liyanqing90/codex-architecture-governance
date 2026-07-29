@@ -16,6 +16,14 @@ selection:
   reasons:
   - Required foundation or lens for project-architecture-audit.
   - 'Task matches trigger(s): quality'
+- id: foundation.system-boundaries
+  version: 1.0.0
+  path: foundations/system-boundaries.md
+  sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db
+  priority: required
+  reasons:
+  - Required foundation or lens for project-architecture-audit.
+  - 'Task matches trigger(s): ownership'
 - id: domain.plugin-platform
   version: 1.0.0
   path: domains/plugin-platform/overview.md
@@ -24,6 +32,14 @@ selection:
   reasons:
   - Project profile or detected facts require plugin-platform.
   - 'Task matches trigger(s): plugin'
+- id: domain.test-automation-platform
+  version: 1.0.0
+  path: domains/test-automation-platform/overview.md
+  sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016
+  priority: required
+  reasons:
+  - Project profile or detected facts require test-automation-platform.
+  - 'Task matches trigger(s): test'
 - id: foundation.data-ownership
   version: 1.0.0
   path: foundations/data-ownership.md
@@ -36,13 +52,6 @@ selection:
   version: 1.0.0
   path: foundations/proportional-design.md
   sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df
-  priority: required
-  reasons:
-  - Required foundation or lens for project-architecture-audit.
-- id: foundation.system-boundaries
-  version: 1.0.0
-  path: foundations/system-boundaries.md
-  sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db
   priority: required
   reasons:
   - Required foundation or lens for project-architecture-audit.
@@ -74,13 +83,6 @@ selection:
   priority: recommended
   reasons:
   - Project profile or detected facts require mobile.
-- id: domain.test-automation-platform
-  version: 1.0.0
-  path: domains/test-automation-platform/overview.md
-  sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016
-  priority: required
-  reasons:
-  - Project profile or detected facts require test-automation-platform.
 - id: style.plugin-architecture
   version: 1.0.0
   path: architecture-styles/plugin-architecture.md
@@ -102,13 +104,6 @@ selection:
   priority: recommended
   reasons:
   - 'Task matches trigger(s): quality'
-- id: foundation.tradeoff-analysis
-  version: 1.0.0
-  path: foundations/tradeoff-analysis.md
-  sha256: 058c9756ba4d9306f42e0fb49365aff3564f3545e103c05812040ce2c9f8b9d5
-  priority: recommended
-  reasons:
-  - 'Task matches trigger(s): decision'
 - id: migration.internal-extension-to-plugin
   version: 1.0.0
   path: migration-guides/internal-extension-to-plugin.md
@@ -244,6 +239,8 @@ excluded:
 - id: foundation.security
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.technology-selection
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+- id: foundation.tradeoff-analysis
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.batch-to-incremental-stream
   reason: Domain-only relevance is below the selection threshold.
@@ -497,11 +494,10 @@ excluded:
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 inputs:
   skill: project-architecture-audit
-  task: Audit the v0.4 architecture governance plugin, golden knowledge quality, Greenfield
-    decision contracts, behavior benchmark evidence, deterministic gates, compatibility,
-    CI, and release supply chain.
-  facts_sha256: 3a209eba84442fadb3f2be34eec5398a6eeadad54832eff21931e4c8da3fbbf5
-  profile_sha256: f7f9c698a20660a6a3a952002638ce99a3004259f8a7ab0d13c72f79395a4afe
+  task: Audit project architecture, plugin governance, test evidence, compatibility,
+    quality, data ownership, and architecture decisions.
+  facts_sha256: 3a6e183e289d081f6f64ec722babe7339b44ca38f0f2fbaf5c563a352d2a2015
+  profile_sha256: de02338fd5830a8a9cf537adf1ec1343a59fd0474d02fa574631e11978e094ad
 budget:
-  maximum_entries: 18
-  selected_entries: 16
+  maximum_entries: 16
+  selected_entries: 15

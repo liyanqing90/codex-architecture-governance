@@ -15,17 +15,19 @@ selection:
   priority: required
   reasons:
   - Explicit caller include.
-- id: style.microservices
-  version: 1.0.0
-  path: architecture-styles/microservices.md
-  sha256: 0533dbcda24b99313c8fe8fccd64ea2ce08bd020e60571ad561c04a800ececf6
-  priority: required
-  reasons:
-  - Explicit caller include.
+  - 'Task matches trigger(s): modular'
 - id: style.modular-monolith
   version: 1.0.0
   path: architecture-styles/modular-monolith.md
   sha256: 3f97c548665d8e6c4159c5f6ecee4a5d099a2ac4def69fba2b0a5d6d6703c3c0
+  priority: required
+  reasons:
+  - Explicit caller include.
+  - 'Task matches trigger(s): modular'
+- id: style.microservices
+  version: 1.0.0
+  path: architecture-styles/microservices.md
+  sha256: 0533dbcda24b99313c8fe8fccd64ea2ce08bd020e60571ad561c04a800ececf6
   priority: required
   reasons:
   - Explicit caller include.
@@ -36,14 +38,6 @@ selection:
   priority: required
   reasons:
   - Explicit caller include.
-- id: domain.plugin-platform
-  version: 1.0.0
-  path: domains/plugin-platform/overview.md
-  sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c
-  priority: required
-  reasons:
-  - Project profile or detected facts require plugin-platform.
-  - 'Task matches trigger(s): plugin'
 - id: foundation.evolutionary-architecture
   version: 1.0.0
   path: foundations/evolutionary-architecture.md
@@ -52,6 +46,15 @@ selection:
   reasons:
   - 'Entry domain matches project: cloud-native-platform'
   - Required foundation or lens for architecture-solution-advisor.
+  - 'Task matches trigger(s): migration'
+- id: domain.plugin-platform
+  version: 1.0.0
+  path: domains/plugin-platform/overview.md
+  sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c
+  priority: required
+  reasons:
+  - Project profile or detected facts require plugin-platform.
+  - 'Task matches trigger(s): plugin'
 - id: foundation.quality-attributes
   version: 1.0.0
   path: foundations/quality-attributes.md
@@ -108,14 +111,14 @@ selection:
   priority: required
   reasons:
   - Project profile or detected facts require test-automation-platform.
-- id: case-study.queue-worker-before-workflow
+- id: case-study.small-team-modular-saas
   version: 1.0.0
-  path: case-studies/queue-worker-before-workflow.md
-  sha256: c136b2d15ee59068b4c14f3d8bbb5d044f01df369ed867f97f2b62266551bd30
+  path: case-studies/small-team-modular-saas.md
+  sha256: 358980e0bdd5b0a88b2288bd0e0f7f121bcdfa8d94719cb3de6511c3f2f51e97
   priority: recommended
   reasons:
   - 'Entry domain matches project: backend-api'
-  - 'Task matches trigger(s): workflow'
+  - 'Task matches trigger(s): modular'
 excluded:
 - id: anti-pattern.cache-without-invalidation
   reason: Domain-only relevance is below the selection threshold.
@@ -124,7 +127,7 @@ excluded:
 - id: anti-pattern.event-sourcing-for-crud
   reason: Domain-only relevance is below the selection threshold.
 - id: anti-pattern.multi-agent-for-workflow
-  reason: Relevant but outside the configured context budget.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: anti-pattern.premature-generic-platform
   reason: Domain-only relevance is below the selection threshold.
 - id: anti-pattern.queue-as-default
@@ -137,14 +140,14 @@ excluded:
   reason: Domain-only relevance is below the selection threshold.
 - id: anti-pattern.websocket-for-rare-updates
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
+- id: case-study.queue-worker-before-workflow
+  reason: Domain-only relevance is below the selection threshold.
 - id: case-study.server-cache-not-local-first
   reason: Domain-only relevance is below the selection threshold.
 - id: case-study.single-agent-is-sufficient
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
-- id: case-study.small-team-modular-saas
-  reason: Domain-only relevance is below the selection threshold.
 - id: case-study.sqlite-is-appropriate
-  reason: Relevant but outside the configured context budget.
+  reason: Domain-only relevance is below the selection threshold.
 - id: case-study.sse-task-progress
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.agent-orchestration-selection
@@ -164,13 +167,13 @@ excluded:
 - id: decision.integration-style-selection
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.layered-vs-modular-monolith
-  reason: Domain-only relevance is below the selection threshold.
+  reason: Relevant but outside the configured context budget.
 - id: decision.local-first-vs-server-first
-  reason: Domain-only relevance is below the selection threshold.
+  reason: Relevant but outside the configured context budget.
 - id: decision.message-system-selection
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.monolith-vs-microservices
-  reason: Domain-only relevance is below the selection threshold.
+  reason: Relevant but outside the configured context budget.
 - id: decision.optimistic-vs-pessimistic-update
   reason: Domain-only relevance is below the selection threshold.
 - id: decision.polling-vs-sse-vs-websocket
@@ -192,7 +195,7 @@ excluded:
 - id: decision.system-style-selection
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: decision.workflow-vs-agent
-  reason: Relevant but outside the configured context budget.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: domain.ai-agent
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: domain.desktop-application
@@ -204,7 +207,7 @@ excluded:
 - id: domain.iot-edge
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: domain.local-first-application
-  reason: Relevant but outside the configured context budget.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: domain.multi-tenant-saas
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: domain.real-time-system
@@ -236,7 +239,7 @@ excluded:
 - id: foundation.interaction-capability
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.maintainability
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: foundation.performance-efficiency
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: foundation.quality-attribute-scenario
@@ -254,21 +257,21 @@ excluded:
 - id: migration.cache-introduction
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.client-only-to-hybrid-rendering
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: migration.direct-write-to-outbox
-  reason: Domain-only relevance is below the selection threshold.
+  reason: Relevant but outside the configured context budget.
 - id: migration.expand-contract-migration
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: migration.internal-extension-to-plugin
   reason: Relevant but outside the configured context budget.
 - id: migration.offset-to-cursor-pagination
-  reason: Domain-only relevance is below the selection threshold.
-- id: migration.polling-to-sse
-  reason: Domain-only relevance is below the selection threshold.
-- id: migration.queue-to-durable-workflow
   reason: Relevant but outside the configured context budget.
+- id: migration.polling-to-sse
+  reason: Relevant but outside the configured context budget.
+- id: migration.queue-to-durable-workflow
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.server-first-to-offline-capable
-  reason: Domain-only relevance is below the selection threshold.
+  reason: Relevant but outside the configured context budget.
 - id: migration.server-first-to-offline-first
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.shared-database-to-owned-data
@@ -278,11 +281,11 @@ excluded:
 - id: migration.single-region-to-multi-region
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.strangler-migration
-  reason: No project fact, profile domain, task trigger, or skill rule selected it.
+  reason: Relevant but outside the configured context budget.
 - id: migration.sync-to-event-integration
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: migration.synchronous-to-background-job
-  reason: Domain-only relevance is below the selection threshold.
+  reason: Relevant but outside the configured context budget.
 - id: pattern.anti-corruption-layer
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: pattern.api-aggregation
@@ -382,7 +385,7 @@ excluded:
 - id: style.data-mesh
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.durable-workflow
-  reason: Relevant but outside the configured context budget.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.event-driven
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: style.hexagonal
@@ -424,7 +427,7 @@ excluded:
 - id: technology.dapr
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.dapr-workflow
-  reason: Relevant but outside the configured context budget.
+  reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.dependency-cruiser
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 - id: technology.django
@@ -497,12 +500,11 @@ excluded:
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 inputs:
   skill: architecture-solution-advisor
-  task: Decide whether Codex Architecture Governance v0.4 should retain the local
-    Plugin plus Workflow Skills plus Knowledge Packs plus deterministic Python CLI
-    architecture, split the CLI into internal modules, or move governance into hosted
-    services.
-  facts_sha256: 3a209eba84442fadb3f2be34eec5398a6eeadad54832eff21931e4c8da3fbbf5
-  profile_sha256: f7f9c698a20660a6a3a952002638ce99a3004259f8a7ab0d13c72f79395a4afe
+  task: Decide whether the local-first plugin architecture should remain, become more
+    modular internally, or move to hosted services; compare proportionality, maintainability,
+    operations, migration, and evolution.
+  facts_sha256: 3a6e183e289d081f6f64ec722babe7339b44ca38f0f2fbaf5c563a352d2a2015
+  profile_sha256: de02338fd5830a8a9cf537adf1ec1343a59fd0474d02fa574631e11978e094ad
 budget:
   maximum_entries: 16
   selected_entries: 16

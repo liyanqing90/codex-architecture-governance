@@ -646,7 +646,7 @@ class ArchitectureToolTests(unittest.TestCase):
 
     def test_repository_dogfood_configuration_is_valid(self) -> None:
         validated = architecture_tool.validate_project(ROOT)
-        self.assertEqual(len(validated), 9)
+        self.assertEqual(len(validated), 12)
 
     def test_evidence_provider_run_binds_and_revalidates_output(self) -> None:
         self.init_project()

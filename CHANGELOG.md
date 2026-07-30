@@ -24,14 +24,20 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- Dependabot now groups all Python version updates into one PR and caps routine
+  Python and GitHub Actions update queues at two and one open PR respectively.
+- GitHub workflows now use the pinned Node 24 releases of Checkout 7.0.1,
+  Setup Python 7.0.0, and Dependency Review 5.0.0.
 - `project-architecture-audit` now treats missing governance as a bootstrap
   condition and persists audits by default; Advisory mode requires an
   explicitly read-only request.
 - The project, repository, installable plugin ID, release archive prefix, SBOM,
   and public tooling identity are now **Hengmu**. Pre-rename self-review
   artifacts retain their recorded identity as immutable internal evidence.
-- The development lock now requires `pytest` 9.0.3 or newer within the 9.x
+- The development lock now requires `pytest` 9.1.1 or newer within the 9.x
   series, removing the vulnerable 8.4.2 test-runner dependency.
+- Runtime dependency bounds now require JSON Schema 4.26.0 and PyYAML 6.0.3,
+  matching the verified lock files already used by installation and CI.
 - Public positioning now describes Hengmu as an evidence-bound software
   engineering decision system spanning system assessment, performance and
   other engineering qualities, technical solution comparison, remediation,

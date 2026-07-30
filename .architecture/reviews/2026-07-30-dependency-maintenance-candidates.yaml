@@ -1,0 +1,124 @@
+schema_version: "1.2"
+review:
+  id: hengmu-20260730-dependency-maintenance-candidates
+  kind: project
+  workflow: project-architecture
+  subject:
+    id: hengmu
+    name: Hengmu
+    repository: .
+  performed_at: "2026-07-30T12:26:00+00:00"
+  commit: 47c1cf0d7d39236b13bfc90b0b1578309cc3ca45
+  scope:
+    - .
+  verification_state: candidates
+  reviewers:
+    - architecture-auditor
+  profile: .architecture/reviews/inputs/2026-07-30-dependency-maintenance-profile.yaml
+  repository_identity: hengmu
+  profile_sha256: 38382567c9dbbbcac3db82348ff89008955a1b93030fcdeb46744486bca27459
+  dirty_tree: false
+  rule_packs:
+    - id: project-core
+      version: "1.0.0"
+      sha256: b211d548ad5fe367b9dab8416051c43f3a206da81bd2a8e7596cd788ed3f100c
+    - id: plugin-platform
+      version: "1.0.0"
+      sha256: 7ae17488df7a78ce1b857d3f842bd51b87de4ec30576fbe250cfa991472b3700
+    - id: test-automation-platform
+      version: "1.0.0"
+      sha256: 23efb3c02cd9e4e2ec2cb83d1505b30dd780aff2a9ac7157506b361cb783c5aa
+  scope_manifest:
+    - .
+summary:
+  architecture: Dependabot update fan-out is reduced at its repository-owned configuration boundary, dependency declarations now match the already verified lock versions, and official GitHub Actions are upgraded through immutable commit pins without broadening workflow permissions or release authority.
+  raw_findings: 0
+  confirmed: 0
+  rejected: 0
+  needs_evidence: 0
+coverage:
+  - {rule_id: PROJECT.BOUNDARY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPENDENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.COHESION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.FRONTEND.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DATA.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OWNERSHIP.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONTRACT.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.TRANSACTION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.IDEMPOTENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.RELIABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.STATE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.SECURITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PRIVACY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OBSERVABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONFIG.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PERFORMANCE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.TEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPLOY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CHANGE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEBT.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DESIGN.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.MANIFEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.AUTHORITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.ISOLATION.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.LIFECYCLE.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.SUPPLYCHAIN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.RUN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.ISOLATION.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.EVIDENCE.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.SCHEDULE.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.FLAKE.001, status: assessed, finding_ids: []}
+findings: []
+evidence_sources:
+  - .github/dependabot.yml
+  - .github/workflows/ci.yml
+  - .github/workflows/knowledge-freshness.yml
+  - .github/workflows/release.yml
+  - requirements.txt
+  - requirements-dev.txt
+  - requirements-lock.txt
+  - requirements-dev-lock.txt
+  - tests/test_supply_chain.py
+  - scripts/package_plugin.py
+limitations:
+  - Execution of the upgraded GitHub Actions remains external until the reviewed implementation is pushed to hosted CI.
+  - Dependabot grouping affects routine version-update PRs; security-update behavior remains controlled by GitHub and repository policy.
+coverage_complete: true
+repository_facts:
+  path: .architecture/reviews/inputs/2026-07-30-dependency-maintenance-repository-facts.yaml
+  sha256: 53f00e7986f5baee65f329c91ed69e6f612210c8358ab124a9faeec370b9cda3
+knowledge_selection:
+  path: .architecture/reviews/inputs/2026-07-30-dependency-maintenance-knowledge-selection.yaml
+  sha256: 014d39a66456842813c5590e2fbde65a62b53770f77259acc7f1b3a04ae4168e
+selected_knowledge:
+  - {id: foundation.data-ownership, version: "1.0.0", sha256: 260f240ec9782f5a42a68481652912532cfcd6a0b07fdc5366d44388cc3d0204}
+  - {id: foundation.evidence-reasoning, version: "1.0.0", sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f}
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: foundation.system-boundaries, version: "1.0.0", sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+  - {id: foundation.compatibility, version: "1.0.0", sha256: 17d8e8c8557969246fe2e9a62e8a645aeac171c9c9d2cbeb5d0bdfc27e51330b}
+  - {id: technology.dependency-cruiser, version: "1.0.0", sha256: fe4a638d8f858e6f6b3b91991126322e324694a428be848d2023f66a9968796e}
+  - {id: technology.nestjs, version: "1.0.0", sha256: ee7ebd5b4a0aa8364926a7d9ba6596e9a0c21820975cb99f912854fc37af50f5}
+critical_flow_coverage:
+  - id: plugin-discovery-and-skill-execution
+    status: assessed
+    reason: Plugin identity, public Skill routing, runtime files, and manifest contracts are unchanged by dependency maintenance.
+  - id: finding-verification-and-policy-enforcement
+    status: assessed
+    reason: Workflow permissions and deterministic Gate commands are unchanged; action upgrades remain immutable SHA-pinned and require the same review chain.
+  - id: architecture-knowledge-and-behavior-evaluation
+    status: assessed
+    reason: Runtime dependencies stay within the declared Python-only boundary and lock files already contain the new minimum versions.
+  - id: greenfield-architecture-decision
+    status: assessed
+    reason: Design Brief, solution comparison, Decision, and acceptance contracts are outside this maintenance change.
+  - id: safe-project-initialization
+    status: assessed
+    reason: Initialization code, destination checks, staging behavior, and atomic publication are unchanged.
+  - id: deterministic-release-packaging
+    status: assessed
+    reason: Release actions use immutable pins, dependency locks are unchanged, and local archive, checksum, license, and SBOM contracts remain directly testable.
+unknowns:
+  - Hosted CI results for the upgraded action releases are pending until this evidence chain is pushed.

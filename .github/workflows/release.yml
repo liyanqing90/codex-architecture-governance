@@ -93,7 +93,7 @@ jobs:
         shell: bash
         run: >-
           echo
-          "SBOM_PATH=dist/codex-architecture-governance-${GITHUB_REF_NAME#v}.spdx.json"
+          "SBOM_PATH=dist/hengmu-${GITHUB_REF_NAME#v}.spdx.json"
           >> "${GITHUB_ENV}"
 
       - name: Generate SPDX SBOM
@@ -122,4 +122,4 @@ jobs:
             dist/*.zip.sha256 \
             "${SBOM_PATH}" \
             --generate-notes \
-            --title "Codex Architecture Governance ${GITHUB_REF_NAME}"
+            --title "Hengmu ${GITHUB_REF_NAME}"

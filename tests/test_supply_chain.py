@@ -50,12 +50,20 @@ class SupplyChainTests(unittest.TestCase):
             lock,
             re.compile(r"typing-extensions==4\.16\.0\s*\\"),
         )
+        self.assertIn(
+            "pytest>=9.0.3,<10",
+            requirements,
+        )
+        self.assertRegex(
+            lock,
+            re.compile(r"pytest==9\.1\.1\s*\\"),
+        )
 
     def test_release_attestation_uses_exact_sbom_path(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("SBOM_PATH=dist/codex-architecture-governance-", workflow)
+        self.assertIn("SBOM_PATH=dist/hengmu-", workflow)
         self.assertIn('--output "${SBOM_PATH}"', workflow)
         self.assertIn("sbom-path: ${{ env.SBOM_PATH }}", workflow)
         self.assertIn('"${SBOM_PATH}"', workflow)
@@ -80,11 +88,11 @@ class SupplyChainTests(unittest.TestCase):
             plugin_version = next(
                 record["versionInfo"]
                 for record in first["packages"]
-                if record["name"] == "codex-architecture-governance"
+                if record["name"] == "hengmu"
             )
             self.assertEqual(
                 first["creationInfo"]["creators"],
-                [f"Tool: codex-architecture-governance-sbom-{plugin_version}"],
+                [f"Tool: hengmu-sbom-{plugin_version}"],
             )
 
             with zipfile.ZipFile(archive) as bundle:
@@ -93,7 +101,12 @@ class SupplyChainTests(unittest.TestCase):
             self.assertEqual(sbom_names, archive_names)
 
             packages = {record["name"]: record for record in first["packages"]}
-            self.assertIn("codex-architecture-governance", packages)
+            self.assertIn("hengmu", packages)
+            self.assertTrue(
+                first["documentNamespace"].startswith(
+                    "https://github.com/liyanqing90/hengmu/sbom/"
+                )
+            )
             self.assertIn("jsonschema", packages)
             self.assertIn("pyyaml", packages)
             self.assertFalse(

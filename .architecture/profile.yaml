@@ -1,7 +1,7 @@
 schema_version: '1.1'
 project:
-  id: codex-architecture-governance
-  name: Codex Architecture Governance
+  id: hengmu
+  name: Hengmu
   type:
   - architecture-governance
   - codex-plugin
@@ -9,7 +9,7 @@ project:
   lifecycle: active
   criticality: high
   owners:
-  - Architecture Governance Contributors
+  - Qingye Open Source
   critical_qualities:
   - compatibility
   - deterministic-enforcement
@@ -111,7 +111,7 @@ project:
   - test-automation-platform
   repository_facts:
     path: .architecture/repository-facts.yaml
-    sha256: 3e6d32b19fc0f0aa4a86d92ee29b6927e17bfb0b2badda1d74d927f093a823f7
+    sha256: f5e15ff2a292ddadf54d923bf682936779fa5922b10a64155a7ca7ecd1eaed64
   profile_sources:
     detected:
     - .architecture/repository-facts.yaml

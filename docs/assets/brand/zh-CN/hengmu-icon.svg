@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">衡木项目图标</title>
+  <desc id="desc">青野蓝色衡梁连接墨黑木骨与两条承重路径，把“衡”与“木”收束成一个结构符号。</desc>
+  <rect width="1024" height="1024" fill="#F4F2EC"/>
+  <path d="M512 410 286 838M512 410 738 838" fill="none" stroke="#161719" stroke-width="78" stroke-linecap="square"/>
+  <path d="M512 176v668" fill="none" stroke="#161719" stroke-width="78"/>
+  <path d="M164 310h696v112H164z" fill="#173FBE"/>
+  <path d="M473 310h78v112h-78z" fill="#161719"/>
+</svg>

@@ -33,6 +33,32 @@ class ArchitectureToolTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
 
+    def test_repository_rename_preserves_historical_source_identity(self) -> None:
+        old = "https://github.com/liyanqing90/codex-architecture-governance.git"
+        new = "git@github.com:liyanqing90/hengmu.git"
+        self.assertEqual(
+            architecture_tool.normalize_git_repository(old),
+            architecture_tool.normalize_git_repository(new),
+        )
+        self.assertNotEqual(
+            architecture_tool.normalize_git_repository(
+                "https://github.com/liyanqing90/another-project"
+            ),
+            architecture_tool.normalize_git_repository(new),
+        )
+        self.assertTrue(
+            architecture_tool.repository_identities_match(
+                "codex-architecture-governance",
+                "hengmu",
+            )
+        )
+        self.assertFalse(
+            architecture_tool.repository_identities_match(
+                "another-project",
+                "hengmu",
+            )
+        )
+
     def project_args(self) -> Namespace:
         return Namespace(
             repo=str(self.root),

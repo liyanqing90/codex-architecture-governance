@@ -9,6 +9,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Localized 青野/Hengmu icons and banners, an original 青野 editorial
+  character, two paired English/Chinese article illustrations, and paired
+  Mermaid/Excalidraw/SVG/PNG governance flows.
+- A full Simplified Chinese README that mirrors the English quick start,
+  trust model, workflows, development commands, and project policies.
 - Consumption-time `validate-knowledge-context` checks for the Selection lock,
   result hash, and exact ordered selected-entry projection.
 - CI and release ancestry checks for the Selector source and latest reviewed
@@ -16,6 +21,15 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- The project, repository, installable plugin ID, release archive prefix, SBOM,
+  and public tooling identity are now **Hengmu**. Pre-rename self-review
+  artifacts retain their recorded identity as immutable internal evidence.
+- The development lock now requires `pytest` 9.0.3 or newer within the 9.x
+  series, removing the vulnerable 8.4.2 test-runner dependency.
+- Public positioning now describes Hengmu as an evidence-bound software
+  engineering decision system spanning system assessment, performance and
+  other engineering qualities, technical solution comparison, remediation,
+  portfolio governance, and deterministic gates.
 - Git-verified archived Selection locks remain historically readable but can no
   longer create new trusted Review, Decision, Plan, coverage, or Gate chains;
   current deterministic replay is required.

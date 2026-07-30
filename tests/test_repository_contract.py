@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import shutil
 import sys
 import tempfile
 import unittest
@@ -33,6 +34,15 @@ class RepositoryContractTests(unittest.TestCase):
             validate_repository.validate_github_action_pins(root, errors)
             self.assertEqual(len(errors), 1)
             self.assertIn("40-character commit SHA", errors[0])
+
+    def test_plugin_identity_is_independent_of_checkout_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "custom-checkout-name"
+            shutil.copytree(ROOT / ".codex-plugin", root / ".codex-plugin")
+            errors: list[str] = []
+            manifest = validate_repository.validate_manifest(root, errors)
+            self.assertIsNotNone(manifest)
+            self.assertEqual(errors, [])
 
 
 if __name__ == "__main__":

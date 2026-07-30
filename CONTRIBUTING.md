@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for improving Codex Architecture Governance.
+Thank you for improving Hengmu.
 
 ## Before opening a change
 
@@ -78,6 +78,24 @@ Skill as `$skill-name`.
 - Add or update an adversarial fixture when a change affects diagnosis,
   false-positive resistance, solution proportionality, or evidence quality.
 
+## Maintaining bilingual documentation
+
+`README.md` and `README.zh-CN.md` are one public contract in two languages.
+When a user-visible capability, command, compatibility boundary, policy, or
+project claim changes, update both files in the same pull request.
+
+README visuals follow the same rule:
+
+- English assets live in `docs/assets/brand/en/`,
+  `assets/hengmu-readme-illustrations/en/`, and `diagrams/en/`;
+- Simplified Chinese assets live in the corresponding `zh-CN/` directories;
+- diagrams must include Mermaid, editable Excalidraw, rendered SVG, and PNG;
+- localized pairs must preserve the same meaning, structure, and semantic
+  colors, with only language-specific copy changing.
+
+The SVG and Mermaid files are sources of truth. Regenerate their PNG,
+SVG-derived, and Excalidraw outputs instead of editing rendered files alone.
+
 ## Required checks
 
 Run:
@@ -96,8 +114,8 @@ python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/codex-architecture-governance-0.4.2.zip \
-  --output dist/codex-architecture-governance-0.4.2.spdx.json
+  --archive dist/hengmu-0.4.2.zip \
+  --output dist/hengmu-0.4.2.spdx.json
 ```
 
 The pull request should explain what each new test proves. A generated archive

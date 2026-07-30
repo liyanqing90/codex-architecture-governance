@@ -287,6 +287,25 @@ def validate_governance_run(
     return payload
 
 
+REPOSITORY_RENAMES = {
+    "https://github.com/liyanqing90/codex-architecture-governance": (
+        "https://github.com/liyanqing90/hengmu"
+    ),
+}
+REPOSITORY_IDENTITY_RENAMES = {
+    "codex-architecture-governance": "hengmu",
+}
+
+
+def normalize_repository_identity(value: str) -> str:
+    normalized = value.strip().lower()
+    return REPOSITORY_IDENTITY_RENAMES.get(normalized, normalized)
+
+
+def repository_identities_match(left: str, right: str) -> bool:
+    return normalize_repository_identity(left) == normalize_repository_identity(right)
+
+
 def normalize_git_repository(value: str) -> str:
     normalized = value.strip().rstrip("/")
     if normalized.startswith("git@") and ":" in normalized:
@@ -296,7 +315,8 @@ def normalize_git_repository(value: str) -> str:
         normalized = "https://" + normalized.removeprefix("ssh://git@")
     if normalized.endswith(".git"):
         normalized = normalized[:-4]
-    return normalized.lower()
+    normalized = normalized.lower()
+    return REPOSITORY_RENAMES.get(normalized, normalized)
 
 
 def selector_source_git_root(expected_repository: str) -> Path:
@@ -1221,11 +1241,17 @@ def validate_evidence_run(
         root / ".architecture" / "profile.yaml",
         "project-profile.schema.json",
     )
-    if data["run"]["project_id"] != profile["project"]["id"]:
+    if not repository_identities_match(
+        data["run"]["project_id"],
+        profile["project"]["id"],
+    ):
         raise ArchitectureError(
             f"{artifact_path} project_id does not match project profile"
         )
-    if data["run"]["repository_identity"] != profile["project"]["id"]:
+    if not repository_identities_match(
+        data["run"]["repository_identity"],
+        profile["project"]["id"],
+    ):
         raise ArchitectureError(
             f"{artifact_path} repository_identity does not match project profile"
         )
@@ -2841,10 +2867,11 @@ def validate_project(root: Path) -> list[Path]:
                 repository_root=root,
                 allow_unverifiable_historical=True,
             )
-            if review["review"].get("repository_identity") not in {
-                None,
+            repository_identity = review["review"].get("repository_identity")
+            if repository_identity is not None and not repository_identities_match(
+                repository_identity,
                 profile["project"]["id"],
-            }:
+            ):
                 raise ArchitectureError(
                     f"{artifact} repository_identity does not match project profile"
                 )
@@ -3772,7 +3799,10 @@ def gate_from_config(
         repository_root=root,
         require_current_selection=commit_root is not None,
     )
-    if review["review"]["repository_identity"] != expected_identity:
+    if not repository_identities_match(
+        review["review"]["repository_identity"],
+        expected_identity,
+    ):
         raise ArchitectureError(
             f"{review_path} repository_identity does not match configured subject"
         )
@@ -5802,7 +5832,7 @@ def gate_result_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
             {
                 "tool": {
                     "driver": {
-                        "name": "Codex Architecture Governance",
+                        "name": "Hengmu",
                         "version": TOOL_VERSION,
                         "rules": [rules[key] for key in sorted(rules)],
                     }

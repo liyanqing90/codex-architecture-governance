@@ -93,6 +93,7 @@ def build_sbom(
     manifest = json.loads(contents[".codex-plugin/plugin.json"])
     plugin_name = manifest["name"]
     plugin_version = manifest["version"]
+    repository = str(manifest["repository"]).rstrip("/")
     plugin_id = spdx_id(f"Package-{plugin_name}")
 
     files: list[dict[str, Any]] = []
@@ -184,13 +185,10 @@ def build_sbom(
         "dataLicense": "CC0-1.0",
         "SPDXID": "SPDXRef-DOCUMENT",
         "name": f"{plugin_name}-{plugin_version}",
-        "documentNamespace": (
-            "https://github.com/liyanqing90/codex-architecture-governance/"
-            f"sbom/{archive_sha256}"
-        ),
+        "documentNamespace": f"{repository}/sbom/{archive_sha256}",
         "creationInfo": {
             "created": "1970-01-01T00:00:00Z",
-            "creators": [f"Tool: codex-architecture-governance-sbom-{plugin_version}"],
+            "creators": [f"Tool: {plugin_name}-sbom-{plugin_version}"],
         },
         "documentDescribes": [plugin_id],
         "packages": packages,

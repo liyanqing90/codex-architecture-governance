@@ -1,0 +1,30 @@
+flowchart LR
+    subgraph context["Project context"]
+        repo["Repository<br/>evidence"]
+        profile["Profile +<br/>constraints"]
+        knowledge["Rules + selected<br/>knowledge"]
+    end
+
+    repo --> audit["Candidate<br/>audit"]
+    profile --> audit
+    knowledge --> audit
+    audit -->|"candidate findings"| verify["Independent<br/>verification"]
+    verify -->|"confirmed evidence"| review["Trusted review<br/>provenance bound"]
+    review --> decision["Solution<br/>decision"]
+    decision --> plan["Remediation<br/>plan"]
+    plan --> gate["Deterministic<br/>quality gate"]
+    review -.->|"finding policy"| gate
+    gate --> outcome["Change / release<br/>decision"]
+
+    classDef contextNode fill:#F4F2EC,stroke:#6D7078,color:#161719,stroke-width:1.5px;
+    classDef reviewNode fill:#FFFFFF,stroke:#173FBE,color:#161719,stroke-width:2px;
+    classDef actionNode fill:#173FBE,stroke:#173FBE,color:#FFFFFF,stroke-width:2px;
+    classDef outcomeNode fill:#161719,stroke:#161719,color:#FFFFFF,stroke-width:2px;
+
+    class repo,profile,knowledge contextNode;
+    class audit,verify,review reviewNode;
+    class decision,plan,gate actionNode;
+    class outcome outcomeNode;
+
+    style context fill:#FFFFFF,stroke:#D9D9D2,stroke-width:1px
+    linkStyle default stroke:#6D7078,stroke-width:1.5px

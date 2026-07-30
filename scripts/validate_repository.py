@@ -203,13 +203,9 @@ def validate_manifest(root: Path, errors: list[str]) -> dict[str, Any] | None:
     if manifest is None:
         return None
 
-    name = require_string(manifest, "name", "plugin", errors)
+    require_string(manifest, "name", "plugin", errors)
     version = require_string(manifest, "version", "plugin", errors)
     require_string(manifest, "description", "plugin", errors)
-    if name is not None and name != root.name:
-        errors.append(
-            f"plugin.name {name!r} must match repository directory {root.name!r}"
-        )
     if version is not None and SEMVER_RE.fullmatch(version) is None:
         errors.append(f"plugin.version {version!r} is not strict Semantic Versioning")
     if manifest.get("skills") != "./skills/":
@@ -969,7 +965,7 @@ def validate_repository(root: Path) -> list[str]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Validate Codex Architecture Governance repository contracts."
+        description="Validate Hengmu repository contracts."
     )
     parser.add_argument(
         "--root",

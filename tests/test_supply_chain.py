@@ -50,6 +50,14 @@ class SupplyChainTests(unittest.TestCase):
             lock,
             re.compile(r"typing-extensions==4\.16\.0\s*\\"),
         )
+        self.assertIn(
+            "pytest>=9.0.3,<10",
+            requirements,
+        )
+        self.assertRegex(
+            lock,
+            re.compile(r"pytest==9\.1\.1\s*\\"),
+        )
 
     def test_release_attestation_uses_exact_sbom_path(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(

@@ -24,6 +24,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - The project, repository, installable plugin ID, release archive prefix, SBOM,
   and public tooling identity are now **Hengmu**. Pre-rename self-review
   artifacts retain their recorded identity as immutable internal evidence.
+- The development lock now requires `pytest` 9.0.3 or newer within the 9.x
+  series, removing the vulnerable 8.4.2 test-runner dependency.
 - Public positioning now describes Hengmu as an evidence-bound software
   engineering decision system spanning system assessment, performance and
   other engineering qualities, technical solution comparison, remediation,

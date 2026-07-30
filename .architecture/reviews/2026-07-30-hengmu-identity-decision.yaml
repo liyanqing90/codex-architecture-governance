@@ -1,0 +1,176 @@
+schema_version: "1.2"
+decision:
+  id: ADR-HENGMU-001
+  decision_kind: remediation
+  source_review: hengmu-20260730-public-identity-verified
+  source_review_sha256: 7799bccd1c580c5cec709d080657d4deed816ebed69c4c1ec09ffc5aba0461ac
+  decided_at: "2026-07-30T01:18:00+00:00"
+  decision_makers:
+    - architecture-owner
+  status: accepted
+  knowledge_selection_path: .architecture/reviews/inputs/2026-07-30-hengmu-identity-decision-knowledge-selection.yaml
+  knowledge_selection_sha256: 8f498d51926ff7329528b4660a4265e17b2a2463acfa464c8118a4bcad8b9917
+problem:
+  quality_attributes:
+    - compatibility
+    - maintainability
+    - traceability
+  constraints:
+    - The owner confirms that no historical users or installations require the former public machine identity.
+    - New repository, plugin, archive, SBOM, CI marker, and documentation surfaces use Hengmu.
+    - Hash-bound pre-rename governance artifacts and Git ancestry are not rewritten.
+    - The GitHub repository rename remains reversible until a Hengmu release creates external consumers.
+  finding_ids: []
+  assumptions:
+    - GitHub retains normal redirects from the former repository slug after rename.
+    - The authorized branch can be pushed before the repository is renamed.
+  known_facts:
+    - The verified Review covers all 31 applicable rules and all six critical flows with no unresolved Finding.
+    - The plugin manifest owns the Hengmu package name and repository URL.
+    - Package and SBOM generation derive new artifact identity from the plugin manifest.
+    - Explicit repository URL and project identity aliases preserve validation of frozen pre-rename evidence.
+  unknowns:
+    - Hosted CI and redirect behavior cannot be observed until the external push and repository rename complete.
+knowledge_snapshot:
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: foundation.evolutionary-architecture, version: "1.0.0", sha256: 6f04262de0936a1cffca25b6cadf5e2b0e4b8e7aa6724292ba1d9fd314413f3f}
+  - {id: style.plugin-architecture, version: "1.0.0", sha256: 9d72e896b0154e8ee979474c6d47579889705c751a32a172f4b1b72bdef13a8a}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: foundation.technology-selection, version: "1.0.0", sha256: 183032d368331cd7a3c47988a8f042be627dd5fd1104596d76516951ea0f5948}
+  - {id: foundation.tradeoff-analysis, version: "1.0.0", sha256: 058c9756ba4d9306f42e0fb49365aff3564f3545e103c05812040ce2c9f8b9d5}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+options:
+  - id: keep-current
+    title: Keep the implemented unified Hengmu identity
+    complexity_tier: keep-current
+    architecture_styles:
+      - style.plugin-architecture
+    patterns: []
+    technologies: []
+    benefits:
+      - Presents one public name across discovery, installation, documentation, release assets, and provenance.
+      - Preserves historical evidence through narrow aliases instead of byte rewriting.
+      - Keeps the local plugin architecture and its offline operating model unchanged.
+    liabilities:
+      - Frozen historical artifacts continue to contain the former identity.
+      - The GitHub rename and post-rename verification are explicit external steps.
+    assumptions:
+      - The owner-provided no-user constraint remains accurate until publication.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: improves, rationale: "New surfaces agree while frozen evidence remains readable through explicit aliases."}
+      - {attribute: maintainability, effect: improves, rationale: "One manifest-owned public identity removes duplicated naming rules."}
+      - {attribute: traceability, effect: improves, rationale: "Historical bytes and Git commits remain intact while new provenance names Hengmu."}
+    business_fit: Establishes a coherent open-source identity before external adoption.
+    team_fit: Uses the existing manifest, validators, tests, release workflow, and GitHub repository.
+    evolution_fit: Future versions extend one public contract while old evidence remains archived.
+    implementation_complexity: low
+    operational_complexity: low
+    migration_risk: low
+    reversibility: easy
+    cost: low
+    technical_maturity: mature
+    lock_in: low
+    tradeoff_scores: {business_fit: 2, quality_fit: 2, team_fit: 2, implementation: 2, operations: 2, migration: 2, reversibility: 2, cost: 2, maturity: 2, lock_in: 1, evolution: 2}
+    rejected_reasons: []
+  - id: preserve-split-identity
+    title: Keep the former machine identity behind the Hengmu display brand
+    complexity_tier: low
+    architecture_styles:
+      - style.plugin-architecture
+    patterns: []
+    technologies: []
+    benefits:
+      - Avoids changing repository, plugin, and archive identifiers.
+      - Requires no historical alias handling.
+    liabilities:
+      - Keeps installation, badges, package provenance, and brand presentation inconsistent.
+      - Creates a permanent compatibility promise for an identity with no external users.
+    assumptions:
+      - A split identity is less costly than a pre-adoption reset.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: neutral, rationale: "It preserves an unused identifier but adds no consumer protection."}
+      - {attribute: maintainability, effect: degrades, rationale: "Every public surface must continue mapping two names indefinitely."}
+      - {attribute: traceability, effect: degrades, rationale: "Display and machine provenance describe different identities."}
+    business_fit: Weakens discoverability and a coherent Qingye open-source portfolio.
+    team_fit: Avoids one rename but preserves recurring naming work.
+    evolution_fit: Every future release must document the split identity.
+    implementation_complexity: low
+    operational_complexity: medium
+    migration_risk: low
+    reversibility: easy
+    cost: medium
+    technical_maturity: mature
+    lock_in: medium
+    tradeoff_scores: {business_fit: -1, quality_fit: -1, team_fit: 0, implementation: 2, operations: -1, migration: 2, reversibility: 2, cost: 0, maturity: 2, lock_in: -1, evolution: -1}
+    rejected_reasons:
+      - There are no users whose compatibility needs justify the ongoing split.
+  - id: rewrite-history
+    title: Rewrite every historical artifact and Git commit to Hengmu
+    complexity_tier: high
+    architecture_styles:
+      - style.plugin-architecture
+    patterns: []
+    technologies: []
+    benefits:
+      - Removes the former text from all reachable repository bytes.
+      - Produces superficially uniform search results.
+    liabilities:
+      - Invalidates hashes, signatures, source commits, decisions, and review provenance.
+      - Requires force-push and breaks every existing commit reference.
+    assumptions:
+      - Visual uniformity is more valuable than truthful evidence history.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: degrades, rationale: "Historical hashes and commit references no longer resolve."}
+      - {attribute: maintainability, effect: degrades, rationale: "Reconstructed governance chains require extensive manual rewriting."}
+      - {attribute: traceability, effect: degrades, rationale: "The repository would no longer preserve what was actually reviewed."}
+    business_fit: Adds destructive migration risk without user value.
+    team_fit: Requires repository-wide history reconstruction and force-push coordination.
+    evolution_fit: Establishes a precedent of rewriting evidence when branding changes.
+    implementation_complexity: high
+    operational_complexity: high
+    migration_risk: critical
+    reversibility: difficult
+    cost: high
+    technical_maturity: stable
+    lock_in: high
+    tradeoff_scores: {business_fit: -2, quality_fit: -2, team_fit: -2, implementation: -2, operations: -2, migration: -2, reversibility: -2, cost: -2, maturity: 0, lock_in: -2, evolution: -2}
+    rejected_reasons:
+      - It falsifies provenance and introduces destructive history rewriting.
+selected_option: keep-current
+rationale: The implemented reset is the smallest coherent option because it establishes one public identity before adoption, derives new artifacts from the manifest, and limits compatibility code to exact aliases for immutable evidence. Preserving a split identity adds permanent maintenance with no user benefit, while rewriting history destroys the traceability this project exists to enforce.
+revisit_triggers:
+  - A package registry introduces an immutable external package identity that differs from the GitHub repository.
+  - GitHub stops redirecting renamed repositories.
+  - A documented retention policy retires all pre-rename governance evidence.
+acceptance_evidence:
+  - The owner explicitly authorized a complete identity reset and confirmed there are no historical users.
+  - The current verified Review reports complete rule and critical-flow coverage with no unresolved Finding.
+  - Deterministic project, repository, Context, Review, and coverage validation passed for the reviewed implementation.
+hard_eliminations:
+  - option_id: rewrite-history
+    rule: Do not destroy immutable evidence or rewrite Git history for a branding change.
+    evidence:
+      - Existing Reviews, Decisions, and Selector locks bind hashes and Git commits that must remain resolvable.
+migration:
+  affected_paths:
+    - .codex-plugin/plugin.json
+    - .architecture/profile.yaml
+    - .architecture/gate-policy.yaml
+    - README.md
+    - README.zh-CN.md
+    - resources/selector-source.json
+    - resources/scripts/architecture_tool.py
+    - resources/templates/knowledge-selection.yaml
+    - resources/templates/github-architecture-gate.yml
+    - scripts/generate_sbom.py
+    - .github/workflows/release.yml
+  slices:
+    - Align manifest, documentation, active governance configuration, templates, release names, and SBOM provenance on Hengmu.
+    - Preserve pre-rename validation through exact repository URL and project identity aliases.
+    - Push the reviewed branch, rename the GitHub repository, update local origin, and verify redirects and hosted checks.
+  rollback: Before a Hengmu release, rename GitHub back and revert the additive identity-reset commits; never rewrite historical evidence or force-push.
+  validation:
+    - Validate repository, project, history anchors, Context, Review, coverage, and accepted Decision.
+    - Run the complete test suite, Ruff, dependency and license audits, deterministic packaging, checksum, and SBOM checks.
+    - Verify the new GitHub repository URL, old URL redirect, branch SHA, local origin, and hosted CI.

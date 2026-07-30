@@ -289,8 +289,9 @@ def validate_governance_run(
 
 REPOSITORY_RENAMES = {
     "https://github.com/liyanqing90/codex-architecture-governance": (
-        "https://github.com/liyanqing90/hengmu"
+        "https://github.com/qingye-lab/hengmu"
     ),
+    "https://github.com/liyanqing90/hengmu": "https://github.com/qingye-lab/hengmu",
 }
 REPOSITORY_IDENTITY_RENAMES = {
     "codex-architecture-governance": "hengmu",

@@ -104,7 +104,7 @@ class SupplyChainTests(unittest.TestCase):
             self.assertIn("hengmu", packages)
             self.assertTrue(
                 first["documentNamespace"].startswith(
-                    "https://github.com/liyanqing90/hengmu/sbom/"
+                    "https://github.com/qingye-lab/hengmu/sbom/"
                 )
             )
             self.assertIn("jsonschema", packages)

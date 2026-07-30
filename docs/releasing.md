@@ -68,7 +68,7 @@ After publication, verify both artifact digest and attestation:
 ```bash
 gh attestation verify \
   dist/hengmu-<version>.zip \
-  --repo liyanqing90/hengmu
+  --repo qingye-lab/hengmu
 python3 scripts/verify_checksum.py \
   dist/hengmu-<version>.zip.sha256
 ```

@@ -7,14 +7,15 @@
 </p>
 
 <p align="center">
+  <a href="https://qingye-lab.github.io/hengmu/">项目网站</a> ·
   <a href="README.md">English</a> · <strong>简体中文</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/liyanqing90/hengmu/actions/workflows/ci.yml">
-    <img alt="CI" src="https://github.com/liyanqing90/hengmu/actions/workflows/ci.yml/badge.svg?branch=main">
+  <a href="https://github.com/qingye-lab/hengmu/actions/workflows/ci.yml">
+    <img alt="CI" src="https://github.com/qingye-lab/hengmu/actions/workflows/ci.yml/badge.svg?branch=main">
   </a>
-  <a href="https://github.com/liyanqing90/hengmu/releases">
+  <a href="https://github.com/qingye-lab/hengmu/releases">
     <img alt="版本 0.4.2" src="https://img.shields.io/badge/version-0.4.2-173FBE">
   </a>
   <img alt="Python 3.11–3.13" src="https://img.shields.io/badge/python-3.11%E2%80%933.13-161719">
@@ -87,7 +88,7 @@
 凭据、网络访问或 MCP Server。
 
 ```bash
-git clone https://github.com/liyanqing90/hengmu.git
+git clone https://github.com/qingye-lab/hengmu.git
 cd hengmu
 
 python3 -m venv .venv

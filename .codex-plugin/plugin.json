@@ -1,13 +1,13 @@
 {
-  "name": "codex-architecture-governance",
+  "name": "hengmu",
   "version": "0.4.2",
   "description": "Knowledge-backed architecture audits, solution decisions, verification, remediation, portfolio governance, and trustworthy deterministic gates for Codex.",
   "author": {
-    "name": "Architecture Governance Contributors",
+    "name": "Qingye Open Source",
     "url": "https://github.com/liyanqing90"
   },
-  "homepage": "https://github.com/liyanqing90/codex-architecture-governance#readme",
-  "repository": "https://github.com/liyanqing90/codex-architecture-governance",
+  "homepage": "https://github.com/liyanqing90/hengmu#readme",
+  "repository": "https://github.com/liyanqing90/hengmu",
   "license": "MIT",
   "keywords": [
     "architecture",
@@ -20,16 +20,16 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Codex Architecture Governance",
+    "displayName": "Hengmu",
     "shortDescription": "Knowledge-backed architecture decisions and governance",
     "longDescription": "Audit repositories and portfolios, verify evidence and provenance, compare architecture and technology options, record decisions, plan migrations, maintain sourced knowledge, benchmark behavior, and enforce trusted findings with layered deterministic policy. Local helpers require Python 3.11–3.13 with PyYAML and jsonschema.",
-    "developerName": "Architecture Governance Contributors",
+    "developerName": "Qingye",
     "category": "Developer Tools",
     "capabilities": [
       "Read",
       "Write"
     ],
-    "websiteURL": "https://github.com/liyanqing90/codex-architecture-governance",
+    "websiteURL": "https://github.com/liyanqing90/hengmu",
     "defaultPrompt": [
       "Audit this repository and verify every architecture finding.",
       "Compare architecture options and record an evidence-backed decision.",

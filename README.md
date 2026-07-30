@@ -11,10 +11,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/liyanqing90/codex-architecture-governance/actions/workflows/ci.yml">
-    <img alt="CI" src="https://github.com/liyanqing90/codex-architecture-governance/actions/workflows/ci.yml/badge.svg?branch=main">
+  <a href="https://github.com/liyanqing90/hengmu/actions/workflows/ci.yml">
+    <img alt="CI" src="https://github.com/liyanqing90/hengmu/actions/workflows/ci.yml/badge.svg?branch=main">
   </a>
-  <a href="https://github.com/liyanqing90/codex-architecture-governance/releases">
+  <a href="https://github.com/liyanqing90/hengmu/releases">
     <img alt="Version 0.4.2" src="https://img.shields.io/badge/version-0.4.2-173FBE">
   </a>
   <img alt="Python 3.11–3.13" src="https://img.shields.io/badge/python-3.11%E2%80%933.13-161719">
@@ -62,11 +62,9 @@ It works at two levels:
 | Decision governance | Binds facts, evidence, provenance, authority, remediation, and deterministic policy into one auditable chain. |
 
 > [!IMPORTANT]
-> **Hengmu** is the public project name. The installable plugin ID, repository
-> slug, release archive prefix, and historical provenance remain
-> `codex-architecture-governance` during the `0.x` series. Keeping the machine
-> identity stable avoids breaking existing installations, Git history anchors,
-> and trusted review chains.
+> **Hengmu** is the public project name, GitHub repository, installable plugin
+> ID, and release archive prefix. Pre-rename self-review artifacts retain their
+> recorded identity as immutable internal evidence.
 
 ## Why Hengmu
 
@@ -101,8 +99,8 @@ Hengmu supports Python 3.11–3.13. The runtime is local: it requires no hosted
 service, telemetry, credentials, network access, or MCP server.
 
 ```bash
-git clone https://github.com/liyanqing90/codex-architecture-governance.git
-cd codex-architecture-governance
+git clone https://github.com/liyanqing90/hengmu.git
+cd hengmu
 
 python3 -m venv .venv
 source .venv/bin/activate
@@ -119,7 +117,7 @@ On Windows PowerShell, activate the environment with:
 ### 2. Initialize a repository Profile
 
 ```bash
-HENGMU_ROOT=/path/to/codex-architecture-governance
+HENGMU_ROOT=/path/to/hengmu
 
 python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" init-project \
   --repo /path/to/your-project \
@@ -398,8 +396,8 @@ Build and verify the deterministic plugin archive:
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/codex-architecture-governance-0.4.2.zip \
-  --output dist/codex-architecture-governance-0.4.2.spdx.json
+  --archive dist/hengmu-0.4.2.zip \
+  --output dist/hengmu-0.4.2.spdx.json
 ```
 
 CI runs the supported Python boundary on Linux, macOS, and Windows. Tagged

@@ -21,10 +21,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
-- The public project name is now **Hengmu** and the README follows a
-  reader-first open-source structure. The plugin ID, repository slug, release
-  archive prefix, schemas, CLI contracts, and historical provenance remain
-  `codex-architecture-governance` for `0.x` compatibility.
+- The project, repository, installable plugin ID, release archive prefix, SBOM,
+  and public tooling identity are now **Hengmu**. Pre-rename self-review
+  artifacts retain their recorded identity as immutable internal evidence.
 - Public positioning now describes Hengmu as an evidence-bound software
   engineering decision system spanning system assessment, performance and
   other engineering qualities, technical solution comparison, remediation,

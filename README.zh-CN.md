@@ -11,10 +11,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/liyanqing90/codex-architecture-governance/actions/workflows/ci.yml">
-    <img alt="CI" src="https://github.com/liyanqing90/codex-architecture-governance/actions/workflows/ci.yml/badge.svg?branch=main">
+  <a href="https://github.com/liyanqing90/hengmu/actions/workflows/ci.yml">
+    <img alt="CI" src="https://github.com/liyanqing90/hengmu/actions/workflows/ci.yml/badge.svg?branch=main">
   </a>
-  <a href="https://github.com/liyanqing90/codex-architecture-governance/releases">
+  <a href="https://github.com/liyanqing90/hengmu/releases">
     <img alt="版本 0.4.2" src="https://img.shields.io/badge/version-0.4.2-173FBE">
   </a>
   <img alt="Python 3.11–3.13" src="https://img.shields.io/badge/python-3.11%E2%80%933.13-161719">
@@ -56,10 +56,9 @@
 | 决策治理 | 把事实、证据、来源、权限、改造与确定性策略绑定为可审计链路。 |
 
 > [!IMPORTANT]
-> **衡木（Hengmu）** 是公开项目名。在 `0.x` 系列中，可安装插件 ID、
-> GitHub 仓库名、发布压缩包前缀和历史来源标识仍保持
-> `codex-architecture-governance`。稳定的机器身份可以避免破坏现有安装、
-> Git 历史锚点和可信审核链。
+> **衡木（Hengmu）** 同时是公开项目名、GitHub 仓库名、可安装插件 ID
+> 和发布压缩包前缀。更名前的自审制品保留其原始身份，仅作为不可改写的
+> 内部历史证据。
 
 ## 为什么选择衡木
 
@@ -93,8 +92,8 @@
 凭据、网络访问或 MCP Server。
 
 ```bash
-git clone https://github.com/liyanqing90/codex-architecture-governance.git
-cd codex-architecture-governance
+git clone https://github.com/liyanqing90/hengmu.git
+cd hengmu
 
 python3 -m venv .venv
 source .venv/bin/activate
@@ -111,7 +110,7 @@ Windows PowerShell 使用以下命令激活环境：
 ### 2. 初始化仓库 Profile
 
 ```bash
-HENGMU_ROOT=/path/to/codex-architecture-governance
+HENGMU_ROOT=/path/to/hengmu
 
 python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" init-project \
   --repo /path/to/your-project \
@@ -374,8 +373,8 @@ python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/codex-architecture-governance-0.4.2.zip \
-  --output dist/codex-architecture-governance-0.4.2.spdx.json
+  --archive dist/hengmu-0.4.2.zip \
+  --output dist/hengmu-0.4.2.spdx.json
 ```
 
 CI 会在 Linux、macOS 和 Windows 上验证支持的 Python 边界。带 Tag 的发布

@@ -66,7 +66,7 @@ jobs:
           result = json.loads(
               Path("architecture-gate.json").read_text(encoding="utf-8")
           )
-          marker = "<!-- codex-architecture-governance -->"
+          marker = "<!-- hengmu -->"
           lines = [
               marker,
               "## Architecture gate",
@@ -110,7 +110,7 @@ jobs:
               --paginate \
               "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
               --jq \
-              '.[] | select(.user.login == "github-actions[bot]") | select(.body | contains("<!-- codex-architecture-governance -->")) | .id' \
+              '.[] | select(.user.login == "github-actions[bot]") | select(.body | contains("<!-- hengmu -->")) | .id' \
               | tail -1
           )"
           if [[ -n "${comment_id}" ]]; then

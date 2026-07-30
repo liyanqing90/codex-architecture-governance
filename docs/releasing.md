@@ -30,22 +30,22 @@
 8. Confirm the archive contains only runtime files:
 
    ```bash
-   unzip -l dist/codex-architecture-governance-<version>.zip
+   unzip -l dist/hengmu-<version>.zip
    ```
 
 9. Verify the checksum on any supported platform:
 
    ```bash
    python3 scripts/verify_checksum.py \
-     dist/codex-architecture-governance-<version>.zip.sha256
+     dist/hengmu-<version>.zip.sha256
    ```
 
 10. Generate and inspect the SPDX SBOM:
 
    ```bash
    python3 scripts/generate_sbom.py \
-     --archive dist/codex-architecture-governance-<version>.zip \
-     --output dist/codex-architecture-governance-<version>.spdx.json
+     --archive dist/hengmu-<version>.zip \
+     --output dist/hengmu-<version>.spdx.json
    ```
 
 11. Confirm every dependency package in the SPDX document has a declared
@@ -67,10 +67,10 @@ After publication, verify both artifact digest and attestation:
 
 ```bash
 gh attestation verify \
-  dist/codex-architecture-governance-<version>.zip \
-  --repo liyanqing90/codex-architecture-governance
+  dist/hengmu-<version>.zip \
+  --repo liyanqing90/hengmu
 python3 scripts/verify_checksum.py \
-  dist/codex-architecture-governance-<version>.zip.sha256
+  dist/hengmu-<version>.zip.sha256
 ```
 
 Do not publish from an uncommitted working tree or manually replace a release

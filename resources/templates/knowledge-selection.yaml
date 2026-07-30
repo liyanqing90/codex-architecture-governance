@@ -39,7 +39,7 @@ budget:
 selector:
   contract_version: "1.1"
   source:
-    repository: https://github.com/liyanqing90/codex-architecture-governance
+    repository: https://github.com/liyanqing90/hengmu
     commit: "0000000000000000000000000000000000000000"
     plugin_version: "0.4.2"
     plugin_manifest_sha256: "0000000000000000000000000000000000000000000000000000000000000000"

@@ -287,6 +287,13 @@ def validate_governance_run(
     return payload
 
 
+REPOSITORY_RENAMES = {
+    "https://github.com/liyanqing90/codex-architecture-governance": (
+        "https://github.com/liyanqing90/hengmu"
+    ),
+}
+
+
 def normalize_git_repository(value: str) -> str:
     normalized = value.strip().rstrip("/")
     if normalized.startswith("git@") and ":" in normalized:
@@ -296,7 +303,8 @@ def normalize_git_repository(value: str) -> str:
         normalized = "https://" + normalized.removeprefix("ssh://git@")
     if normalized.endswith(".git"):
         normalized = normalized[:-4]
-    return normalized.lower()
+    normalized = normalized.lower()
+    return REPOSITORY_RENAMES.get(normalized, normalized)
 
 
 def selector_source_git_root(expected_repository: str) -> Path:
@@ -5802,7 +5810,7 @@ def gate_result_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
             {
                 "tool": {
                     "driver": {
-                        "name": "Codex Architecture Governance",
+                        "name": "Hengmu",
                         "version": TOOL_VERSION,
                         "rules": [rules[key] for key in sorted(rules)],
                     }

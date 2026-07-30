@@ -1315,7 +1315,7 @@ def write_entry(relative: Path, spec: dict[str, Any]) -> None:
     metadata["maturity"] = "golden"
     metadata["curation"] = {
         "method": "assisted-reviewed",
-        "reviewer": "Codex Architecture Governance review",
+        "reviewer": "Hengmu review",
         "reviewed_at": REVIEW_DATE,
     }
     metadata["related"] = spec["related"]

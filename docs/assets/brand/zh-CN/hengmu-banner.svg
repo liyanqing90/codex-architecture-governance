@@ -7,27 +7,7 @@
   <text x="194" y="116" fill="#173FBE" font-family="Menlo, Monaco, monospace" font-size="22" letter-spacing="3">QINGYE / 青野</text>
 
   <text x="140" y="382" fill="#161719" font-family="Songti SC, STSong, serif" font-size="194" font-weight="700" letter-spacing="16">衡木</text>
-  <text x="154" y="450" fill="#6D7078" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="27" letter-spacing="7">SOFTWARE DECISION GOVERNANCE</text>
-
-  <text x="760" y="194" fill="#161719" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="46" font-weight="400">从系统审查到技术方案，</text>
-  <text x="760" y="264" fill="#161719" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="46" font-weight="400">让每个重要工程判断</text>
-  <text x="760" y="334" fill="#161719" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="46" font-weight="400">都有证据、有权衡、有去路。</text>
-  <text x="762" y="378" fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="18" letter-spacing="2">LOCAL-FIRST · PROVENANCE-BOUND · DETERMINISTIC</text>
-
-  <path d="M762 490h740" fill="none" stroke="#D9D9D2" stroke-width="2"/>
-  <path d="M762 476v28M947 480v20M1132 480v20M1317 480v20M1502 476v28" fill="none" stroke="#6D7078" stroke-width="2"/>
-  <circle cx="762" cy="490" r="7" fill="#173FBE"/>
-  <circle cx="947" cy="490" r="5" fill="#161719"/>
-  <circle cx="1132" cy="490" r="5" fill="#161719"/>
-  <circle cx="1317" cy="490" r="5" fill="#161719"/>
-  <circle cx="1502" cy="490" r="7" fill="#173FBE"/>
-  <g fill="#6D7078" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="20" letter-spacing="3">
-    <text x="762" y="544">证据</text>
-    <text x="947" y="544">核实</text>
-    <text x="1132" y="544">决策</text>
-    <text x="1317" y="544">改造</text>
-    <text x="1502" y="544" text-anchor="end">门禁</text>
-  </g>
+  <text x="154" y="450" fill="#6D7078" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="30" letter-spacing="9">证据化的软件工程决策</text>
 
   <g transform="translate(1680 76)">
     <path d="M232 250 82 532M232 250 382 532" fill="none" stroke="#161719" stroke-width="46" stroke-linecap="square"/>
@@ -36,5 +16,5 @@
     <path d="M209 180h46v66h-46z" fill="#161719"/>
   </g>
 
-  <text x="2018" y="650" text-anchor="end" fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="18" letter-spacing="2">HM / 003 · 2026</text>
+  <text x="2018" y="650" text-anchor="end" fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="18" letter-spacing="2">HM / QINGYE</text>
 </svg>

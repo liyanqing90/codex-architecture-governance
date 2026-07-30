@@ -7,27 +7,7 @@
   <text x="194" y="116" fill="#173FBE" font-family="Menlo, Monaco, monospace" font-size="22" letter-spacing="3">QINGYE / 青野</text>
 
   <text x="145" y="360" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="154" font-weight="700" letter-spacing="7">HENGMU</text>
-  <text x="154" y="430" fill="#6D7078" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="27" letter-spacing="7">SOFTWARE DECISION GOVERNANCE</text>
-
-  <text x="900" y="198" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="42" font-weight="400">From system assessment</text>
-  <text x="900" y="258" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="42" font-weight="400">to technology choices—</text>
-  <text x="900" y="318" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="42" font-weight="400">evidence, trade-offs, and a path forward.</text>
-  <text x="902" y="388" fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="18" letter-spacing="2">LOCAL-FIRST · PROVENANCE-BOUND · DETERMINISTIC</text>
-
-  <path d="M862 490h640" fill="none" stroke="#D9D9D2" stroke-width="2"/>
-  <path d="M862 476v28M1022 480v20M1182 480v20M1342 480v20M1502 476v28" fill="none" stroke="#6D7078" stroke-width="2"/>
-  <circle cx="862" cy="490" r="7" fill="#173FBE"/>
-  <circle cx="1022" cy="490" r="5" fill="#161719"/>
-  <circle cx="1182" cy="490" r="5" fill="#161719"/>
-  <circle cx="1342" cy="490" r="5" fill="#161719"/>
-  <circle cx="1502" cy="490" r="7" fill="#173FBE"/>
-  <g fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="15" letter-spacing="1">
-    <text x="862" y="544">EVIDENCE</text>
-    <text x="1022" y="544">VERIFY</text>
-    <text x="1182" y="544">DECIDE</text>
-    <text x="1342" y="544">REMEDIATE</text>
-    <text x="1502" y="544" text-anchor="end">GATE</text>
-  </g>
+  <text x="154" y="430" fill="#6D7078" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="27" letter-spacing="7">EVIDENCE-BOUND SOFTWARE DECISIONS</text>
 
   <g transform="translate(1680 76)">
     <path d="M232 250 82 532M232 250 382 532" fill="none" stroke="#161719" stroke-width="46" stroke-linecap="square"/>
@@ -36,5 +16,5 @@
     <path d="M209 180h46v66h-46z" fill="#161719"/>
   </g>
 
-  <text x="2018" y="650" text-anchor="end" fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="18" letter-spacing="2">HM / 003 · 2026</text>
+  <text x="2018" y="650" text-anchor="end" fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="18" letter-spacing="2">HM / QINGYE</text>
 </svg>

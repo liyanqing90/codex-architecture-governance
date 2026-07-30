@@ -1,0 +1,116 @@
+schema_version: "1.2"
+review:
+  id: hengmu-20260730-pages-node24-candidates
+  kind: project
+  workflow: project-architecture
+  subject:
+    id: hengmu
+    name: Hengmu
+    repository: .
+  performed_at: "2026-07-30T10:47:00+00:00"
+  commit: be1c7d92c17ebfe6d74e9bcd05fb9e946565ca8c
+  scope:
+    - .
+  verification_state: candidates
+  reviewers:
+    - architecture-auditor
+  profile: .architecture/reviews/inputs/2026-07-30-pages-node24-profile.yaml
+  repository_identity: hengmu
+  profile_sha256: e0f5d625b0276a64eea53b0a4345a97254b3524e127c3486a33c436438663bc5
+  dirty_tree: false
+  rule_packs:
+    - id: project-core
+      version: "1.0.0"
+      sha256: b211d548ad5fe367b9dab8416051c43f3a206da81bd2a8e7596cd788ed3f100c
+    - id: plugin-platform
+      version: "1.0.0"
+      sha256: 7ae17488df7a78ce1b857d3f842bd51b87de4ec30576fbe250cfa991472b3700
+    - id: test-automation-platform
+      version: "1.0.0"
+      sha256: 23efb3c02cd9e4e2ec2cb83d1505b30dd780aff2a9ac7157506b361cb783c5aa
+  scope_manifest:
+    - .
+summary:
+  architecture: Hengmu retains the reviewed Pages permissions, explicit artifact inventory, deployment environment, and rollback boundary while moving all four official deployment actions to full-SHA-pinned Node 24 releases.
+  raw_findings: 0
+  confirmed: 0
+  rejected: 0
+  needs_evidence: 0
+coverage:
+  - {rule_id: PROJECT.BOUNDARY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPENDENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.COHESION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.FRONTEND.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DATA.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OWNERSHIP.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONTRACT.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.TRANSACTION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.IDEMPOTENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.RELIABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.STATE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.SECURITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PRIVACY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OBSERVABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONFIG.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PERFORMANCE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.TEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPLOY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CHANGE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEBT.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DESIGN.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.MANIFEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.AUTHORITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.ISOLATION.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.LIFECYCLE.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.SUPPLYCHAIN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.RUN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.ISOLATION.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.EVIDENCE.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.SCHEDULE.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.FLAKE.001, status: assessed, finding_ids: []}
+findings: []
+evidence_sources:
+  - .github/workflows/pages.yml
+  - docs/decisions/2026-07-30-publish-static-github-pages-site.md
+  - scripts/validate_repository.py
+  - tests/test_site_contract.py
+limitations:
+  - Official action source and release metadata confirm Node 24 runtimes, but the absence of hosted workflow annotations remains external until the reviewed commit runs on GitHub.
+  - The site content and already verified production endpoint are unchanged by this workflow-only patch.
+coverage_complete: true
+repository_facts:
+  path: .architecture/reviews/inputs/2026-07-30-pages-node24-repository-facts.yaml
+  sha256: 7cea684f1a6e1ff0e946b2131503f961122e2788bd0fe78bcc304063c54030c6
+knowledge_selection:
+  path: .architecture/reviews/inputs/2026-07-30-pages-node24-knowledge-selection.yaml
+  sha256: 2e0ea697c535db3a18188e40e0c2c1c6b9966724b9182628e2f7284def3baee3
+selected_knowledge:
+  - {id: foundation.compatibility, version: "1.0.0", sha256: 17d8e8c8557969246fe2e9a62e8a645aeac171c9c9d2cbeb5d0bdfc27e51330b}
+  - {id: foundation.data-ownership, version: "1.0.0", sha256: 260f240ec9782f5a42a68481652912532cfcd6a0b07fdc5366d44388cc3d0204}
+  - {id: foundation.evidence-reasoning, version: "1.0.0", sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f}
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: foundation.system-boundaries, version: "1.0.0", sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+critical_flow_coverage:
+  - id: plugin-discovery-and-skill-execution
+    status: assessed
+    reason: The plugin manifest and runtime package are unchanged; the website remains an ancillary deployment surface.
+  - id: finding-verification-and-policy-enforcement
+    status: assessed
+    reason: Every action remains bound to a reviewed full commit SHA, and workflow permissions remain least privilege.
+  - id: architecture-knowledge-and-behavior-evaluation
+    status: assessed
+    reason: Repository validation, exact Selection/Context projection, and focused workflow contract tests pass at the reviewed commit.
+  - id: greenfield-architecture-decision
+    status: assessed
+    reason: The accepted static Pages decision and its reconsideration triggers are unchanged.
+  - id: safe-project-initialization
+    status: assessed
+    reason: Initialization behavior and overwrite boundaries are unchanged.
+  - id: deterministic-release-packaging
+    status: assessed
+    reason: The Pages workflow still copies the same explicit website inventory, rejects symlinks, and remains outside the plugin package allowlist.
+unknowns:
+  - Hosted CI and the warning-free Pages run remain pending until this evidence chain is pushed, merged, and deployed.

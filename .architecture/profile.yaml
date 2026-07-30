@@ -1,7 +1,7 @@
 schema_version: '1.1'
 project:
-  id: codex-architecture-governance
-  name: Codex Architecture Governance
+  id: hengmu
+  name: Hengmu
   type:
   - architecture-governance
   - codex-plugin
@@ -9,7 +9,7 @@ project:
   lifecycle: active
   criticality: high
   owners:
-  - Architecture Governance Contributors
+  - Qingye Open Source
   critical_qualities:
   - compatibility
   - deterministic-enforcement

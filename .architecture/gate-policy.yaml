@@ -42,7 +42,7 @@ roles:
   policy_owners:
     - policy-owner
   maintainers:
-    - Architecture Governance Contributors
+    - Qingye Open Source
 role_separation:
   separate:
     - left: auditors

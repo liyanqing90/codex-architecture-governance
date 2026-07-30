@@ -46,6 +46,18 @@ class ArchitectureToolTests(unittest.TestCase):
             ),
             architecture_tool.normalize_git_repository(new),
         )
+        self.assertTrue(
+            architecture_tool.repository_identities_match(
+                "codex-architecture-governance",
+                "hengmu",
+            )
+        )
+        self.assertFalse(
+            architecture_tool.repository_identities_match(
+                "another-project",
+                "hengmu",
+            )
+        )
 
     def project_args(self) -> Namespace:
         return Namespace(

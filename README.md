@@ -7,6 +7,7 @@
 </p>
 
 <p align="center">
+  <a href="https://qingye-lab.github.io/hengmu/">Website</a> ·
   <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 

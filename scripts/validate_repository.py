@@ -118,7 +118,14 @@ REQUIRED_FILES = (
     ".github/pull_request_template.md",
     ".github/workflows/ci.yml",
     ".github/workflows/knowledge-freshness.yml",
+    ".github/workflows/pages.yml",
     ".github/workflows/release.yml",
+    "index.html",
+    "robots.txt",
+    "sitemap.xml",
+    "site/i18n.json",
+    "site/main.js",
+    "site/styles.css",
 )
 SEMVER_RE = re.compile(
     r"^(0|[1-9]\d*)\."
@@ -142,7 +149,15 @@ GITHUB_ACTION_USE_RE = re.compile(
     r"^\s*(?:-\s*)?uses:\s*(?P<action>[^@\s#]+)@(?P<ref>[^\s#]+)",
     re.MULTILINE,
 )
+HTML_RESOURCE_RE = re.compile(
+    r"\b(?:href|src|data-image-en|data-image-zh)=[\"'](?P<target>[^\"']+)[\"']"
+)
+HTML_SCRIPT_RE = re.compile(r"<script\b[^>]*\bsrc=[\"'](?P<target>[^\"']+)[\"']")
+HTML_I18N_RE = re.compile(
+    r"\bdata-i18n(?:-aria|-alt|-content)?=[\"'](?P<key>[^\"']+)[\"']"
+)
 COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+SITE_URL = "https://qingye-lab.github.io/hengmu/"
 FORBIDDEN_MARKERS = (
     "[" + "TODO:",
     "OWNER" + "/REPOSITORY",
@@ -150,6 +165,9 @@ FORBIDDEN_MARKERS = (
 )
 TEXT_SUFFIXES = {
     ".json",
+    ".css",
+    ".html",
+    ".js",
     ".md",
     ".py",
     ".toml",
@@ -860,6 +878,125 @@ def validate_github_action_pins(root: Path, errors: list[str]) -> None:
                 )
 
 
+def validate_site(root: Path, errors: list[str]) -> None:
+    index_path = root / "index.html"
+    i18n_path = root / "site" / "i18n.json"
+    script_path = root / "site" / "main.js"
+    workflow_path = root / ".github" / "workflows" / "pages.yml"
+    try:
+        index_text = index_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        errors.append("site is missing index.html")
+        return
+
+    if f'<link rel="canonical" href="{SITE_URL}">' not in index_text:
+        errors.append("site canonical URL must use the production GitHub Pages origin")
+    if f'<meta property="og:url" content="{SITE_URL}">' not in index_text:
+        errors.append("site Open Graph URL must use the production GitHub Pages origin")
+
+    scripts = HTML_SCRIPT_RE.findall(index_text)
+    if scripts != ["./site/main.js"]:
+        external = [target for target in scripts if target != "./site/main.js"]
+        if external:
+            errors.append(
+                "site must not load an external script: " + ", ".join(external)
+            )
+        else:
+            errors.append("site must load exactly one local script: ./site/main.js")
+
+    for match in HTML_RESOURCE_RE.finditer(index_text):
+        target = match.group("target")
+        parsed = urlparse(target)
+        if parsed.scheme or target.startswith("#"):
+            continue
+        relative = unquote(target.split("#", 1)[0]).removeprefix("./")
+        if not relative:
+            continue
+        path = (root / relative).resolve()
+        try:
+            path.relative_to(root.resolve())
+        except ValueError:
+            errors.append(f"site resource escapes repository: {target}")
+            continue
+        if not path.is_file():
+            errors.append(f"site references missing local resource: {target}")
+
+    payload = load_json(i18n_path, errors)
+    if payload is not None:
+        if set(payload) != {"en", "zh-CN"}:
+            errors.append("site/i18n.json must contain exactly en and zh-CN")
+        else:
+            english = payload["en"]
+            chinese = payload["zh-CN"]
+            if not isinstance(english, dict) or not isinstance(chinese, dict):
+                errors.append("site locale entries must be JSON objects")
+            else:
+                english_keys = set(english)
+                chinese_keys = set(chinese)
+                if english_keys != chinese_keys:
+                    errors.append("site locale keys differ between en and zh-CN")
+                required_keys = set(HTML_I18N_RE.findall(index_text))
+                required_keys.update(
+                    {
+                        "closeMenu",
+                        "copied",
+                        "copiedStatus",
+                        "copyFailed",
+                        "openMenu",
+                        "pageDescription",
+                        "pageTitle",
+                    }
+                )
+                missing = sorted(required_keys - english_keys)
+                if missing:
+                    errors.append(
+                        "site/i18n.json is missing required keys: " + ", ".join(missing)
+                    )
+                empty = sorted(
+                    key
+                    for key in english_keys & chinese_keys
+                    if not isinstance(english[key], str)
+                    or not english[key].strip()
+                    or not isinstance(chinese[key], str)
+                    or not chinese[key].strip()
+                )
+                if empty:
+                    errors.append(
+                        "site/i18n.json contains empty locale values: "
+                        + ", ".join(empty)
+                    )
+
+    try:
+        script_text = script_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        errors.append("site is missing site/main.js")
+    else:
+        for forbidden in ("innerHTML", "document.write", "eval("):
+            if forbidden in script_text:
+                errors.append(
+                    f"site/main.js contains forbidden DOM primitive {forbidden}"
+                )
+
+    try:
+        workflow_text = workflow_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        errors.append("site is missing .github/workflows/pages.yml")
+    else:
+        for required in (
+            "actions/configure-pages@",
+            "actions/upload-pages-artifact@",
+            "actions/deploy-pages@",
+            "id-token: write",
+            "pages: write",
+            "touch _site/.nojekyll",
+            "GitHub Pages artifact must not contain symlinks",
+        ):
+            if required not in workflow_text:
+                errors.append(
+                    f"Pages workflow is missing required contract: {required}"
+                )
+
+
 def validate_repository_hygiene(root: Path, errors: list[str]) -> None:
     for relative in REQUIRED_FILES:
         if not (root / relative).is_file():
@@ -958,6 +1095,7 @@ def validate_repository(root: Path) -> list[str]:
     validate_supplemental_evals(root, errors)
     validate_dependency_locks(root, errors)
     validate_github_action_pins(root, errors)
+    validate_site(root, errors)
     validate_changelog(root, manifest, errors)
     validate_tool_version(root, manifest, errors)
     return errors

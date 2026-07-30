@@ -1,20 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2172" height="724" viewBox="0 0 2172 724" role="img" aria-labelledby="title desc">
   <title id="title">Hengmu project banner</title>
-  <desc id="desc">Hengmu evidence-bound software engineering decisions in the Qingye Quiet Measure visual system.</desc>
+  <desc id="desc">Hengmu evidence-bound software engineering decisions, presented with the official 青野 wordmark.</desc>
   <rect width="2172" height="724" fill="#F4F2EC"/>
 
-  <rect x="154" y="98" width="16" height="16" fill="#173FBE"/>
-  <text x="194" y="116" fill="#173FBE" font-family="Menlo, Monaco, monospace" font-size="22" letter-spacing="3">QINGYE / 青野</text>
+  <image href="../qingye-logo-primary.png" x="154" y="56" width="112" height="112" preserveAspectRatio="xMinYMid meet"/>
 
-  <text x="145" y="360" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="154" font-weight="700" letter-spacing="7">HENGMU</text>
-  <text x="154" y="430" fill="#6D7078" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="27" letter-spacing="7">EVIDENCE-BOUND SOFTWARE DECISIONS</text>
+  <text x="145" y="390" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="154" font-weight="700" letter-spacing="7">HENGMU</text>
+  <text x="154" y="462" fill="#6D7078" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="27" letter-spacing="7">EVIDENCE-BOUND SOFTWARE DECISIONS</text>
 
-  <g transform="translate(1680 76)">
-    <path d="M232 250 82 532M232 250 382 532" fill="none" stroke="#161719" stroke-width="46" stroke-linecap="square"/>
-    <path d="M232 64v468" fill="none" stroke="#161719" stroke-width="46"/>
-    <path d="M0 180h464v66H0z" fill="#173FBE"/>
-    <path d="M209 180h46v66h-46z" fill="#161719"/>
-  </g>
+  <path d="M1168 574 1964 0H2172V310Z" fill="#173FBE"/>
+  <path d="M954 574h780M1168 574v150" fill="none" stroke="#D9D9D2" stroke-width="2"/>
+  <path d="M1153 574h30M1168 559v30" fill="none" stroke="#6D7078" stroke-width="2"/>
 
-  <text x="2018" y="650" text-anchor="end" fill="#6D7078" font-family="Menlo, Monaco, monospace" font-size="18" letter-spacing="2">HM / QINGYE</text>
 </svg>

@@ -1,11 +1,29 @@
-# Quiet Measure
+# Measured Horizon
 
-Quiet Measure makes structure visible without illustrating it literally. Form grows from joinery: one decisive horizontal member meets a vertical spine, then releases its load through two diagonal paths. The image should feel discovered inside the material rather than placed on top of it, with every junction refined through painstaking, master-level craft.
+Measured Horizon lets one calibrated plane transform an otherwise quiet
+field. Form is not accumulated; it is resolved through a single decisive
+gesture, a restrained axis, and generous negative space. The composition
+should feel discovered after countless reductions, with every remaining
+element placed through master-level judgment.
 
-Warm white is the primary field, not a backdrop. Ink gives the work gravity; one concentrated blue beam carries identity and direction. No decorative color competes with that beam. The palette is calibrated with the restraint of a technical instrument and the sensitivity of an editorial page.
+Warm white carries light and material presence. Ink supplies gravity, while
+one saturated blue field introduces direction without becoming decoration.
+Color is spatial architecture: flat, exact, and painstakingly calibrated.
+Gradients, effects, and secondary accents are unnecessary when proportion has
+been refined by someone working at the top of the field.
 
-Scale creates tension through contrast. A monumental name or structural mark is balanced by small, exact reference text and hairline measurements. Negative space remains generous and intentional. Every interval should look meticulously adjusted by someone with deep expertise in both typography and engineered form.
+Typography is treated as structure rather than explanation. One name may be
+monumental, one signature quiet, and one line of supporting text barely
+present. Words never compete with the spatial gesture. Tracking, baselines,
+and optical margins require the meticulous attention of a master typesetter.
 
-Typography behaves as material. Chinese serif forms provide cultural weight and a quiet human cadence; neutral sans-serif and monospaced annotations provide precision. Words remain sparse, never filling space for its own sake. Their baselines, tracking, and optical alignment receive the same painstaking attention as the graphic structure.
+Balance is asymmetrical and calm. Visual mass gathers at one edge while a
+directed plane opens the opposite side, creating tension without noise.
+Hairlines and coordinate marks appear only when they sharpen the relationship
+between elements. Every interval should look labored over, tested, and
+adjusted through deep expertise.
 
-Composition stays asymmetrical but resolved. The eye moves from identity to proposition, then along a measured line toward an unfinished edge. This is continuity without motion effects: the visual promise that judgment can be grounded now while the system remains capable of change. The final artifact must feel inevitable, meticulously crafted, and impossible to simplify without losing meaning.
+The finished work must feel inevitable: bold enough to be remembered, quiet
+enough to remain useful, and impossible to simplify without losing its
+identity. Its precision should suggest countless hours of refinement rather
+than the speed of assembly. Craft is visible through restraint.

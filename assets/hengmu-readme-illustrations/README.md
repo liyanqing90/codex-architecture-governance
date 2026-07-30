@@ -13,9 +13,9 @@ Only visible labels change between locales.
 
 They were created on 2026-07-29 with the official
 [Ian Xiaohei Illustrations](https://github.com/helloianneo/ian-xiaohei-illustrations)
-Skill, then recast with an original Qingye builder character. The character
-uses a Qingye-blue high-collar jacket, ink hair and trousers, and the public
-Qingye avatar's forward-looking silhouette. It replaces Xiaohei as the public
+Skill, then recast with an original 青野 builder character. The character
+uses a brand-blue high-collar jacket, ink hair and trousers, and the public
+青野 avatar's forward-looking silhouette. It replaces Xiaohei as the public
 Hengmu character while preserving the Skill's sparse, hand-drawn editorial
 method.
 

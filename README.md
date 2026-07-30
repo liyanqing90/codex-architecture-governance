@@ -2,7 +2,7 @@
   <img
     src="docs/assets/brand/en/hengmu-banner.png"
     width="100%"
-    alt="Hengmu — evidence-bound software engineering decisions, a Qingye open-source project"
+    alt="Hengmu — evidence-bound software engineering decisions, a 青野 open-source project"
   >
 </p>
 
@@ -84,7 +84,7 @@ Hengmu is designed around a longer, evidence-bound engineering decision chain.
 <p align="center">
   <img
     src="assets/hengmu-readme-illustrations/en/01-from-critique-to-closure.png"
-    alt="The Qingye builder measures a real gap with code evidence and pulls a remediation wedge into the load-bearing structure"
+    alt="The 青野 builder measures a real gap with code evidence and pulls a remediation wedge into the load-bearing structure"
     width="100%">
 </p>
 
@@ -230,7 +230,7 @@ Instead, it carries only the context that makes its decisions different:
 <p align="center">
   <img
     src="assets/hengmu-readme-illustrations/en/02-one-method-many-projects.png"
-    alt="One shared method spans different projects while the Qingye builder adjusts for project profiles and real constraints and exposes hidden coupling"
+    alt="One shared method spans different projects while the 青野 builder adjusts for project profiles and real constraints and exposes hidden coupling"
     width="100%">
 </p>
 
@@ -435,18 +435,18 @@ and is rejected by `validate-history-anchors`.
 
 ## Credits and license
 
-Hengmu is a [Qingye](https://github.com/liyanqing90) open-source project:
+Hengmu is a [青野](https://github.com/liyanqing90) open-source project:
 **理性结构中的持续进化，在不确定中，持续构建。**
 
 The README's editorial illustration system was created with
 [Ian Xiaohei Illustrations](https://github.com/helloianneo/ian-xiaohei-illustrations)
-and recast with an original Qingye builder character derived from the public
-Qingye avatar and brand palette. The technical flow is
+and recast with an original 青野 builder character derived from the public
+青野 avatar and brand palette. The technical flow is
 available as Mermaid, Excalidraw, SVG, and PNG so documentation remains
 editable.
 
 PAAD-derived concepts retain attribution in [NOTICE](NOTICE) and
 [third_party/PAAD-MIT.txt](third_party/PAAD-MIT.txt).
 
-The software is licensed under the [MIT License](LICENSE). The Qingye wordmark
+The software is licensed under the [MIT License](LICENSE). The 青野 wordmark
 identifies the originating project and is not a grant to imply endorsement.

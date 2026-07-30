@@ -9,7 +9,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
-- Localized Qingye/Hengmu icons and banners, an original Qingye editorial
+- Localized 青野/Hengmu icons and banners, an original 青野 editorial
   character, two paired English/Chinese article illustrations, and paired
   Mermaid/Excalidraw/SVG/PNG governance flows.
 - A full Simplified Chinese README that mirrors the English quick start,

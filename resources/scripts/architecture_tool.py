@@ -3133,42 +3133,54 @@ def init_project(args: argparse.Namespace) -> Path:
         facts_path = staged / "repository-facts.yaml"
         write_yaml(facts_path, repository_facts)
 
-        profile = load_yaml(TEMPLATE_ROOT / "profile.yaml")
-        profile["project"].update(
-            {
-                "id": project_id,
-                "name": project_name,
-                "type": args.types or ["service"],
-                "lifecycle": args.lifecycle,
-                "criticality": args.criticality,
-                "owners": args.owners or ["unassigned"],
-                "critical_qualities": args.qualities
-                or ["maintainability", "recoverability"],
-                "required_reviews": selected_reviews,
-                "review_requirements": review_requirements,
-                "rule_packs": selected_packs,
-                "data_classification": args.data_classification,
-                "repository_facts": {
-                    "path": ".architecture/repository-facts.yaml",
-                    "sha256": file_sha256(facts_path),
-                },
-                "required_knowledge_domains": derive_domains(repository_facts),
-                "profile_sources": {
-                    "detected": [".architecture/repository-facts.yaml"],
-                    "declared": [],
-                    "inferred": [
-                        {
-                            "inference": (
-                                "Knowledge domains inferred from deterministic "
-                                "repository facts."
-                            ),
-                            "confidence": 0.8,
-                            "basis": [".architecture/repository-facts.yaml"],
-                        }
-                    ],
-                },
+        if getattr(args, "infer_profile", False):
+            profile = build_profile(facts_path)
+            profile["project"]["id"] = project_id
+            profile["project"]["name"] = project_name
+            profile["project"]["repository_facts"] = {
+                "path": ".architecture/repository-facts.yaml",
+                "sha256": file_sha256(facts_path),
             }
-        )
+            profile["project"]["profile_sources"]["detected"] = [
+                ".architecture/repository-facts.yaml"
+            ]
+        else:
+            profile = load_yaml(TEMPLATE_ROOT / "profile.yaml")
+            profile["project"].update(
+                {
+                    "id": project_id,
+                    "name": project_name,
+                    "type": args.types or ["service"],
+                    "lifecycle": args.lifecycle,
+                    "criticality": args.criticality,
+                    "owners": args.owners or ["unassigned"],
+                    "critical_qualities": args.qualities
+                    or ["maintainability", "recoverability"],
+                    "required_reviews": selected_reviews,
+                    "review_requirements": review_requirements,
+                    "rule_packs": selected_packs,
+                    "data_classification": args.data_classification,
+                    "repository_facts": {
+                        "path": ".architecture/repository-facts.yaml",
+                        "sha256": file_sha256(facts_path),
+                    },
+                    "required_knowledge_domains": derive_domains(repository_facts),
+                    "profile_sources": {
+                        "detected": [".architecture/repository-facts.yaml"],
+                        "declared": [],
+                        "inferred": [
+                            {
+                                "inference": (
+                                    "Knowledge domains inferred from deterministic "
+                                    "repository facts."
+                                ),
+                                "confidence": 0.8,
+                                "basis": [".architecture/repository-facts.yaml"],
+                            }
+                        ],
+                    },
+                }
+            )
         validate_data(
             profile,
             "project-profile.schema.json",
@@ -3186,6 +3198,36 @@ def init_project(args: argparse.Namespace) -> Path:
         )
         staged.rename(target)
     return target
+
+
+def prepare_project_audit(args: argparse.Namespace) -> tuple[Path, bool]:
+    """Create a facts-derived project control plane or validate the existing one."""
+    root = Path(args.repo).resolve()
+    if not root.is_dir():
+        raise ArchitectureError(f"Repository directory does not exist: {root}")
+    target = root / ".architecture"
+    if target.exists():
+        validate_project(root)
+        return target, False
+
+    target = init_project(
+        argparse.Namespace(
+            repo=str(root),
+            name=args.name,
+            project_id=args.project_id,
+            types=[],
+            lifecycle="active",
+            criticality="medium",
+            owners=[],
+            qualities=[],
+            reviews=[],
+            rule_packs=[],
+            data_classification="internal",
+            infer_profile=True,
+        )
+    )
+    validate_project(root)
+    return target, True
 
 
 def init_portfolio(args: argparse.Namespace) -> Path:
@@ -5859,6 +5901,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    prepare_project = subparsers.add_parser(
+        "prepare-project-audit",
+        help=(
+            "Create a facts-derived .architecture control plane when missing, "
+            "or validate and reuse the existing one."
+        ),
+    )
+    prepare_project.add_argument("--repo", default=".")
+    prepare_project.add_argument("--name")
+    prepare_project.add_argument("--id", dest="project_id")
+
     project = subparsers.add_parser(
         "init-project",
         help="Create .architecture configuration without overwriting existing files.",
@@ -6216,6 +6269,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run(args: argparse.Namespace) -> int:
+    if args.command == "prepare-project-audit":
+        target, initialized = prepare_project_audit(args)
+        action = "Initialized" if initialized else "Validated existing"
+        print(f"{action} project architecture configuration: {target}")
+        return 0
     if args.command == "init-project":
         target = init_project(args)
         print(f"Initialized project architecture configuration: {target}")

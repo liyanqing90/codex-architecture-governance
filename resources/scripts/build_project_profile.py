@@ -160,16 +160,18 @@ def derive_review_contract(
     return required_reviews, requirements, packs
 
 
-def default_project(facts: dict[str, Any], facts_path: Path) -> dict[str, Any]:
+def project_root_for_facts(facts: dict[str, Any], facts_path: Path) -> Path:
     declared_root = Path(facts["repository"]["root"])
-    if declared_root == Path():
-        root = (
-            facts_path.parent.parent
-            if facts_path.parent.name == ".architecture"
-            else facts_path.parent
-        )
-    else:
-        root = declared_root.expanduser().resolve()
+    if declared_root != Path():
+        return declared_root.expanduser().resolve()
+    for parent in facts_path.parents:
+        if parent.name == ".architecture":
+            return parent.parent
+    return facts_path.parent
+
+
+def default_project(facts: dict[str, Any], facts_path: Path) -> dict[str, Any]:
+    root = project_root_for_facts(facts, facts_path)
     try:
         facts_reference = facts_path.relative_to(root).as_posix()
     except ValueError:
@@ -321,16 +323,7 @@ def build_profile(
     else:
         declared_path = declared_path.expanduser().resolve()
         declared = load_yaml(declared_path)
-        declared_root = Path(facts["repository"]["root"])
-        project_root = (
-            (
-                facts_path.parent.parent
-                if facts_path.parent.name == ".architecture"
-                else facts_path.parent
-            )
-            if declared_root == Path()
-            else declared_root.expanduser().resolve()
-        )
+        project_root = project_root_for_facts(facts, facts_path)
         try:
             declared_reference = declared_path.relative_to(project_root).as_posix()
         except ValueError:
@@ -352,7 +345,7 @@ def build_profile(
         )
         sources = project.get("profile_sources", defaults["profile_sources"])
         sources["detected"] = sorted(
-            set(sources.get("detected", [])) | {str(facts_path)}
+            set(sources.get("detected", [])) | {defaults["repository_facts"]["path"]}
         )
         sources["declared"] = sorted(
             set(sources.get("declared", [])) | {declared_reference}

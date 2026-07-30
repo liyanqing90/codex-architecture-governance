@@ -103,20 +103,17 @@ Windows PowerShell 使用以下命令激活环境：
 .venv\Scripts\Activate.ps1
 ```
 
-### 2. 初始化仓库 Profile
+### 2. 准备仓库
 
 ```bash
 HENGMU_ROOT=/path/to/hengmu
 
-python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" init-project \
-  --repo /path/to/your-project \
-  --name "Example Project" \
-  --type service \
-  --quality recoverability \
-  --review project-architecture
+python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
+  prepare-project-audit --repo /path/to/your-project
 ```
 
-命令会创建一套仓库本地控制面：
+目录不存在时，命令会根据仓库事实创建本地控制面；目录已经存在时，
+命令只验证并复用，不会覆盖：
 
 ```text
 .architecture/
@@ -138,9 +135,12 @@ python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" init-project \
 
 ```text
 使用 $project-architecture-audit 审计当前仓库。
-读取 .architecture/profile.yaml、constraints.md 和 critical-flows.md。
 把缺失能力作为问题，但在建议结构性改动前先核实证据。
 ```
+
+也可以直接从这一步开始：Skill 会调用准备命令，并在缺失时自动初始化
+`.architecture/`。只有明确要求“只读”时，才会执行不写入仓库产物的一次性
+Advisory 审计。
 
 项目 Profile 决定哪些质量属性和专项审核真正重要。全局 Skill 提供方法，
 仓库提供事实。

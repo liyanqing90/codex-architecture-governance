@@ -6,7 +6,7 @@ cases:
     prompt: "Audit this repository's architecture and cite code evidence."
     expected:
       activates: true
-      outcome: "Produces evidence-backed candidates for independent verification."
+      outcome: "Initializes missing project governance and persists evidence-backed candidates for independent verification."
   - id: project-indirect
     skill: project-architecture-audit
     kind: indirect
@@ -20,7 +20,7 @@ cases:
     prompt: "Review the architecture, but this checkout has no profile or design docs."
     expected:
       activates: true
-      outcome: "Infers a provisional profile and records missing evidence."
+      outcome: "Creates a facts-derived project control plane, then records missing declared evidence without inventing it."
   - id: project-negative
     skill: project-architecture-audit
     kind: negative

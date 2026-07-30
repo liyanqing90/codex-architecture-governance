@@ -9,6 +9,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- An idempotent `prepare-project-audit` command that creates a facts-derived
+  `.architecture/` control plane when missing, validates existing governance,
+  and refuses to overwrite partial user-owned state.
 - Localized 青野/Hengmu icons and banners, an original 青野 editorial
   character, two paired English/Chinese article illustrations, and paired
   Mermaid/Excalidraw/SVG/PNG governance flows.
@@ -21,6 +24,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- `project-architecture-audit` now treats missing governance as a bootstrap
+  condition and persists audits by default; Advisory mode requires an
+  explicitly read-only request.
 - The project, repository, installable plugin ID, release archive prefix, SBOM,
   and public tooling identity are now **Hengmu**. Pre-rename self-review
   artifacts retain their recorded identity as immutable internal evidence.
@@ -33,6 +39,13 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Git-verified archived Selection locks remain historically readable but can no
   longer create new trusted Review, Decision, Plan, coverage, or Gate chains;
   current deterministic replay is required.
+
+### Fixed
+
+- Profile construction now resolves facts stored at any depth under
+  `.architecture/` from the repository root and records portable relative
+  bindings instead of treating a per-run `reviews/inputs/` directory as the
+  project.
 
 ## [0.4.2] - 2026-07-29
 

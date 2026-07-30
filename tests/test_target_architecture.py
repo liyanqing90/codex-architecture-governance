@@ -73,6 +73,33 @@ class TargetArchitectureTests(unittest.TestCase):
         with self.assertRaisesRegex(InspectionError, "escapes repository root"):
             inspect_repository(self.root, scope_values=["../outside"])
 
+    def test_profile_resolves_nested_architecture_facts_from_repository_root(
+        self,
+    ) -> None:
+        inputs = self.root / ".architecture" / "reviews" / "inputs"
+        inputs.mkdir(parents=True)
+        facts = inspect_repository(
+            self.root,
+            scanned_at=datetime(2026, 7, 30, tzinfo=UTC),
+        )
+        facts_path = inputs / "current-repository-facts.yaml"
+        facts_path.write_text(
+            yaml.safe_dump(facts, sort_keys=False),
+            encoding="utf-8",
+        )
+
+        profile = build_profile(facts_path)
+
+        self.assertEqual(profile["project"]["name"], self.root.name)
+        self.assertEqual(
+            profile["project"]["repository_facts"]["path"],
+            ".architecture/reviews/inputs/current-repository-facts.yaml",
+        )
+        self.assertIn(
+            ".architecture/reviews/inputs/current-repository-facts.yaml",
+            profile["project"]["profile_sources"]["detected"],
+        )
+
     def test_fixture_only_swift_is_observable_but_does_not_infer_mobile(
         self,
     ) -> None:

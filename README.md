@@ -110,20 +110,17 @@ On Windows PowerShell, activate the environment with:
 .venv\Scripts\Activate.ps1
 ```
 
-### 2. Initialize a repository Profile
+### 2. Prepare the repository
 
 ```bash
 HENGMU_ROOT=/path/to/hengmu
 
-python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" init-project \
-  --repo /path/to/your-project \
-  --name "Example Project" \
-  --type service \
-  --quality recoverability \
-  --review project-architecture
+python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
+  prepare-project-audit --repo /path/to/your-project
 ```
 
-This creates a repository-local control plane:
+The command creates a facts-derived repository-local control plane when it is
+missing, or validates and reuses the existing one without overwriting it:
 
 ```text
 .architecture/
@@ -145,10 +142,13 @@ This creates a repository-local control plane:
 
 ```text
 Use $project-architecture-audit to audit this repository.
-Read .architecture/profile.yaml, constraints.md, and critical-flows.md.
 Treat missing capabilities as findings, but verify evidence before
 recommending a structural change.
 ```
+
+This step can be run directly: the Skill invokes the preparation command and
+initializes `.architecture/` automatically. Use an explicitly read-only request
+only when you want a one-off Advisory assessment with no repository artifacts.
 
 The project Profile decides which qualities and specialist reviews matter.
 The global Skill provides the method; the repository provides the truth.

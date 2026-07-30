@@ -407,6 +407,73 @@ class ArchitectureToolTests(unittest.TestCase):
         with self.assertRaises(architecture_tool.ArchitectureError):
             architecture_tool.init_project(self.project_args())
 
+    def test_prepare_project_audit_initializes_from_facts_and_is_idempotent(
+        self,
+    ) -> None:
+        (self.root / "pyproject.toml").write_text(
+            "[project]\n"
+            'name = "prepared-service"\n'
+            'version = "0.1.0"\n'
+            'dependencies = ["fastapi>=0.100"]\n',
+            encoding="utf-8",
+        )
+        args = Namespace(
+            repo=str(self.root),
+            name=None,
+            project_id=None,
+        )
+
+        target, initialized = architecture_tool.prepare_project_audit(args)
+
+        self.assertTrue(initialized)
+        self.assertEqual(target, self.root / ".architecture")
+        profile = architecture_tool.load_yaml(target / "profile.yaml")
+        self.assertIn("service", profile["project"]["type"])
+        self.assertIn("backend-api", profile["project"]["rule_packs"])
+        self.assertEqual(
+            profile["project"]["repository_facts"]["path"],
+            ".architecture/repository-facts.yaml",
+        )
+        original = {
+            path.relative_to(target).as_posix(): path.read_bytes()
+            for path in target.rglob("*")
+            if path.is_file()
+        }
+
+        reused, initialized_again = architecture_tool.prepare_project_audit(args)
+
+        self.assertFalse(initialized_again)
+        self.assertEqual(reused, target)
+        self.assertEqual(
+            original,
+            {
+                path.relative_to(target).as_posix(): path.read_bytes()
+                for path in target.rglob("*")
+                if path.is_file()
+            },
+        )
+
+    def test_prepare_project_audit_refuses_partial_existing_control_plane(
+        self,
+    ) -> None:
+        target = self.root / ".architecture"
+        target.mkdir()
+        marker = target / "user-owned.txt"
+        marker.write_text("preserve me\n", encoding="utf-8")
+        args = Namespace(
+            repo=str(self.root),
+            name=None,
+            project_id=None,
+        )
+
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "Missing file",
+        ):
+            architecture_tool.prepare_project_audit(args)
+
+        self.assertEqual(marker.read_text(encoding="utf-8"), "preserve me\n")
+
     def test_legacy_review_migration_downgrades_trust_and_binds_inputs(
         self,
     ) -> None:

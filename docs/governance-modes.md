@@ -4,6 +4,12 @@ Architecture Governance has three operating modes. They describe how much
 process a repository chooses to retain; they do not change the evidence
 standard of a command that is explicitly run.
 
+An explicit invocation of `$project-architecture-audit` selects Governed
+persistence by default. The Skill runs `prepare-project-audit`, which
+atomically initializes a missing `.architecture/` control plane or validates
+the existing one. Select Advisory only with an explicitly read-only request;
+a missing directory by itself never selects Advisory.
+
 | Mode | Use it for | Persisted work | Gate behavior |
 | --- | --- | --- | --- |
 | Advisory | A one-off, read-only assessment or early exploration. | None. Do not initialize `.architecture/`; report observations and clearly labelled candidates in the task response only. | Do not invoke the gate. |
@@ -20,6 +26,11 @@ New `init-project` and `init-portfolio` configurations start with
 `product_mode: governed`. Promote to `enforced` only when the repository also
 has a maintained CI/release workflow and the owners accept its verification,
 risk-acceptance, and freshness requirements.
+
+`prepare-project-audit` is idempotent. It derives a starter Profile from
+deterministic repository facts when no control plane exists. It refuses to
+overwrite a complete or partial `.architecture/` directory; an existing
+control plane must validate before the audit proceeds.
 
 ## High-risk run records
 

@@ -1,6 +1,6 @@
 ---
 name: project-architecture-audit
-description: Evidence-backed architecture audit and profile setup for one repository. Use when initializing `.architecture`, onboarding to a codebase, reviewing architecture health, preparing a refactor, investigating structural debt, or assessing module boundaries, ownership, contracts, resilience, security, observability, tests, deployment, and over-design. Produces candidate findings for independent verification, not confirmed conclusions, fixes, or remediation plans.
+description: Evidence-backed, persistent architecture audit and profile setup for one repository. Use when initializing `.architecture`, onboarding to a codebase, reviewing architecture health, preparing a refactor, investigating structural debt, or assessing module boundaries, ownership, contracts, resilience, security, observability, tests, deployment, and over-design. Automatically initializes missing project governance unless the user explicitly requests read-only work. Produces candidate findings for independent verification, not confirmed conclusions, fixes, or remediation plans.
 ---
 
 # Audit one project
@@ -13,12 +13,16 @@ candidates, change production code, or recommend fixes. Use
 
 ## Choose the persistence level
 
-When the user asks for a read-only assessment, or `.architecture/` is absent
-and initialization was not requested, operate in Advisory mode: inspect only,
-write no repository artifacts, do not run a Gate, and label conclusions as
-observations or candidates in the response. For Governed or Enforced work,
-follow the persistent candidate/verification workflow below. Do not create
-configuration merely to make an Advisory assessment look governed.
+Treat an explicit request to run this Skill as a persistent audit. If
+`.architecture/` is absent, initialize it before auditing; absence is a
+bootstrap condition, never a reason to downgrade the audit. Reuse and validate
+an existing control plane without overwriting it.
+
+Operate in Advisory mode only when the user explicitly requests read-only work,
+forbids repository changes, or the checkout cannot be written. In Advisory
+mode, write no repository artifacts, do not run a Gate, and label conclusions
+as observations or candidates in the response. State the write constraint; do
+not cite a missing `.architecture/` directory as the reason.
 
 ## Load the contract
 
@@ -29,11 +33,33 @@ Read these files completely before auditing:
 - `../../resources/references/project-rules.md`
 - `../../resources/rules/project-core.yaml`
 
-Load `.architecture/profile.yaml`, `.architecture/constraints.md`, and `.architecture/critical-flows.md` when present. Treat them as declared intent, not proof. If they are missing, infer a provisional profile without writing configuration unless the user requested initialization.
+Load `.architecture/profile.yaml`, `.architecture/constraints.md`, and
+`.architecture/critical-flows.md` after preparation. Treat them as declared
+intent, not proof. In explicit Advisory mode, infer a provisional profile in
+memory and do not initialize.
 
 ## Initialize a project profile
 
-When the user asks to initialize or configure architecture governance, also read `../../resources/references/profile-guide.md`, then run:
+For every persistent audit, read
+`../../resources/references/profile-guide.md`, then run:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py prepare-project-audit \
+  --repo <repo>
+```
+
+The command atomically creates a facts-derived `.architecture/` control plane
+when missing. When it already exists, the command validates and reuses it. It
+never overwrites an existing or partial directory. After first initialization,
+replace provisional owner, constraint, and critical-flow values when repository
+evidence supports them; preserve unknowns explicitly and validate:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py validate-project <repo>
+```
+
+Use `init-project` directly only when the user supplies explicit initialization
+values:
 
 ```bash
 python3 ../../resources/scripts/architecture_tool.py init-project \
@@ -44,27 +70,33 @@ python3 ../../resources/scripts/architecture_tool.py init-project \
   --review project-architecture
 ```
 
-Add repeated flags for additional types, qualities, rule packs, owners, and required reviews. The command refuses to overwrite an existing `.architecture` directory. Replace template placeholders with repository evidence and validate with `validate-project`.
+Add repeated flags for additional types, qualities, rule packs, owners, and
+required reviews. The command refuses to overwrite an existing
+`.architecture` directory.
 
 ## Workflow
 
 ### 1. Inspect facts and select knowledge
 
-Run the deterministic fact collector before interpreting architecture:
+Set one stable `<run-id>` for the audit. Run the deterministic fact collector
+before interpreting architecture and preserve a per-run input instead of
+rewriting a prior evidence chain:
 
 ```bash
 python3 ../../resources/scripts/architecture_tool.py inspect-repository \
   --repo <repo> \
-  --output <repo>/.architecture/repository-facts.yaml
+  --output <repo>/.architecture/reviews/inputs/<run-id>-repository-facts.yaml
 ```
 
-If no declared Profile exists, build a provisional one. Keep detected,
-declared, and inferred inputs separate:
+Build a current Profile from those facts while retaining the initialized
+Profile as declared intent. Keep detected, declared, and inferred inputs
+separate:
 
 ```bash
 python3 ../../resources/scripts/architecture_tool.py build-profile \
-  --facts <repo>/.architecture/repository-facts.yaml \
-  --output <temporary-profile.yaml>
+  --facts <repo>/.architecture/reviews/inputs/<run-id>-repository-facts.yaml \
+  --declared <repo>/.architecture/profile.yaml \
+  --output <repo>/.architecture/reviews/inputs/<run-id>-profile.yaml
 ```
 
 Select only task-relevant Markdown knowledge and persist the reasons and
@@ -72,22 +104,22 @@ exclusions:
 
 ```bash
 python3 ../../resources/scripts/architecture_tool.py select-knowledge \
-  --facts <repo>/.architecture/repository-facts.yaml \
-  --profile <profile.yaml> \
+  --facts <repo>/.architecture/reviews/inputs/<run-id>-repository-facts.yaml \
+  --profile <repo>/.architecture/reviews/inputs/<run-id>-profile.yaml \
   --task "<current audit request>" \
   --skill project-architecture-audit \
-  --output <repo>/.architecture/knowledge-selection.yaml \
-  --context-output <repo>/.architecture/knowledge-context.yaml
+  --output <repo>/.architecture/reviews/inputs/<run-id>-knowledge-selection.yaml \
+  --context-output <repo>/.architecture/reviews/inputs/<run-id>-knowledge-context.yaml
 ```
 
 Before reading model context, validate the sidecar against the exact lock:
 
 ```bash
 python3 ../../resources/scripts/architecture_tool.py validate-knowledge-context \
-  <repo>/.architecture/knowledge-context.yaml \
-  --selection <repo>/.architecture/knowledge-selection.yaml \
-  --facts <repo>/.architecture/repository-facts.yaml \
-  --profile <profile.yaml>
+  <repo>/.architecture/reviews/inputs/<run-id>-knowledge-context.yaml \
+  --selection <repo>/.architecture/reviews/inputs/<run-id>-knowledge-selection.yaml \
+  --facts <repo>/.architecture/reviews/inputs/<run-id>-repository-facts.yaml \
+  --profile <repo>/.architecture/reviews/inputs/<run-id>-profile.yaml
 ```
 
 Read `knowledge-context.yaml` only after validation succeeds, then read every
@@ -162,7 +194,7 @@ persisting the candidate artifact.
 
 ### 7. Persist and validate
 
-When the user requested a persistent audit, write:
+For every non-Advisory audit, write:
 
 - candidate review: `.architecture/reviews/<timestamp>-project-candidates.yaml`;
 

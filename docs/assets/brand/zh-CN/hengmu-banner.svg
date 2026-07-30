@@ -3,10 +3,10 @@
   <desc id="desc">衡木是证据化的软件工程决策系统，使用青野官方字标。</desc>
   <rect width="2172" height="724" fill="#F4F2EC"/>
 
-  <image href="../qingye-logo-primary.png" x="154" y="56" width="112" height="112" preserveAspectRatio="xMinYMid meet"/>
+  <image href="../qingye-wordmark-blue.png" x="154" y="56" width="158" height="71" preserveAspectRatio="xMinYMid meet"/>
 
-  <text x="145" y="398" fill="#161719" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="174" font-weight="600" letter-spacing="18">衡木</text>
-  <text x="154" y="466" fill="#6D7078" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="29" font-weight="400" letter-spacing="9">证据化的软件工程决策</text>
+  <text x="600" y="438" text-anchor="middle" fill="#161719" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="174" font-weight="600" letter-spacing="20">衡木</text>
+  <text x="600" y="505" text-anchor="middle" fill="#6D7078" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="29" font-weight="400" letter-spacing="9">证据化的软件工程决策</text>
 
   <path d="M1168 574 1964 0H2172V310Z" fill="#173FBE"/>
   <path d="M954 574h780M1168 574v150" fill="none" stroke="#D9D9D2" stroke-width="2"/>

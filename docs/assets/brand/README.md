@@ -12,6 +12,7 @@ editions.
 | Asset | English | 简体中文 | Formats |
 | --- | --- | --- | --- |
 | 青野 pure-white primary logo | `qingye-logo-primary.*` | `qingye-logo-primary.*` | SVG, PNG |
+| 青野 blue wordmark | `qingye-wordmark-blue.*` | `qingye-wordmark-blue.*` | SVG, PNG |
 | Project icon | `en/hengmu-icon.*` | `zh-CN/hengmu-icon.*` | SVG, PNG |
 | Project banner | `en/hengmu-banner.*` | `zh-CN/hengmu-banner.*` | SVG, PNG |
 | README editorial figures | `../../../assets/hengmu-readme-illustrations/en/` | `../../../assets/hengmu-readme-illustrations/zh-CN/` | PNG |
@@ -25,8 +26,10 @@ and diagrams localize all visible text.
 
 - Source of truth: `liyanqing90/qingye-brand`
 - Asset baseline: `v1.1 Refined`
-- Wordmark source: `source/logo/wordmark-primary.svg`
-- Wordmark source blob: `7b1b3c3c3b3e57fbfac7685dfbae0939a1d6cce7`
+- Pure-white logo source: `source/avatar/avatar-primary-accent.svg`
+- Pure-white logo source blob: `1e49ff156820f96463e02438b9321eeeec691275`
+- Blue wordmark source: `source/logo/wordmark-blue.svg`
+- Blue wordmark source blob: `82fee6a2c6de87e9ff586c30c219d5e1bc6356c2`
 - Brand idea: 理性结构中的持续进化
 - Brand proposition: 在不确定中，持续构建。
 - 青野 ink: `#161719`
@@ -35,13 +38,19 @@ and diagrams localize all visible text.
 - Neutral gray: `#6D7078`
 - Hairline: `#D9D9D2`
 
-`qingye-wordmark.svg` is the unmodified official wordmark source.
-`qingye-logo-primary.svg` places those exact vector paths on the brand's pure
-white token and uses the official avatar transform (`translate(102 300)
-scale(0.72)`). `qingye-logo-primary.png` is its deterministic 1024 px export.
-Both localized banners consume this white-ground asset; they do not typeset a
+`qingye-wordmark.svg`, `qingye-wordmark-blue.svg`, and
+`qingye-logo-primary.svg` vendor the official vector content without changing
+its shapes. The PNG files are deterministic exports. Localized banners use the
+blue horizontal wordmark; the square, pure-white accent avatar remains
+available for repository and package surfaces. They do not typeset a
 Latin-script substitute or reuse the textured social export. Do not redraw,
 rotate, restack, or alter the official wordmark.
+
+The current upstream `source/logo/wordmark-accent.svg` is intentionally not
+vendored: its visible `野` path contains anomalous coordinates (`510.256` and
+`5187.67`) that distort the rendered wordmark. The valid official
+`avatar-primary-accent.svg` provides the same restrained blue accent for the
+square logo.
 
 Hengmu's display type follows one neutral sans-serif system across locales:
 PingFang SC (with system sans fallbacks) for Chinese and Helvetica Neue (with

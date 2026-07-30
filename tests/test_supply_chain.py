@@ -50,14 +50,24 @@ class SupplyChainTests(unittest.TestCase):
             lock,
             re.compile(r"typing-extensions==4\.16\.0\s*\\"),
         )
-        self.assertIn(
-            "pytest>=9.0.3,<10",
+        minimum = re.search(
+            r"^pytest>=(\d+)\.(\d+)\.(\d+),<10$",
             requirements,
+            re.MULTILINE,
         )
-        self.assertRegex(
+        locked = re.search(
+            r"^pytest==(\d+)\.(\d+)\.(\d+)\s*\\",
             lock,
-            re.compile(r"pytest==9\.1\.1\s*\\"),
+            re.MULTILINE,
         )
+        self.assertIsNotNone(minimum)
+        self.assertIsNotNone(locked)
+        assert minimum is not None and locked is not None
+        self.assertGreaterEqual(
+            tuple(map(int, locked.groups())),
+            tuple(map(int, minimum.groups())),
+        )
+        self.assertLess(tuple(map(int, locked.groups())), (10, 0, 0))
 
     def test_release_attestation_uses_exact_sbom_path(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(

@@ -90,7 +90,7 @@ class TargetArchitectureTests(unittest.TestCase):
 
         profile = build_profile(facts_path)
 
-        self.assertEqual(profile["project"]["id"], self.root.name)
+        self.assertEqual(profile["project"]["name"], self.root.name)
         self.assertEqual(
             profile["project"]["repository_facts"]["path"],
             ".architecture/reviews/inputs/current-repository-facts.yaml",

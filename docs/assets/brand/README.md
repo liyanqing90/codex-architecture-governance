@@ -11,7 +11,7 @@ editions.
 
 | Asset | English | 简体中文 | Formats |
 | --- | --- | --- | --- |
-| 青野 primary logo | `qingye-logo-primary.png` | `qingye-logo-primary.png` | PNG |
+| 青野 pure-white primary logo | `qingye-logo-primary.*` | `qingye-logo-primary.*` | SVG, PNG |
 | Project icon | `en/hengmu-icon.*` | `zh-CN/hengmu-icon.*` | SVG, PNG |
 | Project banner | `en/hengmu-banner.*` | `zh-CN/hengmu-banner.*` | SVG, PNG |
 | README editorial figures | `../../../assets/hengmu-readme-illustrations/en/` | `../../../assets/hengmu-readme-illustrations/zh-CN/` | PNG |
@@ -25,8 +25,8 @@ and diagrams localize all visible text.
 
 - Source of truth: `liyanqing90/qingye-brand`
 - Asset baseline: `v1.1 Refined`
-- Logo source: `exports/social/avatar/qingye-avatar-primary-1024.png`
-- Logo SHA-256: `1ac86268c87d0eb618d198218438c7e4f05d16c443fc9517393d0929897cfefc`
+- Wordmark source: `source/logo/wordmark-primary.svg`
+- Wordmark source blob: `7b1b3c3c3b3e57fbfac7685dfbae0939a1d6cce7`
 - Brand idea: 理性结构中的持续进化
 - Brand proposition: 在不确定中，持续构建。
 - 青野 ink: `#161719`
@@ -36,10 +36,17 @@ and diagrams localize all visible text.
 - Hairline: `#D9D9D2`
 
 `qingye-wordmark.svg` is the unmodified official wordmark source.
-`qingye-logo-primary.png` is the brand repository's Final 1024 px
-warm-paper, black-wordmark social logo. Both localized banners use that
-published asset; they do not typeset a Latin-script substitute. Do not redraw,
+`qingye-logo-primary.svg` places those exact vector paths on the brand's pure
+white token and uses the official avatar transform (`translate(102 300)
+scale(0.72)`). `qingye-logo-primary.png` is its deterministic 1024 px export.
+Both localized banners consume this white-ground asset; they do not typeset a
+Latin-script substitute or reuse the textured social export. Do not redraw,
 rotate, restack, or alter the official wordmark.
+
+Hengmu's display type follows one neutral sans-serif system across locales:
+PingFang SC (with system sans fallbacks) for Chinese and Helvetica Neue (with
+system sans fallbacks) for English. The official 青野 glyphs remain vector
+artwork, never a substitute font.
 
 ## Hengmu mark
 

@@ -5,8 +5,8 @@
 
   <image href="../qingye-logo-primary.png" x="154" y="56" width="112" height="112" preserveAspectRatio="xMinYMid meet"/>
 
-  <text x="145" y="390" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="154" font-weight="700" letter-spacing="7">HENGMU</text>
-  <text x="154" y="462" fill="#6D7078" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="27" letter-spacing="7">EVIDENCE-BOUND SOFTWARE DECISIONS</text>
+  <text x="145" y="390" fill="#161719" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="154" font-weight="600" letter-spacing="7">HENGMU</text>
+  <text x="154" y="462" fill="#6D7078" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="27" font-weight="400" letter-spacing="7">EVIDENCE-BOUND SOFTWARE DECISIONS</text>
 
   <path d="M1168 574 1964 0H2172V310Z" fill="#173FBE"/>
   <path d="M954 574h780M1168 574v150" fill="none" stroke="#D9D9D2" stroke-width="2"/>

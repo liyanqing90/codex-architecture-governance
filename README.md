@@ -61,11 +61,6 @@ It works at two levels:
 | Specialized review | Applies dedicated lenses for AI-agent systems, mobile applications, and multi-project portfolios. |
 | Decision governance | Binds facts, evidence, provenance, authority, remediation, and deterministic policy into one auditable chain. |
 
-> [!IMPORTANT]
-> **Hengmu** is the public project name, GitHub repository, installable plugin
-> ID, and release archive prefix. Pre-rename self-review artifacts retain their
-> recorded identity as immutable internal evidence.
-
 ## Why Hengmu
 
 Most code and architecture reviews stop too early: they produce observations.

@@ -35,9 +35,14 @@ class ArchitectureToolTests(unittest.TestCase):
 
     def test_repository_rename_preserves_historical_source_identity(self) -> None:
         old = "https://github.com/liyanqing90/codex-architecture-governance.git"
-        new = "git@github.com:liyanqing90/hengmu.git"
+        intermediate = "https://github.com/liyanqing90/hengmu"
+        new = "git@github.com:qingye-lab/hengmu.git"
         self.assertEqual(
             architecture_tool.normalize_git_repository(old),
+            architecture_tool.normalize_git_repository(new),
+        )
+        self.assertEqual(
+            architecture_tool.normalize_git_repository(intermediate),
             architecture_tool.normalize_git_repository(new),
         )
         self.assertNotEqual(

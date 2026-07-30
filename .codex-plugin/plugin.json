@@ -4,10 +4,10 @@
   "description": "Knowledge-backed architecture audits, solution decisions, verification, remediation, portfolio governance, and trustworthy deterministic gates for Codex.",
   "author": {
     "name": "Qingye Open Source",
-    "url": "https://github.com/liyanqing90"
+    "url": "https://github.com/qingye-lab"
   },
-  "homepage": "https://github.com/liyanqing90/hengmu#readme",
-  "repository": "https://github.com/liyanqing90/hengmu",
+  "homepage": "https://qingye-lab.github.io/hengmu/",
+  "repository": "https://github.com/qingye-lab/hengmu",
   "license": "MIT",
   "keywords": [
     "architecture",
@@ -29,7 +29,7 @@
       "Read",
       "Write"
     ],
-    "websiteURL": "https://github.com/liyanqing90/hengmu",
+    "websiteURL": "https://qingye-lab.github.io/hengmu/",
     "defaultPrompt": [
       "Audit this repository and verify every architecture finding.",
       "Compare architecture options and record an evidence-backed decision.",

@@ -1,0 +1,181 @@
+schema_version: "1.2"
+decision:
+  id: ADR-HENGMU-ENTRY-001
+  decision_kind: remediation
+  source_review: hengmu-20260801-entrypoint-verified
+  source_review_sha256: beae66168a19cbd9cca9796fb3e235449f6d12eff51bc45c2578536c5f96b0a1
+  decided_at: "2026-08-01T14:36:00+00:00"
+  decision_makers:
+    - architecture-owner
+  status: accepted
+  knowledge_selection_path: .architecture/reviews/inputs/2026-08-01-hengmu-entrypoint-decision-knowledge-selection.yaml
+  knowledge_selection_sha256: 9230fe854bbd966de5e1f88b8a8ca6dbbcbc8fdb655d5dfe71b18e62e22b18f6
+problem:
+  quality_attributes:
+    - compatibility
+    - maintainability
+    - traceability
+  constraints:
+    - Users need one memorable Hengmu entry and must not need to recall eight workflow names.
+    - Audit, verification, decision, planning, and gate authority remain separate.
+    - All eight focused Skill names remain directly invocable compatibility contracts.
+    - Menu-only invocation cannot create project state or begin a workflow.
+    - The plugin remains local-first and adds no hosted service, MCP server, credentials, or telemetry.
+  finding_ids: []
+  assumptions:
+    - The Codex Skill surface continues to discover direct child directories under the manifest `skills` root.
+    - Natural-language routing remains adequate when the entry description and focused handoff rules are present.
+  known_facts:
+    - The verified Review covers all 31 rules and six critical flows with no unresolved Finding.
+    - The entry maps every supported intent to one existing `SKILL.md` and contains no schema, policy, or artifact implementation.
+    - Repository validation requires nine public Skills and 45 boundary cases.
+    - Contract tests prove complete route coverage and direct focused-invocation bypass.
+  unknowns:
+    - Installed-surface routing quality varies by Codex and model version and needs a time-bound forward test before release.
+knowledge_snapshot:
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: foundation.compatibility, version: "1.0.0", sha256: 17d8e8c8557969246fe2e9a62e8a645aeac171c9c9d2cbeb5d0bdfc27e51330b}
+  - {id: foundation.system-boundaries, version: "1.0.0", sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db}
+  - {id: style.plugin-architecture, version: "1.0.0", sha256: 9d72e896b0154e8ee979474c6d47579889705c751a32a172f4b1b72bdef13a8a}
+  - {id: foundation.evolutionary-architecture, version: "1.0.0", sha256: 6f04262de0936a1cffca25b6cadf5e2b0e4b8e7aa6724292ba1d9fd314413f3f}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: foundation.technology-selection, version: "1.0.0", sha256: 183032d368331cd7a3c47988a8f042be627dd5fd1104596d76516951ea0f5948}
+  - {id: foundation.tradeoff-analysis, version: "1.0.0", sha256: 058c9756ba4d9306f42e0fb49365aff3564f3545e103c05812040ce2c9f8b9d5}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+options:
+  - id: keep-current
+    title: Keep the implemented stable Hengmu entry and focused workflows
+    complexity_tier: keep-current
+    architecture_styles:
+      - style.plugin-architecture
+    patterns: []
+    technologies: []
+    benefits:
+      - Users remember only `$hengmu` and may use commands or natural language.
+      - Eight focused Skills retain distinct authority, context, and lifecycle contracts.
+      - Existing direct invocations and automation remain compatible.
+      - The change is additive, local, and removable before release.
+    liabilities:
+      - Maintainers own one small routing contract and its five boundary cases.
+      - Natural-language activation still needs a time-bound installed-surface forward test.
+    assumptions:
+      - A thin navigation facade stays materially smaller than the focused workflows it routes.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: improves, rationale: "The new entry is additive and all focused names remain directly invocable."}
+      - {attribute: maintainability, effect: improves, rationale: "Discoverability is centralized while workflow logic remains in eight owning Skills."}
+      - {attribute: traceability, effect: improves, rationale: "Routing identifies the focused Skill before that Skill owns artifacts and authority."}
+    business_fit: Removes command-name memory cost for a growing open-source workflow set.
+    team_fit: Adds one declarative Skill, documentation, and five cases to the existing repository contract.
+    evolution_fit: New workflows can be added behind the entry without renaming established workflows.
+    implementation_complexity: low
+    operational_complexity: low
+    migration_risk: low
+    reversibility: easy
+    cost: low
+    technical_maturity: mature
+    lock_in: low
+    tradeoff_scores: {business_fit: 2, quality_fit: 2, team_fit: 2, implementation: 2, operations: 2, migration: 2, reversibility: 2, cost: 2, maturity: 2, lock_in: 1, evolution: 2}
+    rejected_reasons: []
+  - id: direct-only
+    title: Remove the entry and keep eight direct-only Skill names
+    complexity_tier: low
+    architecture_styles:
+      - style.plugin-architecture
+    patterns: []
+    technologies: []
+    benefits:
+      - Preserves the smallest possible public directory count.
+      - Adds no router evaluation or documentation maintenance.
+    liabilities:
+      - Users must remember or repeatedly search for internal workflow names.
+      - The product has no in-surface menu or natural-language discovery path.
+    assumptions:
+      - Documentation alone is sufficient discovery for all users.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: neutral, rationale: "Existing names remain but no additive entry is provided."}
+      - {attribute: maintainability, effect: neutral, rationale: "There is no router to maintain, but every user-facing document must teach eight names."}
+      - {attribute: traceability, effect: neutral, rationale: "Focused workflows remain traceable but discovery has no owning contract."}
+    business_fit: Does not satisfy the explicit requirement for one memorable entry.
+    team_fit: Minimizes source maintenance while externalizing navigation cost to every user.
+    evolution_fit: Discoverability worsens whenever another focused workflow is added.
+    implementation_complexity: low
+    operational_complexity: low
+    migration_risk: low
+    reversibility: easy
+    cost: medium
+    technical_maturity: mature
+    lock_in: medium
+    tradeoff_scores: {business_fit: -2, quality_fit: 0, team_fit: 1, implementation: 2, operations: 2, migration: 2, reversibility: 2, cost: 0, maturity: 2, lock_in: 0, evolution: -2}
+    rejected_reasons:
+      - It fails the user requirement that only one Hengmu name needs to be remembered.
+  - id: rename-with-prefix
+    title: Rename every focused Skill with a `hengmu-` prefix
+    complexity_tier: medium
+    architecture_styles:
+      - style.plugin-architecture
+    patterns: []
+    technologies: []
+    benefits:
+      - All related Skills sort together in discovery interfaces.
+      - Names visibly identify their plugin family.
+    liabilities:
+      - Users still need to remember nine separate names.
+      - Existing direct invocations, automation, documentation, and evaluation IDs require migration.
+      - Prefix consistency does not provide a menu or intent routing.
+    assumptions:
+      - Alphabetical grouping materially improves discovery more than a single entry.
+    quality_attribute_effects:
+      - {attribute: compatibility, effect: degrades, rationale: "Renaming breaks eight existing public Skill contracts or requires permanent aliases."}
+      - {attribute: maintainability, effect: degrades, rationale: "Aliases and duplicated migration documentation outlive the naming change."}
+      - {attribute: traceability, effect: neutral, rationale: "Workflow authority stays separate, but every historical name needs mapping."}
+    business_fit: Provides branding consistency but does not remove user memory cost.
+    team_fit: Requires a broad naming migration across Skills, docs, tests, evals, and consumers.
+    evolution_fit: Every new workflow still creates another command the user must learn.
+    implementation_complexity: medium
+    operational_complexity: medium
+    migration_risk: high
+    reversibility: moderate
+    cost: high
+    technical_maturity: mature
+    lock_in: high
+    tradeoff_scores: {business_fit: -1, quality_fit: -1, team_fit: -2, implementation: -1, operations: -1, migration: -2, reversibility: 0, cost: -2, maturity: 2, lock_in: -1, evolution: -1}
+    rejected_reasons:
+      - It introduces a breaking migration while leaving the original discovery problem unsolved.
+selected_option: keep-current
+rationale: Retaining the implemented `$hengmu` facade is the least-complex option that satisfies one-name discovery while preserving workflow authority and all eight compatibility contracts. Direct-only names keep source count low but fail the user goal. Prefixing every name creates a breaking migration without removing memory cost.
+revisit_triggers:
+  - Codex provides native nested Skill menus and natural-language routing with equivalent compatibility guarantees.
+  - Forward tests show less than 95 percent correct routing across the maintained direct and indirect Hengmu cases.
+  - The public workflow set changes and the router no longer maps every focused Skill exactly once.
+acceptance_evidence:
+  - The owner explicitly requested one stable Hengmu entry that automatically exposes the available workflows.
+  - The verified Review reports complete rule and critical-flow coverage with no unresolved Finding.
+  - Official Skill and plugin validators, repository validation, 105 tests plus 4 subtests, lint, formatting, dependency audit, and license audit passed.
+hard_eliminations:
+  - option_id: rename-with-prefix
+    rule: Do not break established public Skill names when an additive discovery layer satisfies the same user goal.
+    evidence:
+      - ".architecture/constraints.md declares the eight focused names as compatibility contracts."
+      - "Direct-invocation tests preserve existing automation and user prompts."
+migration:
+  affected_paths:
+    - skills/hengmu/SKILL.md
+    - skills/hengmu/agents/openai.yaml
+    - .codex-plugin/plugin.json
+    - scripts/validate_repository.py
+    - evals/cases.yaml
+    - evals/routing.yaml
+    - tests/test_repository_contract.py
+    - README.md
+    - README.zh-CN.md
+    - index.html
+    - site/i18n.json
+  slices:
+    - Add the stable router and UI metadata without changing any focused Skill.
+    - Add direct, indirect, incomplete, negative, and edge routing cases plus compatibility assertions.
+    - Expose the entry in bilingual documentation and Pages while retaining focused contract documentation.
+  rollback: Before release, remove the additive entry, its five cases, and its documentation while leaving all eight focused Skills and artifact schemas unchanged.
+  validation:
+    - Validate the new Skill and complete plugin with the official validators.
+    - Run repository validation, all tests and subtests, lint, formatting, dependency and license audits, deterministic packaging, checksum, SBOM, history-anchor validation, and the change gate.

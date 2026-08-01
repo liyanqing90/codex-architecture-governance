@@ -5,9 +5,11 @@ Maintainers review them with every release that changes a public contract.
 
 ## Product and business
 
-- The eight public Skill names and their distinct user goals are compatibility
-  contracts. Owner: maintainers. Source: plugin manifest and README. Changing
-  them requires a documented migration and an appropriate SemVer release.
+- The stable `hengmu` entry name, the eight focused workflow Skill names, and
+  their distinct user goals are compatibility contracts. The entry may route
+  but cannot merge or weaken workflow authority. Owner: maintainers. Source:
+  plugin manifest, README, and the accepted entry-point decision. Changing them
+  requires a documented migration and an appropriate SemVer release.
 - Architecture diagnosis, independent verification, remediation planning, and
   deterministic gating remain separate workflows. Architecture solution
   selection sits between verification and remediation; knowledge curation

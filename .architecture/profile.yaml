@@ -77,7 +77,7 @@ project:
       environment: Supported development and CI environments.
       target: The changed governance module and its references.
       response: Contracts and references validate without unrelated runtime coupling.
-      measure: Repository validation and all 40 public Skill routing cases remain
+      measure: Repository validation and all 45 public Skill routing cases remain
         complete.
   business_context:
     product_stage: early

@@ -21,6 +21,7 @@ EXPECTED_SKILLS = (
     "architecture-quality-gate",
     "architecture-remediation-planner",
     "architecture-solution-advisor",
+    "hengmu",
     "mobile-architecture-audit",
     "portfolio-architecture-audit",
     "project-architecture-audit",

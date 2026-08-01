@@ -9,6 +9,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- A stable `$hengmu` entry point that shows the full capability menu, accepts
+  natural-language goals, and routes to one of eight focused workflow Skills
+  without requiring users to remember their public names.
 - An idempotent `prepare-project-audit` command that creates a facts-derived
   `.architecture/` control plane when missing, validates existing governance,
   and refuses to overwrite partial user-owned state.
@@ -24,6 +27,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- The public surface now distinguishes one discoverability-only entry Skill
+  from eight directly invocable workflow contracts; audit, verification,
+  decision, planning, and gate authority remain separate.
 - Dependabot now groups all Python version updates into one PR and caps routine
   Python and GitHub Actions update queues at two and one open PR respectively.
 - GitHub workflows now use the pinned Node 24 releases of Checkout 7.0.1,

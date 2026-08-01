@@ -134,8 +134,17 @@ python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
 ### 3. 在 Codex 中运行审计
 
 ```text
-使用 $project-architecture-audit 审计当前仓库。
+使用 $hengmu 审计当前仓库。
 把缺失能力作为问题，但在建议结构性改动前先核实证据。
+```
+
+你只需要记住 `$hengmu`。单独调用会显示完整能力菜单，也可以直接使用
+自然语言描述目标：
+
+```text
+$hengmu
+$hengmu 核实最新的候选问题
+$hengmu 比较队列与持久工作流方案
 ```
 
 也可以直接从这一步开始：Skill 会调用准备命令，并在缺失时自动初始化
@@ -219,7 +228,25 @@ python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
 
 ## 工作流
 
-可安装插件公开八个聚焦的 Skill。
+可安装插件公开一个稳定入口和八个聚焦的工作流 Skill。日常只需使用
+`$hengmu`；原始 Skill 名称继续供自动化和兼容调用。
+
+| 你输入的内容 | 执行结果 |
+| --- | --- |
+| `$hengmu` | 显示完整菜单，并根据仓库已声明的上下文推荐可能的下一步。 |
+| `$hengmu audit …` | 审查单个仓库。 |
+| `$hengmu ai …` | 审查 AI / Agent 系统。 |
+| `$hengmu mobile …` | 审查移动端系统。 |
+| `$hengmu portfolio …` | 审查多个已登记项目。 |
+| `$hengmu verify …` | 独立核实候选问题。 |
+| `$hengmu decide …` | 比较架构、技术和维持现状方案。 |
+| `$hengmu plan …` | 把已接受决策规划成安全迁移切片。 |
+| `$hengmu gate …` | 运行确定性策略门禁。 |
+
+子命令不是必需的。像 `$hengmu 帮我比较这两个技术方案` 这样的自然语言，
+也会自动进入正确的聚焦工作流。
+
+### 聚焦工作流契约
 
 | 阶段 | Skill | 职责 |
 | --- | --- | --- |

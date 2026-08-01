@@ -31,9 +31,9 @@
     ],
     "websiteURL": "https://qingye-lab.github.io/hengmu/",
     "defaultPrompt": [
-      "Audit this repository and verify every architecture finding.",
-      "Compare architecture options and record an evidence-backed decision.",
-      "Run the layered architecture gate on the latest trusted review."
+      "Use $hengmu to show the available engineering workflows for this repository.",
+      "Use $hengmu to audit this repository and verify every architecture finding.",
+      "Use $hengmu to compare architecture options and record an evidence-backed decision."
     ]
   }
 }

@@ -44,6 +44,18 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertIsNotNone(manifest)
             self.assertEqual(errors, [])
 
+    def test_hengmu_entry_routes_every_focused_skill(self) -> None:
+        entry = (ROOT / "skills" / "hengmu" / "SKILL.md").read_text(encoding="utf-8")
+        focused_skills = set(validate_repository.EXPECTED_SKILLS) - {"hengmu"}
+        for skill in focused_skills:
+            self.assertIn(f"../{skill}/SKILL.md", entry)
+
+    def test_hengmu_entry_preserves_direct_focused_invocation(self) -> None:
+        entry = (ROOT / "skills" / "hengmu" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Keep all eight focused Skill names directly invocable", entry)
+        self.assertIn("explicitly invokes a focused Skill", entry)
+        self.assertIn("activate this router", entry)
+
 
 if __name__ == "__main__":
     unittest.main()

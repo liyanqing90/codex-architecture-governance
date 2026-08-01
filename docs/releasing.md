@@ -21,7 +21,7 @@
    python3 resources/scripts/validate_knowledge.py
    ```
 
-6. Confirm the 40 routing cases and separate selection, decision,
+6. Confirm the 45 routing cases and separate selection, decision,
    false-positive, and artifact-validity corpora parse and pass their
    deterministic tests.
 7. Run the repository's architecture gate through `release`; preserve the

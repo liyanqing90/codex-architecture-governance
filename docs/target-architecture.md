@@ -33,7 +33,8 @@ candidate Review → verified Review → accepted Decision → remediation Plan
 
 ## Public workflow surface
 
-The plugin exposes exactly eight public Skills:
+The plugin exposes one stable public routing entry, `hengmu`, plus exactly
+eight focused public workflow Skills:
 
 1. project architecture audit;
 2. AI-agent architecture audit;
@@ -43,6 +44,11 @@ The plugin exposes exactly eight public Skills:
 6. architecture solution advice;
 7. remediation planning;
 8. architecture quality gating.
+
+The `hengmu` entry accepts commands or natural language, shows the complete
+menu when invoked without a task, and then hands control to exactly one focused
+Skill. It owns no audit, verification, decision, planning, or gate authority.
+All focused names remain directly invocable compatibility contracts.
 
 Knowledge curation is intentionally under `maintainer/skills/`. It ships with
 the source repository but is not routed as an end-user plugin workflow.

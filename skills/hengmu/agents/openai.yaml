@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hengmu"
+  short_description: "One entry for every Hengmu workflow"
+  default_prompt: "Use $hengmu to choose and run the right evidence-backed engineering workflow for this repository."

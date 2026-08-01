@@ -1,5 +1,41 @@
 schema_version: "1.0"
 cases:
+  - id: hengmu-direct
+    skill: hengmu
+    kind: direct
+    prompt: "Use $hengmu to audit this repository without making me remember the focused Skill name."
+    expected:
+      activates: true
+      outcome: "Routes the full request to project-architecture-audit and follows that focused workflow."
+  - id: hengmu-indirect
+    skill: hengmu
+    kind: indirect
+    prompt: "I only remember Hengmu; please compare the queue and durable-workflow options for this service."
+    expected:
+      activates: true
+      outcome: "Infers solution-decision intent and routes to architecture-solution-advisor without requiring a command name."
+  - id: hengmu-incomplete
+    skill: hengmu
+    kind: incomplete
+    prompt: "Open $hengmu and show me what engineering workflows are available here."
+    expected:
+      activates: true
+      outcome: "Shows the complete menu and contextual recommendations without starting work or creating project state."
+  - id: hengmu-negative
+    skill: hengmu
+    kind: negative
+    prompt: "Use $project-architecture-audit directly to review this repository's module boundaries."
+    expected:
+      activates: false
+      outcome: "Respects the explicitly invoked focused Skill instead of interposing the Hengmu router."
+  - id: hengmu-edge
+    skill: hengmu
+    kind: edge
+    prompt: "Use $hengmu to plan implementation from this candidate review before anyone verifies its findings."
+    expected:
+      activates: true
+      outcome: "Routes to remediation planning while preserving its requirement for verified findings and an accepted decision."
+
   - id: project-direct
     skill: project-architecture-audit
     kind: direct

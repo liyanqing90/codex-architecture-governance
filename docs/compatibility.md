@@ -58,8 +58,10 @@ time-bound and must not be represented as universal compatibility.
 - CLI success, policy failure, and invalid-input exit codes remain `0`, `1`,
   and `2`.
 - Public Skill names are compatibility contracts.
-- The public surface contains eight Skills. The Knowledge Curator moved to
-  `maintainer/skills/` and is no longer a routed plugin workflow.
+- The public surface contains the stable `hengmu` routing entry and eight
+  focused workflow Skills. Existing focused names remain directly invocable.
+  The Knowledge Curator lives under `maintainer/skills/` and is not an
+  end-user plugin workflow.
 - Breaking schema, CLI, or Skill-name changes require a major release after
   `1.0.0`; during `0.x`, they require explicit migration guidance and a minor
   release at minimum.

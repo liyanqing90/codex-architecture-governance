@@ -8,11 +8,11 @@ Codex forward tests.
 `python3 scripts/validate_repository.py` verifies:
 
 - plugin identity and Semantic Versioning;
-- the exact eight public Skill names;
+- the stable `hengmu` entry plus the exact eight focused workflow Skill names;
 - frontmatter, folder naming, descriptions, line budgets, and UI metadata;
 - local Markdown links;
 - JSON Schema validity and parseable YAML templates;
-- one direct, indirect, incomplete, negative, and edge case per Skill;
+- one direct, indirect, incomplete, negative, and edge case per public Skill;
 - parseable routing, knowledge-selection, decision-quality, false-positive,
   and artifact-validity corpora;
 - absence of placeholders and symlinks from runtime directories; packaging

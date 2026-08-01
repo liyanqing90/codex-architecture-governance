@@ -4,11 +4,12 @@ Architecture Governance has three operating modes. They describe how much
 process a repository chooses to retain; they do not change the evidence
 standard of a command that is explicitly run.
 
-An explicit invocation of `$project-architecture-audit` selects Governed
-persistence by default. The Skill runs `prepare-project-audit`, which
-atomically initializes a missing `.architecture/` control plane or validates
-the existing one. Select Advisory only with an explicitly read-only request;
-a missing directory by itself never selects Advisory.
+An explicit invocation of `$hengmu audit` or the directly compatible
+`$project-architecture-audit` selects Governed persistence by default. The
+routed Skill runs `prepare-project-audit`, which atomically initializes a
+missing `.architecture/` control plane or validates the existing one. Select
+Advisory only with an explicitly read-only request; a missing directory by
+itself never selects Advisory.
 
 | Mode | Use it for | Persisted work | Gate behavior |
 | --- | --- | --- | --- |

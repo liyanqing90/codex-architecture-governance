@@ -95,7 +95,7 @@ decision knowledge.
 
 | Review requirement | Version 0.3 evidence |
 | --- | --- |
-| Skill routing | 40 direct, indirect, incomplete, negative, and edge cases across all eight public Skills. Separate corpora cover selection, decisions, false positives, and artifact tampering. |
+| Skill routing | 45 direct, indirect, incomplete, negative, and edge cases across the stable entry and eight focused workflow Skills. Separate corpora cover selection, decisions, false positives, and artifact tampering. |
 | Finding/solution adversarial cases | Ten code fixtures cover benign SQLite, healthy modular monolith, conflicting/shared writers, queue/workflow proportionality, client ownership, documentation contradiction, prompt authority, and single-agent sufficiency. |
 | Evidence validity | The scorer independently resolves fixture path, line range, and exact excerpt; a model validity claim is ignored. |
 | Stability and cost | The harness starts an independent command for each repetition and reports finding/severity stability, duration, and optional token/cost usage. |

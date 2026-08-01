@@ -629,6 +629,24 @@ code {
   max-width: 620px;
 }
 
+.skills-heading {
+  display: grid;
+  gap: 28px;
+}
+
+.skills-entry {
+  width: fit-content;
+  color: var(--blue);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.skills-entry:hover {
+  color: var(--ink);
+}
+
 .skills-list {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

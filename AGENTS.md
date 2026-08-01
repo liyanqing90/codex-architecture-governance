@@ -8,7 +8,8 @@ Maintain a distributable Codex plugin containing focused architecture-governance
 
 - `.codex-plugin/plugin.json`: installable plugin manifest.
 - `.architecture/`: this repository's own architecture profile and policy.
-- `skills/<skill-name>/`: one user goal per Skill.
+- `skills/hengmu/`: stable public navigation for all user-facing workflows.
+- `skills/<focused-skill-name>/`: one authoritative user goal per focused Skill.
 - `maintainer/skills/`: source-only release-maintenance workflows that are not
   part of the public plugin surface.
 - `resources/`: runtime contracts, schemas, knowledge, rules, evidence providers, templates, and the portable CLI used by the Skills.
@@ -57,7 +58,8 @@ python3 scripts/generate_sbom.py \
 ```
 
 The accepted target boundary is recorded in
-`docs/decisions/2026-07-29-adopt-workflow-knowledge-script-separation.md`.
+`docs/decisions/2026-07-29-adopt-workflow-knowledge-script-separation.md` and
+`docs/decisions/2026-08-01-add-hengmu-routing-entry.md`.
 
 ## Code review rules
 

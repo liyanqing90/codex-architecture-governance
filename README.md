@@ -141,9 +141,18 @@ missing, or validates and reuses the existing one without overwriting it:
 ### 3. Run the audit in Codex
 
 ```text
-Use $project-architecture-audit to audit this repository.
+Use $hengmu to audit this repository.
 Treat missing capabilities as findings, but verify evidence before
 recommending a structural change.
+```
+
+`$hengmu` is the only Skill name you need to remember. Invoke it by itself to
+see the complete capability menu, or describe the outcome in natural language:
+
+```text
+$hengmu
+$hengmu verify the latest candidate findings
+$hengmu compare the queue and durable-workflow options
 ```
 
 This step can be run directly: the Skill invokes the preparation command and
@@ -234,7 +243,27 @@ and where one repository can unexpectedly affect another.
 
 ## Workflows
 
-The installable plugin exposes eight focused Skills.
+The installable plugin exposes one stable entry point and eight focused
+workflow Skills. Use `$hengmu` for normal work; direct focused invocation
+remains available for automation and compatibility.
+
+| What you type | Outcome |
+| --- | --- |
+| `$hengmu` | Show the full menu and recommend likely actions from declared repository context. |
+| `$hengmu audit …` | Audit one repository. |
+| `$hengmu ai …` | Audit an AI-agent system. |
+| `$hengmu mobile …` | Audit a mobile system. |
+| `$hengmu portfolio …` | Audit multiple registered projects. |
+| `$hengmu verify …` | Independently verify candidate findings. |
+| `$hengmu decide …` | Compare architecture, technology, and keep-current options. |
+| `$hengmu plan …` | Plan an accepted decision as safe migration slices. |
+| `$hengmu gate …` | Run deterministic policy. |
+
+Commands are optional. Natural language such as
+`$hengmu help me compare these two technical approaches` routes to the same
+focused workflow.
+
+### Focused workflow contracts
 
 | Phase | Skill | Responsibility |
 | --- | --- | --- |

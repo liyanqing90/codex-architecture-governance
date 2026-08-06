@@ -1,0 +1,378 @@
+schema_version: "1.2"
+review:
+  id: hengmu-20260806-constrained-target-architecture-candidates
+  kind: project
+  workflow: project-architecture
+  subject:
+    id: hengmu
+    name: Hengmu
+    repository: .
+  performed_at: "2026-08-06T16:46:00+00:00"
+  commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+  scope:
+    - .
+  verification_state: candidates
+  reviewers:
+    - architecture-auditor
+  profile: .architecture/reviews/inputs/2026-08-06-constrained-target-architecture-profile.yaml
+  repository_identity: hengmu
+  profile_sha256: 75a63e63267c70a03aa5d44bb1cf6374021d3fb0a290a5127fffa691f9d56373
+  dirty_tree: false
+  rule_packs:
+    - id: project-core
+      version: "1.0.0"
+      sha256: b211d548ad5fe367b9dab8416051c43f3a206da81bd2a8e7596cd788ed3f100c
+    - id: plugin-platform
+      version: "1.0.0"
+      sha256: 7ae17488df7a78ce1b857d3f842bd51b87de4ec30576fbe250cfa991472b3700
+    - id: test-automation-platform
+      version: "1.0.0"
+      sha256: 23efb3c02cd9e4e2ec2cb83d1505b30dd780aff2a9ac7157506b361cb783c5aa
+  scope_manifest:
+    - .
+summary:
+  architecture: Hengmu 1.0.0 keeps one public router and eight focused Skills, extending the existing Solution Advisor rather than adding a competing architecture-selection workflow. The reviewed commit adds typed open or constrained Design Brief 1.1, target Architecture Decision 1.4, Greenfield Plan 1.3, SSH-bound approval, evidence-bound rule and critical-flow coverage, isolated Evidence Provider execution, migration compatibility, and deterministic packaging. Static contracts, negative trust-boundary tests, a real signed Greenfield chain, and release tooling cover the new path.
+  raw_findings: 0
+  confirmed: 0
+  rejected: 0
+  needs_evidence: 0
+coverage:
+  - rule_id: PROJECT.BOUNDARY.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &router_evidence
+        path: skills/hengmu/SKILL.md
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: 19f859ecd6778d7da2b19cfb65d2f2ded5b4f102
+        line_start: 8
+        line_end: 47
+        observation: The stable router delegates each user goal to one focused Skill and adds no competing procedure.
+  - rule_id: PROJECT.DEPENDENCY.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &provider_composition_evidence
+        path: resources/scripts/architecture_tool.py
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: c0647d6a41f63e72695878ad2999bae111cc9476
+        line_start: 1302
+        line_end: 1338
+        observation: Evidence Provider execution composes validated profile, catalog, and explicit project configuration before invoking infrastructure.
+  - rule_id: PROJECT.COHESION.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - *router_evidence
+  - rule_id: PROJECT.FRONTEND.001
+    status: not_applicable
+    finding_ids: []
+    reason: Hengmu is a local Codex plugin and Python CLI with static documentation; it has no client/server split or frontend-owned authoritative invariant.
+  - rule_id: PROJECT.DATA.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &target_schema_evidence
+        path: resources/schemas/architecture-decision.schema.json
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: 496778d92d9ffaec9b7a5b979d0f2d624ece4c6f
+        line_start: 37
+        line_end: 155
+        observation: Target runtime units and data ownership have typed identities, owners, lifecycle, consistency, recovery, and references.
+  - rule_id: PROJECT.OWNERSHIP.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - *target_schema_evidence
+  - rule_id: PROJECT.CONTRACT.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &review_contract_evidence
+        path: resources/schemas/review.schema.json
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: fb65714fe2a3261ed327a52ed8c92d4af7bb2673
+        line_start: 1
+        line_end: 40
+        observation: Review coverage evidence has an explicit schema for source path, reviewed commit, blob identity, line range, and observation.
+  - rule_id: PROJECT.TRANSACTION.001
+    status: not_applicable
+    finding_ids: []
+    reason: The plugin validates and writes local artifacts atomically; it has no cross-system business transaction or distributed commit boundary.
+  - rule_id: PROJECT.IDEMPOTENCY.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &initialization_evidence
+        path: resources/scripts/architecture_tool.py
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: c0647d6a41f63e72695878ad2999bae111cc9476
+        line_start: 4670
+        line_end: 4822
+        observation: Project initialization refuses overwrite, stages a complete control plane, and validates an existing control plane instead of recreating it.
+  - rule_id: PROJECT.RELIABILITY.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &provider_run_evidence
+        path: resources/scripts/architecture_tool.py
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: c0647d6a41f63e72695878ad2999bae111cc9476
+        line_start: 1339
+        line_end: 1465
+        observation: Provider runs bind repository state, use bounded outputs and timeouts, isolate caches, and capture process outcomes.
+  - rule_id: PROJECT.STATE.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &greenfield_gate_evidence
+        path: resources/scripts/architecture_tool.py
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: c0647d6a41f63e72695878ad2999bae111cc9476
+        line_start: 6266
+        line_end: 6402
+        observation: The Greenfield Gate validates the Brief to accepted Decision to active or complete implementation Plan lifecycle before change enforcement.
+  - rule_id: PROJECT.SECURITY.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &signature_evidence
+        path: resources/scripts/architecture_tool.py
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: c0647d6a41f63e72695878ad2999bae111cc9476
+        line_start: 5196
+        line_end: 5250
+        observation: Accepted artifacts are checked with detached SSH signatures, a policy namespace, an allowed-signers file, and an exact signer identity.
+      - &provider_safety_evidence
+        path: resources/scripts/architecture_tool.py
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: c0647d6a41f63e72695878ad2999bae111cc9476
+        line_start: 970
+        line_end: 1081
+        observation: Provider configuration rejects shells, downloading package runners, unsafe offline modes, and incomplete deterministic dependency closure.
+  - rule_id: PROJECT.PRIVACY.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &security_boundary_evidence
+        path: SECURITY.md
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: 6e3c00eaedb06d0a63ebdf1b5e65057ac9beb56d
+        line_start: 27
+        line_end: 58
+        observation: The declared local boundary excludes required network access, credentials, telemetry, and out-of-root traversal while documenting provider residual risk.
+  - rule_id: PROJECT.OBSERVABILITY.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - *provider_run_evidence
+  - rule_id: PROJECT.CONFIG.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - *provider_safety_evidence
+  - rule_id: PROJECT.PERFORMANCE.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &benchmark_evidence
+        path: scripts/run_behavior_benchmark.py
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: ccd202b5c8e2f8541a1aea3c2f5544c1e480416b
+        line_start: 630
+        line_end: 860
+        observation: The benchmark runner validates immutable corpus context and records per-case duration and expected outcomes across treatments.
+  - rule_id: PROJECT.TEST.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &signed_chain_test_evidence
+        path: tests/test_architecture_tool.py
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: a98189dadf04790aa99a7b16d041bc391023de8e
+        line_start: 1833
+        line_end: 2005
+        observation: A real Ed25519-signed Brief with multiple approval records rejects tampering before selected Knowledge, accepted Decision, and Gate enforcement continue.
+      - &target_negative_test_evidence
+        path: tests/test_constrained_target_architecture.py
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: 60e8a23a987889b9721e221411d3605f95cdef1f
+        line_start: 442
+        line_end: 550
+        observation: Negative tests reject unknown interfaces, technologies, owners, trust boundaries, Knowledge mismatches, and Plan bindings.
+  - rule_id: PROJECT.DEPLOY.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &package_evidence
+        path: scripts/package_plugin.py
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: 4ca2fa49448343dbc8f2df6376eb738795419774
+        line_start: 13
+        line_end: 132
+        observation: Packaging uses a runtime allowlist, fixed ZIP metadata, atomic replacement, and a companion SHA-256 digest.
+  - rule_id: PROJECT.CHANGE.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &migration_evidence
+        path: docs/migrating-to-1.0.md
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: 7d68a4a01a9e65c415f9a7a012fdb97e26d5e529
+        line_start: 1
+        line_end: 79
+        observation: The 1.0 migration guide records contract versions, retained readable chains, rollback, rejection of silent downgrade, and exact validation commands.
+  - rule_id: PROJECT.DEBT.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - *target_negative_test_evidence
+  - rule_id: PROJECT.DESIGN.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &advisor_evidence
+        path: skills/architecture-solution-advisor/SKILL.md
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: b4ac538bea02742135eda1000ac230ecd1ff0aaa
+        line_start: 40
+        line_end: 126
+        observation: The Advisor challenges constraints, compares keep-current and bounded alternatives, rejects unevidenced complexity, and emits a complete target without implementing it.
+  - rule_id: PLUGIN.MANIFEST.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &manifest_evidence
+        path: .codex-plugin/plugin.json
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: f048a54e3c5daf41ac2219b3389f754303741528
+        line_start: 1
+        line_end: 40
+        observation: The manifest declares stable identity, version, Skill entry point, capabilities, descriptions, and public prompts.
+  - rule_id: PLUGIN.AUTHORITY.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - *router_evidence
+  - rule_id: PLUGIN.ISOLATION.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - *provider_run_evidence
+      - *provider_safety_evidence
+  - rule_id: PLUGIN.LIFECYCLE.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - *migration_evidence
+  - rule_id: PLUGIN.SUPPLYCHAIN.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - *package_evidence
+  - rule_id: TESTPLATFORM.RUN.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - &evidence_run_contract
+        path: resources/schemas/evidence-run.schema.json
+        commit: 9b6a7b45293417623a28322de72735c83cbbc6cb
+        blob_sha: 9db83f888bd2f4f04bca189a3ef78ece42b67d17
+        line_start: 53
+        line_end: 188
+        observation: Evidence runs bind start and completion commits, pre/post dirty state, executable and config hashes, dependency closure, cache mode, timing, and terminal result.
+  - rule_id: TESTPLATFORM.ISOLATION.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - *provider_safety_evidence
+      - *provider_run_evidence
+  - rule_id: TESTPLATFORM.EVIDENCE.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - *evidence_run_contract
+  - rule_id: TESTPLATFORM.SCHEDULE.001
+    status: not_applicable
+    finding_ids: []
+    reason: Hengmu invokes bounded local validation and benchmark processes synchronously; it has no shared scheduler, worker leases, tenant fairness, or capacity queue.
+  - rule_id: TESTPLATFORM.FLAKE.001
+    status: assessed
+    finding_ids: []
+    evidence:
+      - *benchmark_evidence
+      - *signed_chain_test_evidence
+findings: []
+evidence_sources:
+  - .codex-plugin/plugin.json
+  - skills/hengmu/SKILL.md
+  - skills/architecture-solution-advisor/SKILL.md
+  - resources/scripts/architecture_tool.py
+  - resources/schemas/architecture-decision.schema.json
+  - resources/schemas/evidence-run.schema.json
+  - resources/schemas/review.schema.json
+  - scripts/package_plugin.py
+  - scripts/run_behavior_benchmark.py
+  - tests/test_architecture_tool.py
+  - tests/test_constrained_target_architecture.py
+  - SECURITY.md
+  - docs/migrating-to-1.0.md
+limitations:
+  - Static routing and repository tests cannot prove future Codex model activation quality; an installed-surface forward test remains release evidence.
+  - Local deterministic packaging does not replace CI provenance, cross-platform Python checks, or downstream installation verification.
+coverage_complete: true
+repository_facts:
+  path: .architecture/reviews/inputs/2026-08-06-constrained-target-architecture-repository-facts.yaml
+  sha256: 371fec95127e1140d079f4ae8f77b4d526b89ee094ee6571652581b2784ef3e8
+knowledge_selection:
+  path: .architecture/reviews/inputs/2026-08-06-constrained-target-architecture-knowledge-selection.yaml
+  sha256: 923dc58c40e918e8e42ed6d473cd2fd74cb152e55e72cb0a7621f1f7556ecaac
+selected_knowledge:
+  - {id: foundation.data-ownership, version: "1.0.0", sha256: 260f240ec9782f5a42a68481652912532cfcd6a0b07fdc5366d44388cc3d0204}
+  - {id: foundation.evidence-reasoning, version: "1.0.0", sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f}
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: foundation.system-boundaries, version: "1.0.0", sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+  - {id: foundation.evolutionary-architecture, version: "1.0.0", sha256: b9b125fa34bdeb346145f926210f7052d60d8f3b5f4e225cf1aa0fdb6a7888e5}
+  - {id: migration.client-only-to-hybrid-rendering, version: "1.0.0", sha256: e61d2253819b54093b07789111fcc3efc131705e6b666294ca34a7ae429ae991}
+critical_flow_coverage:
+  - id: plugin-discovery-and-skill-execution
+    status: assessed
+    reason: Manifest discovery reaches a stable router that delegates to one focused Skill without absorbing workflow authority.
+    evidence:
+      - *manifest_evidence
+      - *router_evidence
+  - id: finding-verification-and-policy-enforcement
+    status: assessed
+    reason: Source-separated Reviews and the deterministic Gate validate identity, policy, artifact state, and evidence before enforcement.
+    evidence:
+      - *review_contract_evidence
+      - *greenfield_gate_evidence
+  - id: architecture-knowledge-and-behavior-evaluation
+    status: assessed
+    reason: The Advisor binds selected Knowledge and the benchmark runner validates immutable context and expected behavioral outcomes.
+    evidence:
+      - *advisor_evidence
+      - *benchmark_evidence
+  - id: greenfield-architecture-decision
+    status: assessed
+    reason: A constrained Brief is challenged, SSH-authorized, bound to a complete target Decision, and exercised by a real signed Gate chain.
+    evidence:
+      - *advisor_evidence
+      - *signature_evidence
+      - *signed_chain_test_evidence
+      - *target_negative_test_evidence
+  - id: safe-project-initialization
+    status: assessed
+    reason: Initialization stages and validates the complete control plane, refuses overwrite, and reuses valid existing state.
+    evidence:
+      - *initialization_evidence
+  - id: deterministic-release-packaging
+    status: assessed
+    reason: Release packaging is runtime-allowlisted, byte-stable, atomically published, and digest-bound.
+    evidence:
+      - *package_evidence
+unknowns:
+  - Installed Codex activation behavior and GitHub provenance remain time-bound external release evidence rather than locally proven facts.

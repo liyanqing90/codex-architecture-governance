@@ -1,6 +1,7 @@
 # Releasing
 
-1. Update `CHANGELOG.md` and `.codex-plugin/plugin.json`.
+1. Update `CHANGELOG.md` and `.codex-plugin/plugin.json`. The Agent Plugins
+   manifest is projected from the Codex manifest during packaging.
 2. Regenerate `requirements-runtime.lock` and `requirements-dev.lock` with
    `pip-compile --generate-hashes` when dependency ranges change.
 3. Run the full gate from `AGENTS.md`, including `validate-knowledge`,
@@ -27,38 +28,49 @@
 7. Run the repository's architecture gate through `release`; preserve the
    trusted Review, accepted Decision, completed Plan, and passed provider
    evidence used by that result.
-8. Confirm the archive contains only runtime files:
+8. Build both supported package contracts:
+
+   ```bash
+   python3 scripts/package_plugin.py --format codex --output-dir dist
+   python3 scripts/package_plugin.py --format agent-plugins --output-dir dist
+   ```
+
+   The Codex package remains `hengmu-<version>.zip`; the portable package is
+   `hengmu-<version>-agent-plugins.zip`.
+
+9. Confirm both archives contain only runtime files:
 
    ```bash
    unzip -l dist/hengmu-<version>.zip
+   unzip -l dist/hengmu-<version>-agent-plugins.zip
    ```
 
-9. Verify the checksum on any supported platform:
+10. Verify the checksums on any supported platform:
 
    ```bash
    python3 scripts/verify_checksum.py \
-     dist/hengmu-<version>.zip.sha256
+     dist/*.zip.sha256
    ```
 
-10. Generate and inspect the SPDX SBOM:
+11. Generate and inspect both SPDX SBOMs:
 
    ```bash
    python3 scripts/generate_sbom.py \
-     --archive dist/hengmu-<version>.zip \
-     --output dist/hengmu-<version>.spdx.json
+     --archive dist/*.zip \
+     --output-dir dist
    ```
 
-11. Confirm every dependency package in the SPDX document has a declared
+12. Confirm every dependency package in both SPDX documents has a declared
    license and exactly matches `resources/supply-chain/runtime-licenses.json`.
-12. Complete one current Codex installation smoke test and record the surface,
+13. Complete one current Codex installation smoke test and record the surface,
    application version, operating system, and observed Skill routing.
-13. If a behavioral quality claim is planned, preserve three trials per case
+14. If a behavioral quality claim is planned, preserve three trials per case
    from at least two identified models, with surface, exact plugin version, and
    scorer output.
-14. Confirm migration evidence never preserves a legacy verified label as
+15. Confirm migration evidence never preserves a legacy verified label as
     current 1.2 verification.
-15. Create a signed or annotated `v<version>` tag.
-16. Push the tag. The release workflow re-runs validation, tests, lint,
+16. Create a signed or annotated `v<version>` tag.
+17. Push the tag. The release workflow re-runs validation, tests, lint,
    formatting, dependency audit, deterministic packaging, checksum, and SBOM
    generation. It creates GitHub provenance and SBOM attestations before
    publishing the ZIP, checksum, and SBOM.
@@ -69,8 +81,11 @@ After publication, verify both artifact digest and attestation:
 gh attestation verify \
   dist/hengmu-<version>.zip \
   --repo qingye-lab/hengmu
+gh attestation verify \
+  dist/hengmu-<version>-agent-plugins.zip \
+  --repo qingye-lab/hengmu
 python3 scripts/verify_checksum.py \
-  dist/hengmu-<version>.zip.sha256
+  dist/*.zip.sha256
 ```
 
 Do not publish from an uncommitted working tree or manually replace a release

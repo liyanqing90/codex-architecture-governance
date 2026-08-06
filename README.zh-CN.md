@@ -452,19 +452,23 @@ python3 -m ruff format --check .
 python3 scripts/audit_licenses.py
 ```
 
-构建并验证确定性插件压缩包：
+构建并验证两种确定性插件压缩包：
 
 ```bash
-python3 scripts/package_plugin.py --output-dir dist
+python3 scripts/package_plugin.py --format codex --output-dir dist
+python3 scripts/package_plugin.py --format agent-plugins --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/hengmu-1.0.0.zip \
-  --output dist/hengmu-1.0.0.spdx.json
+  --archive dist/*.zip \
+  --output-dir dist
 ```
 
+Codex 压缩包是 `hengmu-<version>.zip`；可移植的 Agent Plugins 压缩包是
+`hengmu-<version>-agent-plugins.zip`，使用根目录 `plugin.json`。
+
 CI 会在 Linux、macOS 和 Windows 上验证支持的 Python 边界。带 Tag 的发布
-会提供确定性 ZIP、SHA-256 校验和、SPDX SBOM，以及 GitHub 来源和 SBOM
-Attestation。
+会同时提供两种确定性 ZIP、对应的 SHA-256 校验和、SPDX SBOM，以及 GitHub
+来源和 SBOM Attestation。
 
 ## 非目标
 

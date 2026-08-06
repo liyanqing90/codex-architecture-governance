@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 PACKAGE_RE = re.compile(r"^(?P<name>[A-Za-z0-9_.-]+)==(?P<version>[^\s\\]+)")
+MANIFEST_PATHS = ("plugin.json", ".codex-plugin/plugin.json")
 DEFAULT_LICENSE_POLICY = (
     Path(__file__).resolve().parent.parent
     / "resources"
@@ -22,6 +23,23 @@ DEFAULT_LICENSE_POLICY = (
 
 class SbomError(RuntimeError):
     """Invalid input for SBOM generation."""
+
+
+def load_archive_manifest(contents: dict[str, bytes]) -> dict[str, Any]:
+    for path in MANIFEST_PATHS:
+        if path not in contents:
+            continue
+        try:
+            manifest = json.loads(contents[path])
+        except json.JSONDecodeError as exc:
+            raise SbomError(f"Archive manifest is invalid JSON: {path}") from exc
+        if not isinstance(manifest, dict):
+            raise SbomError(f"Archive manifest is not an object: {path}")
+        return manifest
+    raise SbomError(
+        "Archive does not contain a supported plugin manifest "
+        "(plugin.json or .codex-plugin/plugin.json)"
+    )
 
 
 def digest_bytes(algorithm: str, value: bytes) -> str:
@@ -88,9 +106,7 @@ def build_sbom(
             contents = {name: archive.read(name) for name in names}
     except (FileNotFoundError, zipfile.BadZipFile) as exc:
         raise SbomError(f"Cannot read plugin archive {archive_path}: {exc}") from exc
-    if ".codex-plugin/plugin.json" not in contents:
-        raise SbomError("Archive does not contain .codex-plugin/plugin.json")
-    manifest = json.loads(contents[".codex-plugin/plugin.json"])
+    manifest = load_archive_manifest(contents)
     plugin_name = manifest["name"]
     plugin_version = manifest["version"]
     repository = str(manifest["repository"]).rstrip("/")
@@ -199,13 +215,18 @@ def build_sbom(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--archive", type=Path, required=True)
+    parser.add_argument("--archive", type=Path, nargs="+", required=True)
     parser.add_argument(
         "--lock",
         type=Path,
         default=Path("requirements-runtime.lock"),
     )
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        help="Directory for one SBOM per archive; required for multiple archives.",
+    )
     parser.add_argument(
         "--license-policy",
         type=Path,
@@ -217,16 +238,39 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     try:
-        payload = build_sbom(args.archive, args.lock, args.license_policy)
+        if len(args.archive) == 1:
+            if args.output is not None and args.output_dir is not None:
+                raise SbomError("Use only one of --output and --output-dir")
+            if args.output is None and args.output_dir is None:
+                raise SbomError("One of --output and --output-dir is required")
+            outputs = [
+                args.output
+                if args.output is not None
+                else args.output_dir / f"{args.archive[0].stem}.spdx.json"
+            ]
+        else:
+            if args.output is not None:
+                raise SbomError("--output cannot be used for multiple archives")
+            if args.output_dir is None:
+                raise SbomError("--output-dir is required for multiple archives")
+            outputs = [
+                args.output_dir / f"{archive.stem}.spdx.json"
+                for archive in args.archive
+            ]
+        payloads = [
+            build_sbom(archive, args.lock, args.license_policy)
+            for archive in args.archive
+        ]
     except (OSError, KeyError, json.JSONDecodeError, SbomError) as exc:
         print(f"SBOM generation failed: {exc}")
         return 2
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    print(f"Wrote SPDX SBOM: {args.output}")
+    for output, payload in zip(outputs, payloads, strict=True):
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        print(f"Wrote SPDX SBOM: {output}")
     return 0
 
 

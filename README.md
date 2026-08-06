@@ -492,19 +492,23 @@ python3 -m ruff format --check .
 python3 scripts/audit_licenses.py
 ```
 
-Build and verify the deterministic plugin archive:
+Build and verify both deterministic plugin archives:
 
 ```bash
-python3 scripts/package_plugin.py --output-dir dist
+python3 scripts/package_plugin.py --format codex --output-dir dist
+python3 scripts/package_plugin.py --format agent-plugins --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/hengmu-1.0.0.zip \
-  --output dist/hengmu-1.0.0.spdx.json
+  --archive dist/*.zip \
+  --output-dir dist
 ```
 
+The Codex archive is `hengmu-<version>.zip`. The portable Agent Plugins
+archive is `hengmu-<version>-agent-plugins.zip` and uses a root `plugin.json`.
+
 CI runs the supported Python boundary on Linux, macOS, and Windows. Tagged
-releases publish a deterministic ZIP, SHA-256 checksum, SPDX SBOM, and GitHub
-provenance/SBOM attestations.
+releases publish both deterministic ZIPs, their SHA-256 checksums and SPDX
+SBOMs, and GitHub provenance/SBOM attestations.
 
 ## Non-goals
 

@@ -83,35 +83,51 @@ jobs:
       - name: Audit runtime dependency licenses
         run: python scripts/audit_licenses.py
 
-      - name: Build deterministic plugin archive
-        run: python scripts/package_plugin.py --output-dir dist
+      - name: Build deterministic Codex plugin archive
+        run: python scripts/package_plugin.py --format codex --output-dir dist
+
+      - name: Build deterministic Agent Plugins archive
+        run: >-
+          python scripts/package_plugin.py
+          --format agent-plugins
+          --output-dir dist
 
       - name: Verify archive checksum
         run: python scripts/verify_checksum.py dist/*.zip.sha256
 
       - name: Define release artifact paths
         shell: bash
-        run: >-
-          echo
-          "SBOM_PATH=dist/hengmu-${GITHUB_REF_NAME#v}.spdx.json"
-          >> "${GITHUB_ENV}"
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          {
+            echo "CODEX_ARCHIVE=dist/hengmu-${VERSION}.zip"
+            echo "AGENT_PLUGINS_ARCHIVE=dist/hengmu-${VERSION}-agent-plugins.zip"
+            echo "CODEX_SBOM_PATH=dist/hengmu-${VERSION}.spdx.json"
+            echo "AGENT_PLUGINS_SBOM_PATH=dist/hengmu-${VERSION}-agent-plugins.spdx.json"
+          } >> "${GITHUB_ENV}"
 
       - name: Generate SPDX SBOM
         run: >-
           python scripts/generate_sbom.py
           --archive dist/*.zip
-          --output "${SBOM_PATH}"
+          --output-dir dist
 
       - name: Attest build provenance
         uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
         with:
           subject-path: dist/*.zip
 
-      - name: Attest SPDX SBOM
+      - name: Attest Codex SPDX SBOM
         uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
         with:
-          subject-path: dist/*.zip
-          sbom-path: ${{ env.SBOM_PATH }}
+          subject-path: ${{ env.CODEX_ARCHIVE }}
+          sbom-path: ${{ env.CODEX_SBOM_PATH }}
+
+      - name: Attest Agent Plugins SPDX SBOM
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: ${{ env.AGENT_PLUGINS_ARCHIVE }}
+          sbom-path: ${{ env.AGENT_PLUGINS_SBOM_PATH }}
 
       - name: Publish GitHub release
         env:
@@ -120,6 +136,7 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" \
             dist/*.zip \
             dist/*.zip.sha256 \
-            "${SBOM_PATH}" \
+            "${CODEX_SBOM_PATH}" \
+            "${AGENT_PLUGINS_SBOM_PATH}" \
             --generate-notes \
             --title "Hengmu ${GITHUB_REF_NAME}"

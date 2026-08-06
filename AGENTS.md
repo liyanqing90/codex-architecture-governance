@@ -52,11 +52,12 @@ python3 -m ruff check .
 python3 -m ruff format --check .
 python3 -m pip_audit -r requirements-runtime.lock
 python3 scripts/audit_licenses.py
-python3 scripts/package_plugin.py --output-dir dist
+python3 scripts/package_plugin.py --format codex --output-dir dist
+python3 scripts/package_plugin.py --format agent-plugins --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/hengmu-1.0.0.zip \
-  --output dist/hengmu-1.0.0.spdx.json
+  --archive dist/*.zip \
+  --output-dir dist
 ```
 
 The accepted target boundary is recorded in

@@ -24,6 +24,19 @@ The repository validates:
 - routing metadata and five activation/boundary cases per Skill;
 - deterministic archive contents independent of local marketplace state.
 
+Packaging has two explicit targets:
+
+- `codex`: the native Codex package with `.codex-plugin/plugin.json` and
+  Codex-specific `agents/openai.yaml` metadata;
+- `agent-plugins`: the portable package with a root `plugin.json` and the
+  standard `skills/` layout. It contains the same runtime CLI and Skill
+  instructions, but not Codex-specific UI metadata.
+
+The portable package is intended for clients that support Agent Plugins. It
+does not promise identical invocation syntax or client UI: those remain
+client-specific. The runtime still requires CPython 3.11–3.13 and the locked
+dependencies described above.
+
 Automated CI cannot launch every Codex desktop, CLI, or ChatGPT plugin surface.
 Before a release, maintainers should install the built ZIP or local marketplace
 entry in at least one current Codex surface and record the application version,

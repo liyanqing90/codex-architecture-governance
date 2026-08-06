@@ -79,8 +79,14 @@ jobs:
       - name: Audit runtime dependency licenses
         run: python scripts/audit_licenses.py
 
-      - name: Build deterministic plugin archive
-        run: python scripts/package_plugin.py --output-dir dist
+      - name: Build deterministic Codex plugin archive
+        run: python scripts/package_plugin.py --format codex --output-dir dist
+
+      - name: Build deterministic Agent Plugins archive
+        run: >-
+          python scripts/package_plugin.py
+          --format agent-plugins
+          --output-dir dist
 
       - name: Verify archive checksum
         shell: bash
@@ -91,7 +97,7 @@ jobs:
         run: >-
           python scripts/generate_sbom.py
           --archive dist/*.zip
-          --output dist/plugin.spdx.json
+          --output-dir dist
 
   dependency-review:
     name: Dependency and license review

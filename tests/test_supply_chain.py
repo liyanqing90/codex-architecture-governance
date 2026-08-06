@@ -73,10 +73,13 @@ class SupplyChainTests(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("SBOM_PATH=dist/hengmu-", workflow)
-        self.assertIn('--output "${SBOM_PATH}"', workflow)
-        self.assertIn("sbom-path: ${{ env.SBOM_PATH }}", workflow)
-        self.assertIn('"${SBOM_PATH}"', workflow)
+        self.assertIn("CODEX_SBOM_PATH=dist/hengmu-", workflow)
+        self.assertIn("AGENT_PLUGINS_SBOM_PATH=dist/hengmu-", workflow)
+        self.assertIn("--output-dir dist", workflow)
+        self.assertIn("sbom-path: ${{ env.CODEX_SBOM_PATH }}", workflow)
+        self.assertIn("sbom-path: ${{ env.AGENT_PLUGINS_SBOM_PATH }}", workflow)
+        self.assertIn('"${CODEX_SBOM_PATH}"', workflow)
+        self.assertIn('"${AGENT_PLUGINS_SBOM_PATH}"', workflow)
         self.assertNotIn("sbom-path: dist/*.spdx.json", workflow)
 
     def test_checksum_and_sbom_cover_archive(self) -> None:
@@ -126,6 +129,21 @@ class SupplyChainTests(unittest.TestCase):
                 )
             )
             json.dumps(first)
+
+            agent_archive, agent_checksum = package_plugin.build_package(
+                ROOT,
+                output,
+                "agent-plugins",
+            )
+            self.assertEqual(verify_checksum.verify(agent_checksum), agent_archive)
+            agent_sbom = generate_sbom.build_sbom(
+                agent_archive,
+                ROOT / "requirements-runtime.lock",
+            )
+            self.assertEqual(agent_sbom["spdxVersion"], "SPDX-2.3")
+            with zipfile.ZipFile(agent_archive) as bundle:
+                self.assertIn("plugin.json", bundle.namelist())
+                self.assertNotIn(".codex-plugin/plugin.json", bundle.namelist())
 
             audit = audit_licenses.audit(
                 ROOT / "requirements-runtime.lock",

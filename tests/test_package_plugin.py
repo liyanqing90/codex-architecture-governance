@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import sys
 import tempfile
 import unittest
@@ -43,6 +44,7 @@ class PackagePluginTests(unittest.TestCase):
 
             self.assertEqual(names, sorted(names))
             self.assertIn(".codex-plugin/plugin.json", names)
+            self.assertNotIn("plugin.json", names)
             self.assertIn("resources/scripts/architecture_tool.py", names)
             self.assertIn("resources/selector-source.json", names)
             self.assertIn("resources/templates/knowledge-context.yaml", names)
@@ -57,6 +59,48 @@ class PackagePluginTests(unittest.TestCase):
             self.assertFalse(any(name.startswith("tests/") for name in names))
             self.assertFalse(any("__pycache__" in name for name in names))
             self.assertFalse(any(name.endswith(".pyc") for name in names))
+
+    def test_agent_plugins_archive_is_portable_and_reproducible(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temp_root = Path(temporary)
+            first, first_checksum = package_plugin.build_package(
+                ROOT,
+                temp_root / "first",
+                "agent-plugins",
+            )
+            second, _ = package_plugin.build_package(
+                ROOT,
+                temp_root / "second",
+                "agent-plugins",
+            )
+
+            self.assertEqual(first.read_bytes(), second.read_bytes())
+            digest = hashlib.sha256(first.read_bytes()).hexdigest()
+            self.assertEqual(
+                first_checksum.read_text(encoding="utf-8"),
+                f"{digest}  {first.name}\n",
+            )
+            self.assertEqual(first.name, "hengmu-1.0.0-agent-plugins.zip")
+
+            with zipfile.ZipFile(first) as archive:
+                names = archive.namelist()
+                manifest = json.loads(archive.read("plugin.json"))
+                timestamps = {item.date_time for item in archive.infolist()}
+
+            self.assertEqual(names, sorted(names))
+            self.assertEqual(
+                manifest["$schema"],
+                package_plugin.AGENT_PLUGINS_SCHEMA,
+            )
+            self.assertEqual(manifest["name"], "hengmu")
+            self.assertNotIn("skills", manifest)
+            self.assertNotIn("interface", manifest)
+            self.assertNotIn(".codex-plugin/plugin.json", names)
+            self.assertIn("skills/hengmu/SKILL.md", names)
+            self.assertFalse(
+                any(name.endswith("/agents/openai.yaml") for name in names)
+            )
+            self.assertEqual(timestamps, {package_plugin.FIXED_ZIP_TIME})
 
 
 if __name__ == "__main__":

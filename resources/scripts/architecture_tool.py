@@ -3157,6 +3157,11 @@ def validate_design_brief(
                         f"{path} Design Brief approval evidence is missing: "
                         f"{evidence_path}"
                     )
+                if file_sha256(evidence_path) != evidence["sha256"]:
+                    raise ArchitectureError(
+                        f"{path} Design Brief approval evidence hash does not match "
+                        f"{evidence_path}"
+                    )
             for signature in approval["signatures"]:
                 verify_ssh_artifact_signature(
                     path,
@@ -3165,11 +3170,6 @@ def validate_design_brief(
                     signature_policy,
                     "Design Brief",
                 )
-                if file_sha256(evidence_path) != evidence["sha256"]:
-                    raise ArchitectureError(
-                        f"{path} Design Brief approval evidence hash does not match "
-                        f"{evidence_path}"
-                    )
     return data
 
 

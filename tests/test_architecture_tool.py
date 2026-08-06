@@ -1871,6 +1871,11 @@ class ArchitectureToolTests(unittest.TestCase):
             "Architecture owner approves this bounded Design Brief.\n",
             encoding="utf-8",
         )
+        approval_scope_record = approvals / "design-brief-scope.md"
+        approval_scope_record.write_text(
+            "Approval covers the constrained target and named quality scenarios.\n",
+            encoding="utf-8",
+        )
         brief_path = config_root / "architecture-design-brief.yaml"
         brief = architecture_tool.load_yaml(
             ROOT / "resources" / "templates" / "architecture-design-brief.yaml"
@@ -1885,7 +1890,12 @@ class ArchitectureToolTests(unittest.TestCase):
                     "path": approval_record.relative_to(self.root).as_posix(),
                     "sha256": architecture_tool.file_sha256(approval_record),
                     "description": "Recorded approval rationale and scope.",
-                }
+                },
+                {
+                    "path": approval_scope_record.relative_to(self.root).as_posix(),
+                    "sha256": architecture_tool.file_sha256(approval_scope_record),
+                    "description": "Recorded approval boundary.",
+                },
             ],
             "signatures": [
                 {
@@ -1912,6 +1922,26 @@ class ArchitectureToolTests(unittest.TestCase):
             ],
             check=True,
             capture_output=True,
+        )
+        architecture_tool.validate_design_brief(
+            brief_path,
+            repository_root=self.root,
+        )
+        approval_record.write_text(
+            "Tampered approval evidence.\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "approval evidence hash does not match",
+        ):
+            architecture_tool.validate_design_brief(
+                brief_path,
+                repository_root=self.root,
+            )
+        approval_record.write_text(
+            "Architecture owner approves this bounded Design Brief.\n",
+            encoding="utf-8",
         )
         architecture_tool.validate_design_brief(
             brief_path,

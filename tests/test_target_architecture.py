@@ -809,7 +809,7 @@ setup(name="example", install_requires=RUNTIME_REQUIREMENTS)
         manifest, entries = validate_knowledge_tree(
             ROOT / "resources" / "knowledge",
             schema_root=ROOT / "resources" / "schemas",
-            today=date(2026, 7, 29),
+            today=date(2026, 8, 6),
         )
 
         self.assertEqual(len(manifest["packs"]), 10)
@@ -892,7 +892,7 @@ setup(name="example", install_requires=RUNTIME_REQUIREMENTS)
         _, entries = validate_knowledge_tree(
             ROOT / "resources" / "knowledge",
             schema_root=ROOT / "resources" / "schemas",
-            today=date(2026, 7, 29),
+            today=date(2026, 8, 6),
         )
         decision = architecture_tool.load_yaml(
             ROOT / "resources" / "templates" / "architecture-decision.yaml"

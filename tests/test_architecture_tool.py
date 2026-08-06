@@ -597,7 +597,7 @@ class ArchitectureToolTests(unittest.TestCase):
         _, knowledge = architecture_tool.validate_knowledge_tree(
             ROOT / "resources" / "knowledge",
             schema_root=ROOT / "resources" / "schemas",
-            today=date(2026, 7, 29),
+            today=date(2026, 8, 6),
         )
         decision = architecture_tool.load_yaml(
             ROOT / "resources" / "templates" / "architecture-decision.yaml"
@@ -1299,6 +1299,21 @@ class ArchitectureToolTests(unittest.TestCase):
         )
         provider.pop("result_path", None)
         self.write_yaml(config_path, config)
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", str(config_path)],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.root),
+                "commit",
+                "-qm",
+                "Configure evidence provider",
+            ],
+            check=True,
+        )
 
         artifact_path, artifact = architecture_tool.run_evidence_provider(
             self.root,
@@ -1311,6 +1326,24 @@ class ArchitectureToolTests(unittest.TestCase):
             require_passed=True,
         )
         self.assertEqual(validated["run"]["provider_id"], "test-results")
+        self.assertEqual(validated["schema_version"], "1.1")
+
+        legacy_artifact = copy.deepcopy(artifact)
+        legacy_artifact["schema_version"] = "1.0"
+        legacy_artifact["run"].pop("completed_commit")
+        legacy_artifact["run"].pop("dirty_tree_after")
+        self.write_yaml(artifact_path, legacy_artifact)
+        architecture_tool.validate_evidence_run(artifact_path, self.root)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "lacks post-run repository state",
+        ):
+            architecture_tool.validate_evidence_run(
+                artifact_path,
+                self.root,
+                require_passed=True,
+            )
+        self.write_yaml(artifact_path, artifact)
 
         tampered_artifact = architecture_tool.load_yaml(artifact_path)
         tampered_artifact["result"]["exit_code"] = 1
@@ -1337,6 +1370,186 @@ class ArchitectureToolTests(unittest.TestCase):
                 self.root,
             )
 
+    def test_dirty_provider_run_is_informational_only(self) -> None:
+        self.init_project()
+        config_path = self.root / ".architecture" / "evidence-providers.yaml"
+        config = architecture_tool.load_yaml(config_path)
+        provider = next(
+            item for item in config["providers"] if item["id"] == "test-results"
+        )
+        provider.update(
+            {
+                "enabled": True,
+                "command": [
+                    sys.executable,
+                    "-c",
+                    'print(\'<testsuite name="provider" tests="1"/>\')',
+                ],
+                "allow_without_detection": True,
+                "output_source": "stdout",
+            }
+        )
+        provider.pop("result_path", None)
+        self.write_yaml(config_path, config)
+
+        artifact_path, artifact = architecture_tool.run_evidence_provider(
+            self.root,
+            "test-results",
+        )
+        self.assertTrue(artifact["run"]["dirty_tree"])
+        architecture_tool.validate_evidence_run(artifact_path, self.root)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "dirty working tree",
+        ):
+            architecture_tool.validate_evidence_run(
+                artifact_path,
+                self.root,
+                require_passed=True,
+            )
+
+    def test_provider_worktree_mutation_is_informational_only(self) -> None:
+        self.init_project()
+        config_path = self.root / ".architecture" / "evidence-providers.yaml"
+        config = architecture_tool.load_yaml(config_path)
+        provider = next(
+            item for item in config["providers"] if item["id"] == "test-results"
+        )
+        provider.update(
+            {
+                "enabled": True,
+                "command": [
+                    sys.executable,
+                    "-c",
+                    (
+                        "from pathlib import Path; "
+                        "target=Path('.architecture')/'constraints.md'; "
+                        "target.write_text('changed\\n'); "
+                        'print(\'<testsuite name="provider" tests="1"/>\')'
+                    ),
+                ],
+                "allow_without_detection": True,
+                "output_source": "stdout",
+            }
+        )
+        provider.pop("result_path", None)
+        self.write_yaml(config_path, config)
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", str(config_path)],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.root),
+                "commit",
+                "-qm",
+                "Configure mutating provider fixture",
+            ],
+            check=True,
+        )
+
+        artifact_path, artifact = architecture_tool.run_evidence_provider(
+            self.root,
+            "test-results",
+        )
+        self.assertFalse(artifact["run"]["dirty_tree"])
+        self.assertTrue(artifact["run"]["dirty_tree_after"])
+        architecture_tool.validate_evidence_run(artifact_path, self.root)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "changed the working tree during execution",
+        ):
+            architecture_tool.validate_evidence_run(
+                artifact_path,
+                self.root,
+                require_passed=True,
+            )
+
+    def test_provider_config_rejects_installing_command_runners(self) -> None:
+        self.init_project()
+        config_path = self.root / ".architecture" / "evidence-providers.yaml"
+        config = architecture_tool.load_yaml(config_path)
+        config["providers"][0]["command"] = ["npx", "archunit"]
+        self.write_yaml(config_path, config)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "forbidden package or shell runner npx",
+        ):
+            architecture_tool.validate_evidence_provider_config(config_path)
+
+        config["providers"][0]["command"] = [
+            "python3",
+            "-m",
+            "pip",
+            "install",
+            "archunit",
+        ]
+        self.write_yaml(config_path, config)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "may install tools",
+        ):
+            architecture_tool.validate_evidence_provider_config(config_path)
+
+        for command in (
+            ["corepack", "pnpm", "dlx", "archunit"],
+            ["./run-provider.sh"],
+            ["./run-provider.ksh"],
+        ):
+            config["providers"][0]["command"] = command
+            self.write_yaml(config_path, config)
+            with self.assertRaisesRegex(
+                architecture_tool.ArchitectureError,
+                "forbidden package or shell runner",
+            ):
+                architecture_tool.validate_evidence_provider_config(config_path)
+
+        config["providers"][0]["command"] = ["cargo", "clippy"]
+        self.write_yaml(config_path, config)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "must use offline mode",
+        ):
+            architecture_tool.validate_evidence_provider_config(config_path)
+
+    def test_provider_executable_rejects_extensionless_shell_wrapper(self) -> None:
+        wrapper = self.root / "scripts" / "run-provider"
+        wrapper.parent.mkdir()
+        wrapper.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        wrapper.chmod(0o755)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "forbidden shell wrapper",
+        ):
+            architecture_tool.resolve_provider_executable(
+                self.root,
+                "scripts/run-provider",
+            )
+        ksh_wrapper = self.root / "scripts" / "run-provider-ksh"
+        ksh_wrapper.write_text("#!/bin/ksh\nexit 0\n", encoding="utf-8")
+        ksh_wrapper.chmod(0o755)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "forbidden shell wrapper",
+        ):
+            architecture_tool.resolve_provider_executable(
+                self.root,
+                "scripts/run-provider-ksh",
+            )
+        ksh93_wrapper = self.root / "scripts" / "run-provider-ksh93"
+        ksh93_wrapper.write_text("#!/bin/ksh93\nexit 0\n", encoding="utf-8")
+        ksh93_wrapper.chmod(0o755)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "forbidden shell wrapper",
+        ):
+            architecture_tool.resolve_provider_executable(
+                self.root,
+                "scripts/run-provider-ksh93",
+            )
+
     def test_provider_exit_zero_with_invalid_structured_output_fails(self) -> None:
         self.init_project()
         config_path = self.root / ".architecture" / "evidence-providers.yaml"
@@ -1353,6 +1566,21 @@ class ArchitectureToolTests(unittest.TestCase):
             }
         )
         self.write_yaml(config_path, config)
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", str(config_path)],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.root),
+                "commit",
+                "-qm",
+                "Configure invalid evidence fixture",
+            ],
+            check=True,
+        )
 
         artifact_path, artifact = architecture_tool.run_evidence_provider(
             self.root,
@@ -1772,6 +2000,7 @@ class ArchitectureToolTests(unittest.TestCase):
         config_root = self.init_project()
         policy_path = config_root / "gate-policy.yaml"
         policy = architecture_tool.load_yaml(policy_path)
+        policy["block"]["freshness_strategy"] = "diff-aware"
         policy["change_requirements"]["critical_paths"] = ["critical.py"]
         self.write_yaml(policy_path, policy)
         subprocess.run(
@@ -1852,6 +2081,23 @@ class ArchitectureToolTests(unittest.TestCase):
                 "changed after the selected review" in failure
                 for failure in stale_result["policy_failures"]
             )
+        )
+        scoped_review = architecture_tool.load_yaml(review_path)
+        scoped_review["review"]["scope_manifest"] = ["critical.py"]
+        self.write_yaml(review_path, scoped_review)
+        unscoped_result = architecture_tool.gate_project(
+            self.root,
+            review_path,
+            today=date(2026, 7, 28),
+            mode="change",
+            base_commit=base_commit,
+        )
+        self.assertTrue(
+            any(
+                "outside the selected review scope" in failure
+                for failure in unscoped_result["policy_failures"]
+            ),
+            unscoped_result["policy_failures"],
         )
 
     def test_keep_current_decision_covers_compatible_migration(self) -> None:

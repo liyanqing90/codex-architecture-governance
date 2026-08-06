@@ -17,10 +17,10 @@ cases:
   - id: hengmu-incomplete
     skill: hengmu
     kind: incomplete
-    prompt: "Open $hengmu and show me what engineering workflows are available here."
+    prompt: "Open $hengmu, show the current governance lifecycle status, and tell me which focused workflow is valid next."
     expected:
       activates: true
-      outcome: "Shows the complete menu and contextual recommendations without starting work or creating project state."
+      outcome: "Shows the complete menu and read-only lifecycle guidance without starting work, changing authority, or creating project state."
   - id: hengmu-negative
     skill: hengmu
     kind: negative
@@ -147,10 +147,10 @@ cases:
   - id: ai-agent-direct
     skill: ai-agent-architecture-audit
     kind: direct
-    prompt: "Audit this agent runtime's context, memory, tools, recovery, and evaluations."
+    prompt: "Audit this agent runtime's context assembly, compression and cache ordering, memory, tools, privacy, recovery, and evaluations."
     expected:
       activates: true
-      outcome: "Produces AI-agent-specific candidates for independent verification."
+      outcome: "Traces context necessity and ordering, authority-preserving compression, privacy, tools, recovery, and version-bound behavior evidence before producing candidates."
   - id: ai-agent-indirect
     skill: ai-agent-architecture-audit
     kind: indirect
@@ -161,10 +161,10 @@ cases:
   - id: ai-agent-incomplete
     skill: ai-agent-architecture-audit
     kind: incomplete
-    prompt: "Review model fallback reliability, but no production traces are available."
+    prompt: "Review whether a new agent protocol and model upgrade are worthwhile, but no version-bound behavior traces or pilot results are available."
     expected:
       activates: true
-      outcome: "Assesses code evidence and records runtime coverage limitations."
+      outcome: "Assesses compatibility and static evidence, keeps the current design as a baseline, and records upgrade value as unproved without behavior evidence."
   - id: ai-agent-negative
     skill: ai-agent-architecture-audit
     kind: negative
@@ -298,10 +298,10 @@ cases:
   - id: solution-indirect
     skill: architecture-solution-advisor
     kind: indirect
-    prompt: "Should this queue worker become Temporal or remain a simple asynchronous service?"
+    prompt: "A new workflow runtime release is available; should this queue worker keep its current design, upgrade, or move to that runtime?"
     expected:
       activates: true
-      outcome: "Uses workflow duration, recovery, team, cost, and complexity evidence."
+      outcome: "Uses current official capability evidence, workflow duration, recovery, compatibility, team, cost, pilot, rollback, and complexity evidence."
   - id: solution-incomplete
     skill: architecture-solution-advisor
     kind: incomplete

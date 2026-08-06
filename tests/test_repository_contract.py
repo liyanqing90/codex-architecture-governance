@@ -35,6 +35,15 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertEqual(len(errors), 1)
             self.assertIn("40-character commit SHA", errors[0])
 
+    def test_duplicate_json_key_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "duplicate.json"
+            path.write_text('{"schema_version": "1.0", "schema_version": "1.1"}')
+            errors: list[str] = []
+            self.assertIsNone(validate_repository.load_json(path, errors))
+            self.assertEqual(len(errors), 1)
+            self.assertIn("duplicate JSON key 'schema_version'", errors[0])
+
     def test_plugin_identity_is_independent_of_checkout_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "custom-checkout-name"

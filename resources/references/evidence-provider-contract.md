@@ -10,11 +10,23 @@ The bundled catalog defines provider identity, detection markers, evidence
 type, output format, trust class, and documentation. The audited repository
 owns the executable command in `.architecture/evidence-providers.yaml`.
 
+The catalog includes opt-in quality providers for Ruff (Python), ESLint
+(JavaScript/TypeScript), Clippy (Rust), golangci-lint (Go), SwiftLint
+(Swift), and Detekt (JVM). Their `ecosystem` and `category` metadata is
+descriptive only. `missing_tool_guidance` is advisory prose for a non-ready
+capability; it is not an install command and the governance runtime never
+installs, resolves, or runs a missing tool automatically.
+
 For every provider:
 
 - keep `enabled: false` until the exact command has been reviewed;
 - use an argument array, never shell syntax;
-- pin the project tool dependency where the ecosystem permits;
+- do not use shell wrappers, compound package runners such as `corepack`,
+  package runners such as `npx` or `uvx`, or package-manager installation
+  subcommands; the runtime rejects these entry points and shell shebangs;
+- pin the project tool dependency or wrapper where the ecosystem permits;
+- use a project-owned executable or no-install package invocation; never use
+  a provider command that downloads or installs a tool as a side effect;
 - use the smallest environment allowlist needed by the command;
 - set a bounded timeout and explicit success exit codes;
 - retain detection unless the project has documented why
@@ -40,7 +52,8 @@ The runner:
 3. resolves an executable file and verifies execute permission;
 4. hashes the catalog, provider definition, full configuration, and actual
    executable;
-5. records repository identity, commit, and dirty-tree state;
+5. records repository identity, start/end commits, and dirty-tree state before
+   and after execution;
 6. invokes the command directly without a shell, with only allowlisted
    environment variables;
 7. enforces the configured timeout;
@@ -70,6 +83,20 @@ item of `type: tool`. Both references use the provider ID, repository-relative
 run path, and exact run SHA-256. V4 and V5 findings require at least one passed
 deterministic run.
 
+## Quality-provider defaults
+
+The quality entries in the bundled catalog are disabled in the template. The
+template commands are project-owned starting points: Ruff resolves the selected
+environment's `ruff` executable, ESLint resolves the project-local binary,
+Clippy uses Cargo in offline mode and the
+project Rust toolchain, golangci-lint and SwiftLint use the project-approved
+tool resolution, and Detekt uses a pre-provisioned Gradle executable in offline
+mode. Maven and Gradle wrappers are not Provider commands because they may
+download a build-tool distribution. A project must provision and pin tools and
+dependencies before enabling a provider. If an executable or offline dependency
+is absent, capability status remains non-ready and non-passing; installation or
+dependency resolution requires an explicit user decision outside the runner.
+
 ## Trust limits
 
 - A validated run proves which configured command and executable produced the
@@ -77,7 +104,11 @@ deterministic run.
   correct.
 - `runtime-observation` is bound to its observation window and cannot establish
   all future behavior.
-- A dirty-tree run records that state and may be rejected by project policy.
+- A dirty-tree run remains readable as informational local evidence but cannot
+  enter a trusted Review or Gate.
+- A provider that changes HEAD or leaves tracked/untracked project files behind
+  cannot produce trusted evidence. Run-scoped evidence output files are excluded
+  from this post-run comparison.
 - Provider commands may themselves access network or credentials if the
   project deliberately allows them. The governance runtime supplies neither
   automatically.

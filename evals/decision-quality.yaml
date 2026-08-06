@@ -28,3 +28,7 @@ cases:
     decision_guide: decision.single-agent-vs-multi-agent
     must_compare: [context-boundary, authority, coordination, evaluation, cost]
     prohibited_shortcut: Role names justify multiple agents.
+  - id: technology-refresh
+    decision_guide: foundation.technology-selection
+    must_compare: [keep-current, measured-gap, official-current-evidence, compatibility, migration, operations, pilot, rollback, cost, lock-in, revisit-trigger]
+    prohibited_shortcut: A newer release, framework, model, or protocol is automatically an upgrade.

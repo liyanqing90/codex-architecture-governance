@@ -59,7 +59,7 @@ It works at two levels:
 | --- | --- |
 | System assessment | Reviews structure and engineering qualities, including evidence-backed performance budgets and runtime behavior. |
 | Technical solutions | Compares keep-current and structural options across quality, cost, complexity, maturity, lock-in, migration risk, and reversibility. |
-| Specialized review | Applies dedicated lenses for AI-agent systems, mobile applications, and multi-project portfolios. |
+| Specialized review | Applies dedicated lenses for AI-agent context assembly and economics, memory, tool authority, privacy, behavior evidence, technology evolution, mobile applications, and multi-project portfolios. |
 | Decision governance | Binds facts, evidence, provenance, authority, remediation, and deterministic policy into one auditable chain. |
 
 ## Why Hengmu
@@ -268,13 +268,36 @@ focused workflow.
 | Phase | Skill | Responsibility |
 | --- | --- | --- |
 | Audit | `project-architecture-audit` | Boundaries, data ownership, contracts, reliability, security, operations, tests, deployment, debt, and proportionality in one repository. |
-| Audit | `ai-agent-architecture-audit` | Models, context, Memory, retrieval, tools, injection, approval, recovery, evaluation, cost, latency, and evidence boundaries. |
+| Audit | `ai-agent-architecture-audit` | Models, context necessity/assembly/compression/cache ordering, Memory, retrieval, tools, injection, privacy, approval, recovery, version-bound behavior evidence, cost, latency, and evolution boundaries. |
 | Audit | `mobile-architecture-audit` | Local state, sync, migrations, background work, notifications, privacy, caching, and lifecycle behavior. |
 | Audit | `portfolio-architecture-audit` | Duplication, stack sprawl, shared capabilities, dependencies, data flow, ownership, and hidden coupling across projects. |
 | Verify | `architecture-finding-verifier` | Challenge candidates, resolve evidence, assign V0–V5 verification, and produce a provenance-bound trusted Review. |
 | Decide | `architecture-solution-advisor` | Compare keep-current and structural options against qualities, constraints, team capability, risk, cost, and lock-in. |
 | Change | `architecture-remediation-planner` | Convert an accepted decision into migration slices, protections, stop conditions, rollback, and acceptance criteria. |
 | Enforce | `architecture-quality-gate` | Apply deterministic contract, finding, change, and release policy to trusted artifacts. |
+
+`$hengmu` may also explain the read-only lifecycle state and the next valid
+focused workflow from existing artifacts. It does not verify findings, accept a
+decision, mutate policy, or run a Gate on the user's behalf.
+
+### Project-owned quality evidence
+
+Hengmu treats language linters and quality analyzers as optional Evidence
+Providers, not as architecture truth. The bundled catalog includes representative
+providers for Python, JavaScript/TypeScript, Rust, Go, Swift, and Kotlin/JVM in
+addition to architecture, contract, test, runtime, security, and supply-chain
+providers.
+
+Provider discovery distinguishes an applicable marker, project configuration,
+enablement, executable availability, and readiness. A missing executable remains
+an explicit unassessed evidence surface. Hengmu never downloads, installs, enables,
+or adds a dependency implicitly. If installation would materially improve the
+review, it first names the exact tool, scope, version strategy, command, affected
+files, and consequence, then asks for user authorization.
+
+A Provider pass proves only the captured command, executable, configuration,
+commit, and output bytes. It becomes architecture evidence only after it is bound
+to an applicable invariant and independently reviewed.
 
 Knowledge curation is deliberately maintainer-only. Its source workflow lives
 under `maintainer/skills/architecture-knowledge-curator/` and does not expand

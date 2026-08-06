@@ -33,6 +33,51 @@ Use the task-scoped Markdown entries selected from
 Knowledge entries do not override project evidence. A technology's capability
 does not prove project fit.
 
+## Emerging upgrades and replacements
+
+An emerging architecture or technology is an assessment hypothesis, not a
+recommendation. A decision may consider one only when it is grounded in a valid
+Remediation or Greenfield source context and the companion Markdown contains a
+complete evolution assessment packet. The packet must include:
+
+- a keep-current/local-correction baseline with current owner, observed
+  measures, and do-nothing consequence;
+- a measurable capability or quality gap with scenario, current value, target,
+  measurement method, evidence, and threshold;
+- current official evidence for every volatile claim: version, support or
+  lifecycle, compatibility, security, license, pricing, limits, roadmap, or
+  benchmark. Record publisher, URL, scope, review/access date, and freshness;
+- compatibility and migration cost for consumers, public or persisted
+  contracts, data, deployment, mixed-version operation, and exit;
+- operational and team fit, including accountable owner, required skills,
+  support/on-call, observability, failure semantics, security, and operating
+  cost;
+- lock-in, portability, rollback point, rollback data semantics, and the
+  irreversible gate;
+- bounded shadow or pilot evidence with success/stop criteria, observed
+  quality/cost/operational measures, and an evidence owner; and
+- explicit revisit triggers containing a measurable metric or event, threshold,
+  owner, review date or cadence, and reopening evidence.
+
+If a volatile claim lacks current official evidence, or an applicable
+shadow/pilot has not run, treat it as an unknown. Do not convert novelty,
+popularity, a vendor promise, a benchmark, or an official capability statement
+into project fit. The decision may select keep-current and revisit later; a
+bounded pilot is evidence collection, not adoption authority. Acceptance is a
+separate authorized lifecycle transition and is never implied by the advisor,
+the stable router, or a score.
+
+Mark this path with `decision.assessment_kind: technology-evolution`. Bind the
+project-relative companion Markdown path and exact SHA-256 in
+`evolution_assessment`, together with a `keep-current`, `evidence-only`, or
+`adopt` disposition and structured baseline, gap, volatile-claim,
+compatibility, operations, lock-in/exit, rollback, pilot, and revisit records.
+Bind every measurement, gap record, official-source capture, and observed pilot
+measure to a normalized project-relative file path and exact SHA-256. The
+validator rejects an upgrade or replacement adoption unless every volatile
+claim is current and the completed pilot contains bound observed measures.
+Existing standard decisions remain compatible and do not require this binding.
+
 ## Status and authority
 
 - `proposed`: advisor output awaiting authority;

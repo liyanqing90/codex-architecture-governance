@@ -1,7 +1,7 @@
 ---
 id: domain.ai-agent
 kind: domain
-version: 1.0.0
+version: 1.1.0
 status: active
 domains:
 - domain
@@ -11,7 +11,7 @@ quality_attributes: []
 related: []
 legacy_ids:
 - domain-guidance:ai-agent
-last_reviewed: '2026-07-28'
+last_reviewed: '2026-08-06'
 review_after_days: 90
 source_policy: stable-principles-plus-official-docs
 sources:
@@ -40,6 +40,34 @@ sources:
 - fixed workflow
 - single agent
 - and only then multi-agent.
+
+## Context and data discipline
+
+- Inventory every context source, its necessity, authority, scope, freshness,
+  sensitivity, transformation, retention, and disposal before treating it as
+  eligible for assembly.
+- Separate stable policy, contracts, and instructions from volatile user,
+  retrieval, task-state, and provider context. Keep ordering deterministic and
+  scope cache keys and invalidation to the same authorization and provenance
+  boundary.
+- Bound context budgets and compression so authority, provenance, and required
+  recency survive; otherwise fail closed and record what was lost.
+- Minimize sensitive and personal data independently at prompt, retrieval,
+  memory, and trace boundaries. Prefer scoped references or redacted fields to
+  copying raw content, and define retention and deletion for each surface.
+
+## Evidence and change decisions
+
+- Bind behavioral evidence to exact model/runtime, prompt, tool policy and
+  schema, retriever/index/ranking configuration, context treatment, evaluation
+  data, environment, timestamp, and hashes where available.
+- Compare adopt, retain, and reject decisions for upgrades against the current
+  baseline using concrete critical-flow scenarios and evidence for quality,
+  compatibility, security, operations, cost, ownership, rollout, and rollback.
+- Treat technology names as evidence labels, not architecture findings. State
+  the invariant, capability, critical flow, and failure or control path.
+- Keep candidate evidence separate from verification; do not turn a technology
+  comparison or an unbound benchmark into a verified conclusion.
 
 ## Fit when
 

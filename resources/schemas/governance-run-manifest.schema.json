@@ -74,6 +74,9 @@
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/knowledgeBinding"}
         },
+        "telemetry": {
+          "$ref": "#/$defs/telemetry"
+        },
         "tools_used": {
           "type": "array",
           "uniqueItems": true,
@@ -161,6 +164,88 @@
         "path": {"$ref": "#/$defs/relativePath"},
         "sha256": {"$ref": "#/$defs/sha256"}
       }
+    },
+    "telemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trust"],
+      "properties": {
+        "trust": {"const": "informational-only"},
+        "stages": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/telemetryStage"}
+        },
+        "input_tokens": {"$ref": "#/$defs/optionalNonNegativeInteger"},
+        "output_tokens": {"$ref": "#/$defs/optionalNonNegativeInteger"},
+        "tool_calls": {"$ref": "#/$defs/optionalNonNegativeInteger"},
+        "cache": {"$ref": "#/$defs/cacheTelemetry"},
+        "source": {"$ref": "#/$defs/sourceTelemetry"}
+      }
+    },
+    "telemetryStage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "duration_ms": {"$ref": "#/$defs/optionalNonNegativeNumber"},
+        "declared_context": {"$ref": "#/$defs/declaredContext"},
+        "input_tokens": {"$ref": "#/$defs/optionalNonNegativeInteger"},
+        "output_tokens": {"$ref": "#/$defs/optionalNonNegativeInteger"},
+        "cache": {"$ref": "#/$defs/cacheTelemetry"},
+        "tool_calls": {"$ref": "#/$defs/optionalNonNegativeInteger"},
+        "source": {"$ref": "#/$defs/sourceTelemetry"}
+      }
+    },
+    "declaredContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "characters": {"$ref": "#/$defs/optionalNonNegativeInteger"},
+        "sha256": {"$ref": "#/$defs/optionalSha256"},
+        "hashes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    },
+    "cacheTelemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "read": {"$ref": "#/$defs/optionalNonNegativeInteger"},
+        "write": {"$ref": "#/$defs/optionalNonNegativeInteger"},
+        "hit": {"type": ["boolean", "null"]}
+      }
+    },
+    "sourceTelemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/relativePath"}
+        },
+        "bytes": {"$ref": "#/$defs/optionalNonNegativeInteger"}
+      }
+    },
+    "optionalNonNegativeInteger": {
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "optionalNonNegativeNumber": {
+      "type": ["number", "null"],
+      "minimum": 0
+    },
+    "optionalSha256": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$"
     }
   }
 }

@@ -68,9 +68,21 @@ change_requirements:
   critical_paths:
     - .architecture/critical-flows.md
     - resources/scripts/architecture_tool.py
+    - resources/scripts/knowledge_model.py
+    - resources/scripts/select_knowledge.py
+    - resources/scripts/inspect_repository.py
+    - resources/scripts/validate_knowledge.py
+    - scripts/validate_repository.py
+    - skills/**
+    - resources/rules/**
   public_contract_paths:
     - resources/schemas/**
     - resources/templates/**
+    - resources/scripts/architecture_tool.py
+    - resources/scripts/select_knowledge.py
+    - skills/**
+    - resources/rules/**
+    - resources/references/**
     - .codex-plugin/plugin.json
   migration_paths:
     - docs/migrating-to-*.md
@@ -78,6 +90,13 @@ change_requirements:
   security_paths:
     - .github/workflows/**
     - resources/scripts/architecture_tool.py
+    - resources/scripts/knowledge_model.py
+    - resources/scripts/select_knowledge.py
+    - resources/scripts/inspect_repository.py
+    - scripts/package_plugin.py
+    - scripts/validate_repository.py
+    - resources/evidence-providers/**
+    - resources/rules/**
   require_fresh_review_on_critical_change: true
   require_decision_on_public_contract_change: true
   require_plan_on_migration_change: true

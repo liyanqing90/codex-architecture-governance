@@ -22,6 +22,9 @@
           "output": {"enum": ["exit-code", "json", "sarif", "junit", "text"]},
           "trust": {"enum": ["deterministic", "runtime-observation", "model-assisted"]},
           "documentation": {"type": "string", "format": "uri"},
+          "ecosystem": {"type": "string", "minLength": 1},
+          "category": {"type": "string", "minLength": 1},
+          "missing_tool_guidance": {"type": "string", "minLength": 1},
           "notes": {"type": "array", "items": {"type": "string", "minLength": 1}}
         }
       }

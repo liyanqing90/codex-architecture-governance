@@ -138,7 +138,31 @@ trigger/state → control or data path → owning boundary → violated invarian
 
 Counts and names may identify hotspots but do not prove a violation. “Could become a problem at scale” is an unknown unless the profile defines the scale requirement.
 
-## 6. Severity and confidence
+## 6. Context and execution observations
+
+Model context is progressively disclosed in this order:
+
+1. stable operational kernel;
+2. project-stable Profile, constraints, and critical flows;
+3. run-specific facts, Selection, and the validated compact Knowledge
+   projection; and
+4. on-demand source evidence.
+
+The compact projection may replace duplicated contract or Knowledge prose for
+orientation and routing. It never replaces the full Selection lock, entry
+hashes, repository facts, or source evidence. Read full source for any
+candidate-driving claim, ambiguity, volatile fact, or explicit trade-off that
+depends on source detail. Preserve the provenance artifact even when it is not
+loaded into model context.
+
+An optional governance-run `telemetry` object may record declared context
+characters and SHA-256 values per stage, input/output tokens, cache read/write
+and hit values when the model surface exposes them, tool-call counts, source
+paths and bytes, and stage durations. Missing observations are omitted or
+`null`, never coerced to zero. Telemetry is informational-only and is never
+Review evidence, Finding evidence, a quality conclusion, or Gate input.
+
+## 7. Severity and confidence
 
 Calibrate severity by actual impact:
 
@@ -157,7 +181,7 @@ Confidence is evidence confidence, not impact:
 
 Profile critical qualities may raise impact only when the finding affects a declared critical flow.
 
-## 7. Verification rules
+## 8. Verification rules
 
 For every candidate:
 
@@ -188,7 +212,7 @@ The gate verifies that signature against the policy's allowed-signers file.
 Policy `role_separation` rejects configured auditor/verifier and other
 authority overlaps; role membership is evaluated before findings can gate.
 
-## 8. Coverage and reporting
+## 9. Coverage and reporting
 
 For every applicable rule, record:
 
@@ -212,6 +236,12 @@ Validate artifacts using `../scripts/architecture_tool.py`.
 
 Use `review-diff --before <old> --after <new> --project <repo>` to compare
 finding and coverage evolution between trusted snapshots.
+
+For a `diff-aware` Gate, every path changed after the selected Review commit
+must remain inside that Review's `scope_manifest`. A change outside the bound
+scope is a policy failure, not a warning, even if an optional incremental
+execution plan was never generated. A prior Review may supply context for
+reassessment; it cannot silently cover paths that it excluded.
 
 Schema `1.0` remains readable for migration. Deterministic enforcement requires
 trusted `1.1` or `1.2` metadata, complete machine Rule Pack coverage, source

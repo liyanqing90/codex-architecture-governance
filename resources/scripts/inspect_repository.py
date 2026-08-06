@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import ast
 import configparser
+import hashlib
 import json
 import os
 import re
@@ -51,6 +52,23 @@ FACT_ROLES = {
     "generated",
     "vendor",
 }
+_SCHEMA_VALIDATOR_CACHE: dict[tuple[Path, str], Draft202012Validator] = {}
+
+
+def _schema_validator(name: str) -> Draft202012Validator:
+    path = SCHEMA_ROOT / name
+    content = path.read_bytes()
+    digest = hashlib.sha256(content).hexdigest()
+    cache_key = (path, digest)
+    cached = _SCHEMA_VALIDATOR_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    schema = json.loads(content.decode("utf-8"))
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    _SCHEMA_VALIDATOR_CACHE[cache_key] = validator
+    return validator
+
+
 LANGUAGE_SUFFIXES = {
     ".c": "c",
     ".cc": "cpp",
@@ -577,14 +595,8 @@ def inspect_repository(
             "deployments": _relative(root, deployments),
         },
     }
-    schema = json.loads(
-        (SCHEMA_ROOT / "repository-facts.schema.json").read_text(encoding="utf-8")
-    )
     errors = sorted(
-        Draft202012Validator(
-            schema,
-            format_checker=FormatChecker(),
-        ).iter_errors(result),
+        _schema_validator("repository-facts.schema.json").iter_errors(result),
         key=lambda error: tuple(str(item) for item in error.absolute_path),
     )
     if errors:

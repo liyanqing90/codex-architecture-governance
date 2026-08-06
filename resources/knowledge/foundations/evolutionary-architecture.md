@@ -28,6 +28,10 @@ sources:
 
 Evolve through compatible slices, executable fitness functions, observable checkpoints, and explicit contraction gates.
 
+Use evolution to test a measured capability or quality gap against the
+keep-current baseline. Do not treat an emerging technology, upgrade, or
+replacement as an architectural destination merely because it is new.
+
 ## Mechanism
 
 Apply the mechanism at its owning boundary, keep authority and contracts explicit, and bind the choice to measurable scenarios rather than technology presence.
@@ -42,7 +46,11 @@ A disposable prototype has no persisted or public contract and replacement is ch
 
 ## Required capabilities
 
-An accountable owner, explicit compatibility and failure semantics, proportional tests, observable outcomes, and an affordable operating model are required.
+An accountable owner, a measurable gap and fitness function, explicit
+compatibility and failure semantics, migration cost, current official evidence
+for volatile claims, a bounded shadow or pilot, rollback and exit evidence,
+explicit revisit triggers, proportional tests, observable outcomes, and an
+affordable operating model are required.
 
 ## Benefits
 
@@ -54,7 +62,10 @@ It adds implementation, migration, cognitive, and operational costs that must be
 
 ## Failure modes
 
-It fails when adopted from naming, popularity, or hypothetical scale without ownership, negative-path behavior, and acceptance evidence.
+It fails when adopted from naming, popularity, hypothetical scale, stale
+volatile claims, or an unmeasured promise without ownership, compatible
+coexistence, negative-path behavior, shadow/pilot evidence, rollback, and a
+contraction gate.
 
 ## Alternatives
 
@@ -62,15 +73,25 @@ Keep the current architecture with a local correction, or select the next simple
 
 ## Migration and exit
 
-Introduce the new behavior behind a compatible boundary, observe a bounded cohort, preserve rollback, and remove the old path only after consumers and data are verified.
+Keep the current implementation available while introducing a compatible
+boundary. Observe a bounded shadow or pilot cohort against explicit fitness
+functions, preserve rollback and data recovery, and remove the old path only
+after consumers, data, operating fit, and exit cost are verified.
 
 ## Evidence to inspect
 
-Inspect the product scenario, owning code and configuration, consumers, persisted contracts, tests, runtime evidence when applicable, team capability, and cost boundary.
+Inspect the product scenario, owning code and configuration, consumers,
+persisted contracts, tests, current official sources for volatile claims,
+runtime shadow/pilot evidence, team capability, migration/rollback path, and
+lock-in/exit cost boundary.
 
 ## Evidence that changes the recommendation
 
-A simpler option meeting the same measurable outcome, missing operational ownership, incompatible consumers, or contrary runtime evidence changes the recommendation.
+A simpler keep-current option meeting the same measurable outcome, missing
+operational ownership, incompatible consumers, unaffordable migration or exit,
+stale official evidence, an unsuccessful pilot, or contrary runtime evidence
+changes the recommendation. A valid evolution outcome is keep-current with a
+measurable revisit trigger.
 
 ## Quality trade-offs
 
@@ -78,4 +99,7 @@ Prioritize maintainability while explicitly recording effects on reliability, se
 
 ## Volatile facts
 
-Versions, support status, compatibility, security advisories, licensing, pricing, and service limits require current official confirmation; they are not timeless architecture facts.
+Versions, support status, compatibility, security advisories, licensing,
+pricing, service limits, roadmaps, and benchmarks require current official
+confirmation recorded with publisher, URL, scope, and review date; they are not
+timeless architecture facts or proof of project fit.

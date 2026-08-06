@@ -63,6 +63,7 @@ REQUIRED_FILES = (
     "docs/migrating-to-0.4.2.md",
     "docs/target-architecture.md",
     "docs/target-architecture-implementation.md",
+    "resources/templates/evolution-assessment.md",
     "evals/cases.yaml",
     "evals/artifact-validity.yaml",
     "evals/decision-quality.yaml",
@@ -178,13 +179,28 @@ TEXT_SUFFIXES = {
 }
 
 
+def reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key {key!r}")
+        result[key] = value
+    return result
+
+
 def load_json(path: Path, errors: list[str]) -> dict[str, Any] | None:
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(
+            path.read_text(encoding="utf-8"),
+            object_pairs_hook=reject_duplicate_json_keys,
+        )
     except FileNotFoundError:
         errors.append(f"missing JSON file: {path}")
         return None
     except json.JSONDecodeError as exc:
+        errors.append(f"invalid JSON in {path}: {exc}")
+        return None
+    except ValueError as exc:
         errors.append(f"invalid JSON in {path}: {exc}")
         return None
     if not isinstance(payload, dict):

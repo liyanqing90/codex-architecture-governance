@@ -49,7 +49,7 @@ planned as reversible slices, and proven complete with evidence.
 | Architecture styles and fit/avoid guidance | Ten Markdown/frontmatter packs contain 205 sourced entries spanning foundations, domains, decision guides, styles, patterns, technologies, references, migrations, anti-patterns, and case studies. The 128 YAML entries remain read-only compatibility data. |
 | Domain and stack depth | Nineteen core/domain Rule Packs cover project, AI agent, mobile, portfolio, frontend, backend, data, real-time, SaaS, identity, trading, IoT, search, media, test, plugin, local-first, desktop, and cloud-native boundaries. |
 | Organization knowledge | Repositories can version schema-validated packs under `.architecture/rules/`; duplicate/shadowing IDs and review-kind mismatches fail. |
-| AI Agent architecture | Dedicated Skill and Rule Pack cover agent/workflow boundaries, context, memory, retrieval provenance, tool authority, injection, side effects, recovery, routing, evaluation, cost, and human control. Knowledge catalogs include agent orchestration and RAG reference guidance. |
+| AI Agent architecture | Dedicated Skill and Rule Pack cover agent/workflow boundaries, context necessity and assembly, compression fidelity, stable ordering and cache boundaries, memory, retrieval provenance, tool authority, injection, privacy, side effects, recovery, routing, version-bound behavior evidence, cost, technology evolution, and human control. |
 | Mobile/client architecture | Dedicated Skill and Rule Pack cover server-first/cache/local-first decisions, local data, sync, conflicts, migrations, background work, notifications, privacy, and lifecycle. |
 | Portfolio/system-of-systems architecture | Dedicated Skill, portfolio registry/schema, shared capability catalog, technology catalog, dependency map, cross-repository commit bindings, and portfolio gate. |
 
@@ -67,10 +67,10 @@ planned as reversible slices, and proven complete with evidence.
 
 ## Deterministic evidence and gates
 
-Eleven Evidence Provider contracts cover ArchUnit, dependency-cruiser, Import
-Linter, Semgrep, CodeQL, OpenAPI diff, migration checks, test results,
-OpenTelemetry, Kubernetes manifests, and SBOMs. The adapter does not invoke a
-shell. It hashes the real executable and configuration, filters environment
+Seventeen Evidence Provider contracts cover architecture, code-quality,
+contract, test, runtime, security, and supply-chain evidence, including Ruff,
+ESLint, Clippy, golangci-lint, SwiftLint, and Detekt. The adapter does not invoke
+a shell. It hashes the real executable and configuration, filters environment
 variables, enforces timeout/exit policy, captures outputs, and validates JSON,
 SARIF 2.1.0, or JUnit before recording a pass.
 
@@ -90,6 +90,11 @@ job summary, and updatable pull-request comment. `review-diff` compares finding
 and coverage evolution. The scheduled freshness workflow validates knowledge
 and opens or updates a maintenance issue rather than silently rewriting
 decision knowledge.
+
+Language-specific quality checks remain optional, project-owned Evidence
+Providers. Catalog detection or executable availability never authorizes
+installation or establishes an architecture pass; missing tools remain explicit
+coverage gaps until the user approves a pinned project or toolchain change.
 
 ## Evaluation and open-source assurance
 

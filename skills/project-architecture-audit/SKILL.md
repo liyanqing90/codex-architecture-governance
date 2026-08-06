@@ -24,9 +24,32 @@ mode, write no repository artifacts, do not run a Gate, and label conclusions
 as observations or candidates in the response. State the write constraint; do
 not cite a missing `.architecture/` directory as the reason.
 
+## Context execution and progressive disclosure
+
+Use model context in this order, and do not advance a later stage merely because
+its files are available:
+
+1. **Stable operational kernel** — this Skill's workflow, the validated artifact
+   invariants below, and the smallest relevant contract sections.
+2. **Project-stable context** — the prepared Profile, constraints, critical
+   flows, and repository-local policy.
+3. **Run-specific context** — the current repository facts, Profile snapshot,
+   selected lock metadata, and its validated compact context sidecar. Retain
+   the full Knowledge Selection lock as an artifact; expose only its hash and
+   the selected bindings unless a validation or ambiguity requires more.
+4. **On-demand source evidence** — source, configuration, tests, history, and
+   full Knowledge Markdown only when a candidate-driving claim, ambiguity,
+   volatile fact, or explicit trade-off requires it.
+
+The compact context sidecar is a validated projection, not a new source of
+truth. Keep the full Selection, facts, Profile, and source hashes in the run
+artifacts even when they are not loaded into model context. If execution
+telemetry is recorded, bind it to the stage and artifact hashes, but never use
+telemetry as Review or Gate evidence.
+
 ## Load the contract
 
-Read these files completely before auditing:
+Use these files as the contract source of truth:
 
 - `../../resources/references/review-contract.md`
 - `../../resources/references/knowledge-contract.md`
@@ -122,12 +145,15 @@ python3 ../../resources/scripts/architecture_tool.py validate-knowledge-context 
   --profile <repo>/.architecture/reviews/inputs/<run-id>-profile.yaml
 ```
 
-Read `knowledge-context.yaml` only after validation succeeds, then read every
-Markdown path it selects
-completely. Do not load the full `knowledge-selection.yaml` exclusion ledger
-into model context; that lock is for scripts, Reviews, and Gates. Do not load
-the full knowledge tree. Treat repository facts as observations, never as risk
-conclusions.
+Read `knowledge-context.yaml` only after validation succeeds. Treat its
+`selected` array as the compact Knowledge projection and do not load selected
+Markdown entries by default. Do not load the full `knowledge-selection.yaml`
+exclusion ledger into model context; that lock is for scripts, Reviews, and
+Gates. Open a selected Markdown path only after checking its recorded SHA-256,
+and only when the source is needed for a candidate-driving claim, an ambiguity,
+a volatile fact, or a detailed trade-off. Read that full source entry when the
+claim depends on it. Do not load the full knowledge tree. Treat repository
+facts as observations, never as risk conclusions.
 
 ### 2. Establish scope and provenance
 
@@ -135,6 +161,27 @@ conclusions.
 - Inventory only source-of-truth inputs relevant to architecture: product and architecture documents, source, migrations, schemas, API or event definitions, deployment configuration, tests, and CI.
 - Record missing or inaccessible evidence as `not_assessed`; never turn absence of inspection into a pass.
 - Redact secrets and personal data from excerpts.
+
+For a repeat audit on a clean, committed tree, use a prior verified Review only
+to plan investigation. Generate a deterministic plan from the Git diff and the
+project's Gate policy:
+
+```bash
+python3 ../../resources/scripts/architecture_tool.py plan-review-execution \
+  --project <repo> \
+  --review <repo>/.architecture/reviews/<prior-verified-review>.yaml \
+  --base-commit <prior-reviewed-commit> \
+  --scope .
+```
+
+The command derives changed paths and critical, security, public-contract, and
+migration impact; callers do not declare those results. Treat prior coverage as
+context only and explicitly reassess every listed rule and critical flow. If
+the tree is dirty, ancestry or hashes do not close, or scope exclusions remain,
+fall back to the full audit path.
+The `diff-aware` Gate independently rejects any changed path outside the
+selected Review's `scope_manifest`; the informational plan cannot be bypassed
+to turn an excluded path into a pass.
 
 ### 3. Build an architecture evidence map
 

@@ -2,7 +2,7 @@ schema_version: "1.1"
 providers:
   - id: archunit
     enabled: false
-    command: ["./mvnw", "test", "-Dtest=*ArchitectureTest"]
+    command: ["mvn", "--offline", "test", "-Dtest=*ArchitectureTest"]
     timeout_seconds: 600
     success_exit_codes: [0]
     allow_without_detection: false
@@ -10,7 +10,7 @@ providers:
     output_source: stdout
   - id: dependency-cruiser
     enabled: false
-    command: ["npx", "depcruise", "--output-type", "json", "src"]
+    command: ["./node_modules/.bin/depcruise", "--output-type", "json", "src"]
     timeout_seconds: 300
     success_exit_codes: [0]
     allow_without_detection: false
@@ -89,4 +89,52 @@ providers:
     success_exit_codes: [0]
     allow_without_detection: false
     environment_allowlist: [PATH, LANG, LC_ALL]
+    output_source: stdout
+  - id: ruff
+    enabled: false
+    command: ["ruff", "check", "."]
+    timeout_seconds: 300
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL, VIRTUAL_ENV]
+    output_source: stdout
+  - id: eslint
+    enabled: false
+    command: ["./node_modules/.bin/eslint", "."]
+    timeout_seconds: 300
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL, NODE_PATH]
+    output_source: stdout
+  - id: clippy
+    enabled: false
+    command: ["cargo", "clippy", "--offline", "--all-targets", "--all-features", "--", "-D", "warnings"]
+    timeout_seconds: 1200
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL, CARGO_HOME, RUSTUP_HOME]
+    output_source: stdout
+  - id: golangci-lint
+    enabled: false
+    command: ["golangci-lint", "run"]
+    timeout_seconds: 600
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL, GOPATH, GOMODCACHE]
+    output_source: stdout
+  - id: swiftlint
+    enabled: false
+    command: ["swiftlint", "lint", "--strict"]
+    timeout_seconds: 600
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL, HOME]
+    output_source: stdout
+  - id: detekt
+    enabled: false
+    command: ["gradle", "--offline", "detekt"]
+    timeout_seconds: 1200
+    success_exit_codes: [0]
+    allow_without_detection: false
+    environment_allowlist: [PATH, LANG, LC_ALL, JAVA_HOME, GRADLE_USER_HOME]
     output_source: stdout

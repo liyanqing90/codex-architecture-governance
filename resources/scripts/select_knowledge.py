@@ -156,6 +156,19 @@ DEFAULT_KIND_BUDGETS = {
 }
 SELECTION_CONTRACT_VERSION = "1.1"
 SELECTION_POLICY_VERSION = "1.0"
+KNOWLEDGE_CONTEXT_SCHEMA_VERSION = "1.1"
+KNOWLEDGE_CONTEXT_DISCLOSURE_ORDER = [
+    "operational-kernel",
+    "project-context",
+    "run-context",
+    "source-evidence",
+]
+KNOWLEDGE_CONTEXT_FULL_SOURCE_REQUIRED_FOR = [
+    "candidate-driving-claim",
+    "ambiguity",
+    "volatile-fact",
+    "explicit-source-review",
+]
 DECISION_INTENT_ENTRIES = {
     "data-authority-topology": ("decision.local-first-vs-server-first",),
     "plugin-runtime-topology": (
@@ -293,12 +306,20 @@ def knowledge_context(
     selection_lock_sha256: str,
 ) -> dict[str, Any]:
     context = {
-        "schema_version": "1.0",
+        "schema_version": KNOWLEDGE_CONTEXT_SCHEMA_VERSION,
         "selection_lock_sha256": selection_lock_sha256,
         "selection_result_sha256": selection.get(
             "result_sha256",
             selection_result_sha256(selection),
         ),
+        "disclosure": {
+            "order": list(KNOWLEDGE_CONTEXT_DISCLOSURE_ORDER),
+            "knowledge_mode": "validated-compact-projection",
+            "source_binding": "selection-entry-sha256",
+            "full_source_required_for": list(
+                KNOWLEDGE_CONTEXT_FULL_SOURCE_REQUIRED_FOR
+            ),
+        },
         "selected": [
             {
                 "id": item["id"],

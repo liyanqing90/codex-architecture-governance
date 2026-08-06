@@ -35,6 +35,13 @@ The 0.3 evaluation sets have separate responsibilities:
 | `false-positive.yaml` | Leads are not promoted without an invariant and failure path |
 | `artifact-validity.yaml` | Hash, fingerprint, coverage, and migration tampering fails |
 
+Context execution checks also verify that the compact Knowledge sidecar is an
+exact ordered projection bound to the full Selection lock, that progressive
+disclosure starts with the stable operational kernel, and that source Markdown
+is required for candidate-driving claims or ambiguity. The full Selection and
+source hashes remain reproducibility inputs even when they are omitted from
+model-visible context.
+
 For each case:
 
 1. start a clean Codex task;
@@ -175,13 +182,19 @@ Replace `full` in the condition and output path with `base` and `compressed`,
 then score each run independently. Compare precision, recall, evidence
 validity, recommendation accuracy, over-design, trade-off and Knowledge
 coverage, duration, stability, and any telemetry the surface actually emits.
+When recording a governance-run manifest, telemetry may include declared
+context characters and hashes by stage, input/output tokens, cache
+read/write/hit values, tool calls, source paths/bytes, and stage durations.
+These fields are optional and informational; unavailable values stay absent or
+`null`, never zero by assumption, and never become Gate evidence.
 
 Every 1.5 run also contains `context_budget`, a reproducible **declared-input
 proxy**. It records corpus-union Unicode code points for Skill metadata/body,
 References, Knowledge, and tool descriptions, plus fixture-tree bytes and
 source hashes. It is not real token usage, a cost estimate, a per-trial value,
-or proof that the model consumed all listed context. Do not state a context or
-cost improvement until an actual A/B/C run has been preserved and scored.
+or proof that the model consumed all listed context. It is distinct from
+runtime telemetry. Do not state a context or cost improvement until an actual
+A/B/C run has been preserved and scored.
 
 The bundled Codex adapter constrains Finding IDs to the bundled machine Rule
 Packs and solution trade-offs to a documented atomic vocabulary. It performs

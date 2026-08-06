@@ -15,6 +15,9 @@ run:
   selected_knowledge: []
   tools_used: []
   artifacts_written: []
+  telemetry:
+    trust: informational-only
+    stages: []
   stop_reason: completed
   authorization_boundary:
     kind: user-request

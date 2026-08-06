@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "run", "result"],
   "properties": {
-    "schema_version": {"const": "1.0"},
+    "schema_version": {"enum": ["1.0", "1.1"]},
     "run": {
       "type": "object",
       "additionalProperties": false,
@@ -67,6 +67,11 @@
           "pattern": "^[a-fA-F0-9]{40,64}$"
         },
         "dirty_tree": {"type": "boolean"},
+        "completed_commit": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{40,64}$"
+        },
+        "dirty_tree_after": {"type": "boolean"},
         "started_at": {"type": "string", "format": "date-time"},
         "completed_at": {"type": "string", "format": "date-time"},
         "command": {
@@ -132,6 +137,23 @@
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.1"}
+        },
+        "required": ["schema_version"]
+      },
+      "then": {
+        "properties": {
+          "run": {
+            "required": ["completed_commit", "dirty_tree_after"]
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "output": {
       "type": "object",

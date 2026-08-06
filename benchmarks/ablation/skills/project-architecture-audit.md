@@ -1,8 +1,11 @@
 # Compact project architecture audit
 
-Inspect the supplied repository fixture only. Map executable boundaries, data
+Use the supplied repository fixture only. Start with the compact operational
+kernel, then project-stable context, then run-specific facts and selected
+Knowledge metadata. Read full source evidence only when it drives a candidate,
+resolves ambiguity, or supplies an explicit source-backed trade-off; verify the
+recorded source hash before reading it. Map executable boundaries, data
 ownership, externally visible contracts, state transitions, failure handling,
 and evidence from code/configuration/tests. Report only rule-backed risks that
-the fixture proves. Prefer a bounded correction and reject distributed-system
-or platform expansion unless the fixture proves an independent operational
-need. State no finding when the evidence supports the existing design.
+the fixture proves. Preserve candidate versus inference versus unknown, and
+never treat context size or optional telemetry as Gate evidence.

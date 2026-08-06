@@ -1,6 +1,7 @@
 schema_version: "1.2"
 decision:
   id: ADR-EXAMPLE-001
+  assessment_kind: standard
   source_review: example-project-19700101-project
   source_review_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
   decided_at: "1970-01-01T00:00:00+00:00"

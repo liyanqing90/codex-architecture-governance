@@ -2,6 +2,32 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local.architecture/schemas/architecture-decision.schema.json",
   "title": "Architecture solution decision",
+  "$defs": {
+    "fileEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "description"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "description": {"type": "string", "minLength": 8}
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "value", "method", "evidence"],
+      "properties": {
+        "metric": {"type": "string", "minLength": 3},
+        "value": {"type": "string", "minLength": 1},
+        "method": {"type": "string", "minLength": 8},
+        "evidence": {"$ref": "#/$defs/fileEvidence"}
+      }
+    }
+  },
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "decision", "problem", "knowledge_snapshot", "options", "selected_option", "rationale", "revisit_triggers"],
@@ -28,6 +54,9 @@
         },
         "decision_kind": {
           "enum": ["remediation", "greenfield"]
+        },
+        "assessment_kind": {
+          "enum": ["standard", "technology-evolution"]
         },
         "source_context": {
           "type": "string",
@@ -342,6 +371,252 @@
         }
       }
     },
+    "evolution_assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "disposition",
+        "baseline",
+        "gap",
+        "volatile_claims",
+        "compatibility",
+        "operations",
+        "lock_in_exit",
+        "rollback",
+        "pilot",
+        "revisit_triggers"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 4
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "disposition": {
+          "enum": ["keep-current", "evidence-only", "adopt"]
+        },
+        "baseline": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "owner",
+            "local_correction",
+            "do_nothing_consequence",
+            "measures"
+          ],
+          "properties": {
+            "owner": {"type": "string", "minLength": 3},
+            "local_correction": {"type": "string", "minLength": 8},
+            "do_nothing_consequence": {"type": "string", "minLength": 8},
+            "measures": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"$ref": "#/$defs/measurement"}
+            }
+          }
+        },
+        "gap": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scenario",
+            "current_value",
+            "target",
+            "measurement_method",
+            "threshold",
+            "evidence"
+          ],
+          "properties": {
+            "scenario": {"type": "string", "minLength": 8},
+            "current_value": {"type": "string", "minLength": 1},
+            "target": {"type": "string", "minLength": 1},
+            "measurement_method": {"type": "string", "minLength": 8},
+            "threshold": {"type": "string", "minLength": 3},
+            "evidence": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"$ref": "#/$defs/fileEvidence"}
+            }
+          }
+        },
+        "volatile_claims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "claim",
+              "publisher",
+              "url",
+              "scope",
+              "accessed_on",
+              "freshness",
+              "capture"
+            ],
+            "properties": {
+              "claim": {"type": "string", "minLength": 8},
+              "publisher": {"type": "string", "minLength": 3},
+              "url": {"type": "string", "format": "uri"},
+              "scope": {"type": "string", "minLength": 8},
+              "accessed_on": {"type": "string", "format": "date"},
+              "freshness": {"enum": ["current", "stale", "unknown"]},
+              "capture": {"$ref": "#/$defs/fileEvidence"}
+            }
+          }
+        },
+        "compatibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "consumers",
+            "contracts",
+            "mixed_version_behavior",
+            "migration_steps",
+            "duration",
+            "cost"
+          ],
+          "properties": {
+            "consumers": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "minLength": 3}
+            },
+            "contracts": {
+              "type": "array",
+              "items": {"type": "string", "minLength": 3}
+            },
+            "mixed_version_behavior": {"type": "string", "minLength": 8},
+            "migration_steps": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "minLength": 8}
+            },
+            "duration": {"type": "string", "minLength": 3},
+            "cost": {"type": "string", "minLength": 3}
+          }
+        },
+        "operations": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "owner",
+            "required_skills",
+            "support_model",
+            "observability",
+            "failure_semantics",
+            "security",
+            "operating_cost"
+          ],
+          "properties": {
+            "owner": {"type": "string", "minLength": 3},
+            "required_skills": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "minLength": 3}
+            },
+            "support_model": {"type": "string", "minLength": 8},
+            "observability": {"type": "string", "minLength": 8},
+            "failure_semantics": {"type": "string", "minLength": 8},
+            "security": {"type": "string", "minLength": 8},
+            "operating_cost": {"type": "string", "minLength": 3}
+          }
+        },
+        "lock_in_exit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "proprietary_surfaces",
+            "portability",
+            "exit_cost",
+            "data_recovery"
+          ],
+          "properties": {
+            "proprietary_surfaces": {
+              "type": "array",
+              "items": {"type": "string", "minLength": 3}
+            },
+            "portability": {"type": "string", "minLength": 8},
+            "exit_cost": {"type": "string", "minLength": 3},
+            "data_recovery": {"type": "string", "minLength": 8}
+          }
+        },
+        "rollback": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rollback_point",
+            "irreversible_gate",
+            "validation",
+            "compatible_state"
+          ],
+          "properties": {
+            "rollback_point": {"type": "string", "minLength": 8},
+            "irreversible_gate": {"type": "string", "minLength": 8},
+            "validation": {"type": "string", "minLength": 8},
+            "compatible_state": {"type": "string", "minLength": 8}
+          }
+        },
+        "pilot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "owner",
+            "cohort",
+            "success_criteria",
+            "stop_criteria",
+            "observed_measures"
+          ],
+          "properties": {
+            "status": {"enum": ["completed", "not-applicable", "not-run"]},
+            "owner": {"type": "string", "minLength": 3},
+            "cohort": {"type": "string", "minLength": 8},
+            "success_criteria": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "minLength": 8}
+            },
+            "stop_criteria": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "minLength": 8}
+            },
+            "observed_measures": {
+              "type": "array",
+              "items": {"$ref": "#/$defs/measurement"}
+            }
+          }
+        },
+        "revisit_triggers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "metric_or_event",
+              "threshold",
+              "owner",
+              "review_on",
+              "reopening_evidence"
+            ],
+            "properties": {
+              "metric_or_event": {"type": "string", "minLength": 3},
+              "threshold": {"type": "string", "minLength": 3},
+              "owner": {"type": "string", "minLength": 3},
+              "review_on": {"type": "string", "format": "date"},
+              "reopening_evidence": {"type": "string", "minLength": 8}
+            }
+          }
+        }
+      }
+    },
     "migration": {
       "type": "object",
       "additionalProperties": false,
@@ -380,6 +655,22 @@
     }
   },
   "allOf": [
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "properties": {
+              "assessment_kind": {"const": "technology-evolution"}
+            },
+            "required": ["assessment_kind"]
+          }
+        },
+        "required": ["decision"]
+      },
+      "then": {
+        "required": ["evolution_assessment"]
+      }
+    },
     {
       "if": {
         "properties": {

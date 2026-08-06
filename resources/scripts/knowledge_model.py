@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import re
@@ -14,6 +15,13 @@ from typing import Any
 
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
+
+_KNOWLEDGE_TREE_CACHE: dict[
+    tuple[Path, Path, str, str],
+    tuple[dict[str, Any], dict[str, KnowledgeEntry]],
+] = {}
+_SCHEMA_CACHE: dict[tuple[Path, str], dict[str, Any]] = {}
+_SCHEMA_VALIDATOR_CACHE: dict[tuple[Path, str], Draft202012Validator] = {}
 
 SEMVER_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 REQUIRED_SECTIONS = (
@@ -70,14 +78,82 @@ class KnowledgeEntry:
 
 def _load_json(path: Path) -> dict[str, Any]:
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
+        content = path.read_bytes()
     except FileNotFoundError as exc:
         raise KnowledgeError(f"Missing schema: {path}") from exc
+    digest = hashlib.sha256(content).hexdigest()
+    cache_key = (path, digest)
+    cached = _SCHEMA_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        value = json.loads(content.decode("utf-8"))
     except json.JSONDecodeError as exc:
         raise KnowledgeError(f"Invalid JSON schema {path}: {exc}") from exc
     if not isinstance(value, dict):
         raise KnowledgeError(f"Expected object schema in {path}")
+    _SCHEMA_CACHE[cache_key] = value
     return value
+
+
+def _content_fingerprint(records: list[tuple[str, bytes]]) -> str:
+    digest = hashlib.sha256()
+    for name, content in records:
+        encoded_name = name.encode("utf-8")
+        digest.update(len(encoded_name).to_bytes(8, "big"))
+        digest.update(encoded_name)
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    return digest.hexdigest()
+
+
+def _knowledge_input_fingerprint(
+    knowledge_root: Path,
+    schema_root: Path,
+) -> str | None:
+    """Hash every byte that contributes to a Markdown tree validation.
+
+    The directory is intentionally scanned on every call.  A process-local
+    cache must notice edits, additions, removals, and schema changes made
+    after an earlier validation; filesystem timestamps are not sufficient for
+    that trust boundary.
+    """
+    manifest_path = knowledge_root / "manifest.yaml"
+    try:
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = yaml.safe_load(manifest_bytes.decode("utf-8"))
+        if not isinstance(manifest, dict) or not isinstance(
+            manifest.get("packs"), list
+        ):
+            return None
+        records: list[tuple[str, bytes]] = [
+            ("manifest.yaml", manifest_bytes),
+        ]
+        for schema_name in (
+            "knowledge-manifest.schema.json",
+            "knowledge-entry.schema.json",
+        ):
+            schema_path = schema_root / schema_name
+            records.append((f"schema/{schema_name}", schema_path.read_bytes()))
+        for pack in manifest["packs"]:
+            if not isinstance(pack, dict) or not isinstance(pack.get("path"), str):
+                return None
+            pack_root = (knowledge_root / pack["path"]).resolve()
+            try:
+                pack_root.relative_to(knowledge_root)
+            except ValueError:
+                return None
+            paths = sorted(pack_root.rglob("*.md")) if pack_root.is_dir() else []
+            for path in paths:
+                records.append(
+                    (
+                        path.relative_to(knowledge_root).as_posix(),
+                        path.read_bytes(),
+                    )
+                )
+    except (OSError, UnicodeDecodeError, yaml.YAMLError):
+        return None
+    return _content_fingerprint(records)
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -97,8 +173,20 @@ def _validate_schema(
     schema_path: Path,
     source: Path,
 ) -> None:
-    schema = _load_json(schema_path)
-    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    try:
+        schema_content = schema_path.read_bytes()
+    except FileNotFoundError as exc:
+        raise KnowledgeError(f"Missing schema: {schema_path}") from exc
+    schema_digest = hashlib.sha256(schema_content).hexdigest()
+    cache_key = (schema_path, schema_digest)
+    validator = _SCHEMA_VALIDATOR_CACHE.get(cache_key)
+    if validator is None:
+        schema = _load_json(schema_path)
+        validator = Draft202012Validator(
+            schema,
+            format_checker=FormatChecker(),
+        )
+        _SCHEMA_VALIDATOR_CACHE[cache_key] = validator
     errors = sorted(
         validator.iter_errors(value),
         key=lambda error: tuple(str(item) for item in error.absolute_path),
@@ -275,6 +363,16 @@ def validate_knowledge_tree(
     knowledge_root = knowledge_root.resolve()
     schema_root = schema_root.resolve()
     evaluation_date = today or datetime.now(UTC).date()
+    input_sha256 = _knowledge_input_fingerprint(knowledge_root, schema_root)
+    cache_key = (
+        knowledge_root,
+        schema_root,
+        evaluation_date.isoformat(),
+        input_sha256 or "<unreadable-input>",
+    )
+    cached = _KNOWLEDGE_TREE_CACHE.get(cache_key)
+    if cached is not None:
+        return copy.deepcopy(cached)
     manifest_path = knowledge_root / "manifest.yaml"
     manifest = _load_yaml(manifest_path)
     _validate_schema(
@@ -356,7 +454,10 @@ def validate_knowledge_tree(
                 )
     manifest["_validated_counts"] = counts
     manifest["_validated_at"] = evaluation_date.isoformat()
-    return manifest, entries
+    result = (manifest, entries)
+    if input_sha256 is not None:
+        _KNOWLEDGE_TREE_CACHE[cache_key] = copy.deepcopy(result)
+    return result
 
 
 def knowledge_snapshot(entries: list[KnowledgeEntry]) -> list[dict[str, str]]:

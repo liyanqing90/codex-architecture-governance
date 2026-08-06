@@ -78,10 +78,53 @@ REVIEW_WORKFLOW_KIND = {
     "mobile-architecture": "mobile",
     "portfolio-architecture": "portfolio",
 }
+EVOLUTION_ASSESSMENT_HEADINGS = (
+    "Current baseline",
+    "Measurable gap",
+    "Volatile claims",
+    "Compatibility and migration",
+    "Operational and team fit",
+    "Lock-in and exit",
+    "Rollback",
+    "Shadow or pilot evidence",
+    "Revisit triggers",
+)
+SHELL_INTERPRETERS = frozenset(
+    {
+        "ash",
+        "bash",
+        "csh",
+        "cmd",
+        "cmd.exe",
+        "dash",
+        "elvish",
+        "fish",
+        "ksh",
+        "ksh93",
+        "mksh",
+        "nu",
+        "oil",
+        "osh",
+        "pdksh",
+        "powershell",
+        "powershell.exe",
+        "pwsh",
+        "pwsh.exe",
+        "sh",
+        "tcsh",
+        "xonsh",
+        "ysh",
+        "zsh",
+    }
+)
 
 
 class ArchitectureError(RuntimeError):
     """User-facing input or contract error."""
+
+
+_SCHEMA_CACHE: dict[tuple[Path, str], dict[str, Any]] = {}
+_SCHEMA_VALIDATOR_CACHE: dict[tuple[Path, str], Draft202012Validator] = {}
 
 
 def highest_verification_level(*levels: str) -> str:
@@ -174,11 +217,22 @@ def finding_fingerprint(subject_id: str, finding: dict[str, Any]) -> str:
 def load_schema(name: str) -> dict[str, Any]:
     path = SCHEMA_ROOT / name
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        content = path.read_bytes()
     except FileNotFoundError as exc:
         raise ArchitectureError(f"Missing bundled schema: {path}") from exc
+    digest = sha256_bytes(content)
+    cache_key = (path, digest)
+    cached = _SCHEMA_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        schema = json.loads(content.decode("utf-8"))
     except json.JSONDecodeError as exc:
         raise ArchitectureError(f"Invalid bundled schema {path}: {exc}") from exc
+    if not isinstance(schema, dict):
+        raise ArchitectureError(f"Invalid bundled schema {path}: expected object")
+    _SCHEMA_CACHE[cache_key] = schema
+    return schema
 
 
 def format_validation_path(parts: Any) -> str:
@@ -196,10 +250,19 @@ def validate_data(
     schema_name: str,
     source: Path,
 ) -> None:
-    validator = Draft202012Validator(
-        load_schema(schema_name),
-        format_checker=FormatChecker(),
-    )
+    schema_path = SCHEMA_ROOT / schema_name
+    try:
+        schema_digest = sha256_bytes(schema_path.read_bytes())
+    except FileNotFoundError as exc:
+        raise ArchitectureError(f"Missing bundled schema: {schema_path}") from exc
+    cache_key = (schema_path, schema_digest)
+    validator = _SCHEMA_VALIDATOR_CACHE.get(cache_key)
+    if validator is None:
+        validator = Draft202012Validator(
+            load_schema(schema_name),
+            format_checker=FormatChecker(),
+        )
+        _SCHEMA_VALIDATOR_CACHE[cache_key] = validator
     errors = sorted(validator.iter_errors(data), key=lambda item: list(item.path))
     if errors:
         messages = [
@@ -904,6 +967,76 @@ def load_evidence_provider_catalog() -> tuple[Path, dict[str, dict[str, Any]]]:
     return path, providers
 
 
+def validate_provider_command_safety(command: list[str], source: Path) -> None:
+    executable = Path(command[0]).name.lower()
+    arguments = [item.lower() for item in command[1:]]
+    forbidden_wrappers = SHELL_INTERPRETERS | {
+        "bunx",
+        "corepack",
+        "env",
+        "npx",
+        "uvx",
+        "gradlew",
+        "mvnw",
+        "xargs",
+    }
+    script_suffix = Path(executable).suffix.lower()
+    if (
+        executable in forbidden_wrappers
+        or script_suffix.endswith("sh")
+        or script_suffix in {".bat", ".cmd", ".nu", ".oil", ".ps1"}
+        or "\\" in command[0]
+    ):
+        raise ArchitectureError(
+            f"{source} evidence provider command uses forbidden package or shell "
+            f"runner {command[0]}"
+        )
+
+    package_actions = {
+        "apt": {"install"},
+        "apt-get": {"install"},
+        "brew": {"install"},
+        "bun": {"add", "install", "x"},
+        "cargo": {"install"},
+        "dnf": {"install"},
+        "gem": {"install"},
+        "go": {"install"},
+        "npm": {"add", "exec", "i", "install"},
+        "pip": {"install"},
+        "pip3": {"install"},
+        "pnpm": {"add", "dlx", "exec", "i", "install"},
+        "yarn": {"add", "dlx", "install"},
+        "yum": {"install"},
+    }
+    if executable in package_actions and set(arguments) & package_actions[executable]:
+        raise ArchitectureError(
+            f"{source} evidence provider command may install or download tools: "
+            + " ".join(command)
+        )
+    offline_tools = {
+        "cargo": {"--offline"},
+        "gradle": {"--offline"},
+        "gradle.exe": {"--offline"},
+        "mvn": {"--offline", "-o"},
+        "mvn.cmd": {"--offline", "-o"},
+    }
+    if executable in offline_tools and not set(arguments) & offline_tools[executable]:
+        raise ArchitectureError(
+            f"{source} evidence provider command must use offline mode: "
+            + " ".join(command)
+        )
+    if (
+        executable in {"python", "python3", "py"}
+        and len(arguments) >= 3
+        and arguments[0:2] == ["-m", "pip"]
+        and "install" in arguments[2:]
+    ):
+        raise ArchitectureError(
+            f"{source} evidence provider command may install tools: "
+            + " ".join(command)
+        )
+
+
 def validate_evidence_provider_config(
     path: Path,
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
@@ -913,17 +1046,13 @@ def validate_evidence_provider_config(
         provider_id = provider["id"]
         if provider_id in configured:
             raise ArchitectureError(f"{path} has duplicate provider ID {provider_id}")
+        validate_provider_command_safety(provider["command"], path)
         configured[provider_id] = provider
     _, bundled = load_evidence_provider_catalog()
     unknown = sorted(set(configured) - set(bundled))
-    missing = sorted(set(bundled) - set(configured))
     if unknown:
         raise ArchitectureError(
             f"{path} configures unknown providers: " + ", ".join(unknown)
-        )
-    if missing:
-        raise ArchitectureError(
-            f"{path} omits bundled providers: " + ", ".join(missing)
         )
     return data, configured
 
@@ -949,25 +1078,53 @@ def evidence_provider_status(project_root: Path) -> list[dict[str, Any]]:
     )
     result: list[dict[str, Any]] = []
     for provider_id, provider in providers.items():
-        config = configured[provider_id]
-        try:
-            executable = str(resolve_provider_executable(root, config["command"][0]))
-        except ArchitectureError:
-            executable = None
+        config = configured.get(provider_id)
+        detected = provider_detect_matches(root, provider)
+        executable: str | None = None
+        executable_available = False
+        if config is not None:
+            try:
+                executable = str(
+                    resolve_provider_executable(root, config["command"][0])
+                )
+                executable_available = True
+            except ArchitectureError:
+                pass
+        if config is None:
+            readiness_reason = "not configured"
+        elif not config["enabled"]:
+            readiness_reason = "configured but disabled"
+        elif not executable_available:
+            readiness_reason = "configured and enabled, but executable is unavailable"
+        elif not detected and not config["allow_without_detection"]:
+            readiness_reason = (
+                "configured and enabled, but no project marker was detected"
+            )
+        else:
+            readiness_reason = "ready"
+        command = " ".join(provider["command"])
+        missing_tool_guidance = (
+            provider.get("missing_tool_guidance")
+            or (
+                f"Catalog command '{command}' is unavailable; install or configure it "
+                "outside this runtime, then explicitly configure and enable "
+                "the provider."
+            )
+            if not executable_available
+            else "Catalog tool is available; this runtime never installs providers."
+        )
         result.append(
             {
                 "id": provider_id,
-                "enabled": config["enabled"],
-                "detected": provider_detect_matches(root, provider),
+                "configured": config is not None,
+                "configuration_status": "configured" if config else "unconfigured",
+                "enabled": config["enabled"] if config else False,
+                "detected": detected,
                 "executable": executable,
-                "ready": bool(
-                    config["enabled"]
-                    and executable
-                    and (
-                        provider_detect_matches(root, provider)
-                        or config["allow_without_detection"]
-                    )
-                ),
+                "executable_available": executable_available,
+                "ready": readiness_reason == "ready",
+                "readiness_reason": readiness_reason,
+                "missing_tool_guidance": missing_tool_guidance,
             }
         )
     return result
@@ -1048,6 +1205,22 @@ def resolve_provider_executable(root: Path, command: str) -> Path:
         raise ArchitectureError(
             f"Evidence provider executable is unavailable: {command}"
         )
+    try:
+        first_line = resolved.read_bytes()[:256].splitlines()[0].lower()
+    except (OSError, IndexError):
+        first_line = b""
+    shebang_programs = {
+        Path(token.decode("utf-8", errors="ignore")).name.lower()
+        for token in first_line[2:].split()
+        if token and not token.startswith(b"-")
+    }
+    if first_line.startswith(b"#!") and any(
+        program.endswith("sh") or program in SHELL_INTERPRETERS
+        for program in shebang_programs
+    ):
+        raise ArchitectureError(
+            f"Evidence provider executable is a forbidden shell wrapper: {command}"
+        )
     return resolved
 
 
@@ -1068,7 +1241,12 @@ def run_evidence_provider(
     _, configured = validate_evidence_provider_config(
         root / ".architecture" / "evidence-providers.yaml"
     )
-    config = configured[provider_id]
+    config = configured.get(provider_id)
+    if config is None:
+        raise ArchitectureError(
+            f"Evidence provider {provider_id} is not configured; refusing to run "
+            "an unconfigured catalog entry"
+        )
     if not config["enabled"]:
         raise ArchitectureError(
             f"Evidence provider {provider_id} is disabled in project configuration"
@@ -1185,8 +1363,14 @@ def run_evidence_provider(
     )
     if content_validation == "invalid" and status != "timed-out":
         status = "failed"
+    generated_paths = {
+        path.relative_to(root).as_posix()
+        for path in (artifact_path, stdout_path, stderr_path, structured_path)
+    }
+    completed_commit = current_git_commit(root)
+    dirty_tree_after = bool(git_worktree_paths(root) - generated_paths)
     artifact = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "run": {
             "id": run_id,
             "provider_id": provider_id,
@@ -1199,6 +1383,8 @@ def run_evidence_provider(
             "repository_identity": profile["project"]["id"],
             "commit": commit,
             "dirty_tree": dirty_tree_at_start,
+            "completed_commit": completed_commit,
+            "dirty_tree_after": dirty_tree_after,
             "started_at": started_at.isoformat(),
             "completed_at": completed_at.isoformat(),
             "command": actual_command,
@@ -1269,7 +1455,11 @@ def validate_evidence_run(
     _, configured = validate_evidence_provider_config(
         root / ".architecture" / "evidence-providers.yaml"
     )
-    config = configured[data["run"]["provider_id"]]
+    config = configured.get(data["run"]["provider_id"])
+    if config is None:
+        raise ArchitectureError(
+            f"{artifact_path} provider is no longer explicitly configured"
+        )
     if data["run"]["provider_config_sha256"] != canonical_sha256(config):
         raise ArchitectureError(f"{artifact_path} provider configuration hash is stale")
     if data["run"]["evidence_type"] != provider["evidence_type"]:
@@ -1333,6 +1523,13 @@ def validate_evidence_run(
     if completed_at < started_at:
         raise ArchitectureError(f"{artifact_path} completes before it starts")
     git_output(root, "cat-file", "-e", f"{data['run']['commit']}^{{commit}}")
+    if data["schema_version"] == "1.1":
+        git_output(
+            root,
+            "cat-file",
+            "-e",
+            f"{data['run']['completed_commit']}^{{commit}}",
+        )
     output_contents: dict[str, bytes] = {}
     for stream in ("stdout", "stderr"):
         record = data["result"][stream]
@@ -1417,6 +1614,23 @@ def validate_evidence_run(
     if data["result"]["status"] == "passed" and content_validation == "invalid":
         raise ArchitectureError(
             f"{artifact_path} passed despite invalid structured output"
+        )
+    if require_passed and data["run"]["dirty_tree"]:
+        raise ArchitectureError(
+            f"{artifact_path} was produced from a dirty working tree and cannot "
+            "enter trusted Review or Gate evidence"
+        )
+    if require_passed and data["schema_version"] != "1.1":
+        raise ArchitectureError(
+            f"{artifact_path} legacy provider run lacks post-run repository state"
+        )
+    if require_passed and data["run"]["completed_commit"] != data["run"]["commit"]:
+        raise ArchitectureError(
+            f"{artifact_path} provider changed HEAD during execution"
+        )
+    if require_passed and data["run"]["dirty_tree_after"]:
+        raise ArchitectureError(
+            f"{artifact_path} provider changed the working tree during execution"
         )
     if require_passed and data["result"]["status"] != "passed":
         raise ArchitectureError(
@@ -1862,11 +2076,17 @@ def validate_review(
                     raise ArchitectureError(
                         f"{path} selects unknown knowledge {entry_id}"
                     )
-                if snapshot["version"] != entry.metadata["version"]:
+                if (
+                    not allow_unverifiable_historical
+                    and snapshot["version"] != entry.metadata["version"]
+                ):
                     raise ArchitectureError(
                         f"{path} knowledge {entry_id} version is stale"
                     )
-                if snapshot["sha256"] != entry.sha256:
+                if (
+                    not allow_unverifiable_historical
+                    and snapshot["sha256"] != entry.sha256
+                ):
                     raise ArchitectureError(
                         f"{path} knowledge {entry_id} hash is stale"
                     )
@@ -2095,6 +2315,147 @@ def validate_design_brief(path: Path) -> dict[str, Any]:
     return data
 
 
+def validate_project_file_binding(
+    decision_path: Path,
+    binding: dict[str, Any],
+    repository_root: Path,
+    field: str,
+) -> Path:
+    root = repository_root.resolve()
+    binding_path = binding["path"]
+    relative_path = Path(binding_path)
+    if (
+        relative_path.is_absolute()
+        or ".." in relative_path.parts
+        or "\\" in binding_path
+        or relative_path.as_posix() != binding_path
+    ):
+        raise ArchitectureError(
+            f"{decision_path} {field} path must be a normalized project-relative path"
+        )
+    resolved = require_within_root(
+        root,
+        root / relative_path,
+        field,
+    )
+    if binding["sha256"] != file_sha256(resolved):
+        raise ArchitectureError(
+            f"{decision_path} {field} hash does not match {resolved}"
+        )
+    return resolved
+
+
+def validate_evolution_assessment_binding(
+    decision_path: Path,
+    data: dict[str, Any],
+    repository_root: Path | None = None,
+) -> None:
+    assessment_kind = data["decision"].get("assessment_kind", "standard")
+    binding = data.get("evolution_assessment")
+    if assessment_kind != "technology-evolution":
+        if binding is not None:
+            raise ArchitectureError(
+                f"{decision_path} evolution_assessment requires "
+                "decision.assessment_kind technology-evolution"
+            )
+        return
+    if binding is None:
+        raise ArchitectureError(
+            f"{decision_path} technology-evolution decision requires an "
+            "evolution_assessment binding"
+        )
+
+    selected_option = data["selected_option"]
+    disposition = binding["disposition"]
+    if selected_option == "keep-current" and disposition == "adopt":
+        raise ArchitectureError(
+            f"{decision_path} keep-current cannot use an adopt disposition"
+        )
+    if selected_option != "keep-current" and disposition != "adopt":
+        raise ArchitectureError(
+            f"{decision_path} selected upgrade or replacement requires an "
+            "adopt disposition"
+        )
+    if disposition == "adopt":
+        stale_claims = [
+            item["claim"]
+            for item in binding["volatile_claims"]
+            if item["freshness"] != "current"
+        ]
+        if stale_claims:
+            raise ArchitectureError(
+                f"{decision_path} adoption requires current official evidence for: "
+                + ", ".join(stale_claims)
+            )
+        pilot = binding["pilot"]
+        if pilot["status"] != "completed":
+            raise ArchitectureError(
+                f"{decision_path} adoption requires a completed pilot"
+            )
+        if not pilot["observed_measures"]:
+            raise ArchitectureError(
+                f"{decision_path} adoption requires pilot observed measures"
+            )
+
+    if repository_root is None:
+        return
+    root = repository_root.resolve()
+    assessment_path = validate_project_file_binding(
+        decision_path,
+        binding,
+        root,
+        "decision.evolution_assessment",
+    )
+    if assessment_path.suffix.lower() != ".md":
+        raise ArchitectureError(
+            f"{decision_path} evolution assessment must be Markdown"
+        )
+    try:
+        body = assessment_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise ArchitectureError(
+            f"{assessment_path} evolution assessment must be UTF-8"
+        ) from exc
+    headings = set(re.findall(r"^##\s+(.+?)\s*$", body, flags=re.MULTILINE))
+    missing = sorted(set(EVOLUTION_ASSESSMENT_HEADINGS) - headings)
+    if missing:
+        raise ArchitectureError(
+            f"{assessment_path} evolution assessment is missing sections: "
+            + ", ".join(missing)
+        )
+
+    evidence_bindings: list[tuple[str, dict[str, Any]]] = []
+    evidence_bindings.extend(
+        (
+            f"evolution_assessment.baseline.measures[{index}].evidence",
+            measure["evidence"],
+        )
+        for index, measure in enumerate(binding["baseline"]["measures"])
+    )
+    evidence_bindings.extend(
+        (f"evolution_assessment.gap.evidence[{index}]", evidence)
+        for index, evidence in enumerate(binding["gap"]["evidence"])
+    )
+    evidence_bindings.extend(
+        (f"evolution_assessment.volatile_claims[{index}].capture", claim["capture"])
+        for index, claim in enumerate(binding["volatile_claims"])
+    )
+    evidence_bindings.extend(
+        (
+            f"evolution_assessment.pilot.observed_measures[{index}].evidence",
+            measure["evidence"],
+        )
+        for index, measure in enumerate(binding["pilot"]["observed_measures"])
+    )
+    for field, evidence in evidence_bindings:
+        validate_project_file_binding(
+            decision_path,
+            evidence,
+            root,
+            field,
+        )
+
+
 def validate_decision(
     path: Path,
     *,
@@ -2189,9 +2550,12 @@ def validate_decision(
                 raise ArchitectureError(
                     f"{path} snapshots unknown knowledge {entry_id}"
                 )
-            if snapshot["version"] != entry.metadata["version"]:
+            if (
+                not allow_unverifiable_historical
+                and snapshot["version"] != entry.metadata["version"]
+            ):
                 raise ArchitectureError(f"{path} knowledge {entry_id} version is stale")
-            if snapshot["sha256"] != entry.sha256:
+            if not allow_unverifiable_historical and snapshot["sha256"] != entry.sha256:
                 raise ArchitectureError(f"{path} knowledge {entry_id} hash is stale")
             entry_kind = entry.metadata["kind"]
             if entry_kind in kind_map:
@@ -2258,6 +2622,7 @@ def validate_decision(
         raise ArchitectureError(f"{path} must be accepted before remediation planning")
     if data["decision"]["status"] == "accepted" and not data.get("acceptance_evidence"):
         raise ArchitectureError(f"{path} accepted decision has no acceptance evidence")
+    validate_evolution_assessment_binding(path, data, repository_root)
     profile: dict[str, Any] | None = None
     root: Path | None = None
     if repository_root is not None:
@@ -3304,6 +3669,18 @@ def git_is_clean(root: Path) -> bool:
     return not git_output(root, "status", "--porcelain")
 
 
+def git_worktree_paths(root: Path) -> set[str]:
+    paths: set[str] = set()
+    for arguments in (
+        ("diff", "--name-only"),
+        ("diff", "--cached", "--name-only"),
+        ("ls-files", "--others", "--exclude-standard"),
+    ):
+        output = git_output(root, *arguments)
+        paths.update(line for line in output.splitlines() if line)
+    return paths
+
+
 def git_is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
     process = git_process(root, "merge-base", "--is-ancestor", ancestor, descendant)
     if process.returncode not in {0, 1}:
@@ -3732,6 +4109,11 @@ def completed_required_reviews(
                 continue
             if freshness_strategy == "diff-aware" and commit and commit != head:
                 changed_paths = git_changed_paths(root, commit, head)
+                if any(
+                    not _path_in_scope(path, review["review"]["scope_manifest"])
+                    for path in changed_paths
+                ):
+                    continue
                 evidence_paths = {
                     evidence_path(item)
                     for finding in review["findings"]
@@ -4020,6 +4402,19 @@ def gate_from_config(
                         reviewed_commit,
                         head,
                     )
+                    unscoped_changed_paths = sorted(
+                        path
+                        for path in changed_paths
+                        if not _path_in_scope(
+                            path,
+                            review["review"]["scope_manifest"],
+                        )
+                    )
+                    if unscoped_changed_paths:
+                        policy_failures.append(
+                            "Paths changed outside the selected review scope: "
+                            + ", ".join(unscoped_changed_paths)
+                        )
                     bound_paths = {
                         path
                         for finding in review["findings"]
@@ -4031,7 +4426,7 @@ def gate_from_config(
                         policy_failures.append(
                             "Evidence changed since review: " + ", ".join(stale_paths)
                         )
-                    elif changed_paths:
+                    elif changed_paths and not unscoped_changed_paths:
                         warnings.append(
                             f"{len(changed_paths)} non-evidence path(s) changed "
                             "since review"
@@ -4776,6 +5171,211 @@ def review_bindings(project_root: Path, candidate_path: Path) -> dict[str, Any]:
                 finding,
             )
             for finding in candidate["findings"]
+        },
+    }
+
+
+REVIEW_EXECUTION_IMPACTS = (
+    "critical",
+    "security",
+    "public_contract",
+    "migration",
+)
+
+
+def _declared_repository_paths(
+    values: list[str],
+    field: str,
+    *,
+    allow_empty: bool = False,
+) -> list[str]:
+    if not values and not allow_empty:
+        raise ArchitectureError(f"Review execution plan requires explicit {field}")
+    normalized: set[str] = set()
+    for value in values:
+        candidate = Path(value)
+        if candidate.is_absolute() or ".." in candidate.parts or "\\" in value:
+            raise ArchitectureError(
+                f"Review execution plan {field} escapes repository: {value}"
+            )
+        normalized.add(candidate.as_posix() or ".")
+    return sorted(normalized)
+
+
+def _path_in_scope(path: str, scope: list[str]) -> bool:
+    return any(
+        scoped == "." or path == scoped or path.startswith(scoped.rstrip("/") + "/")
+        for scoped in scope
+    )
+
+
+def plan_review_execution(
+    project_root: Path,
+    review_path: Path,
+    *,
+    base_commit: str,
+    scope: list[str],
+) -> dict[str, Any]:
+    """Build a deterministic, non-authoritative review execution payload.
+
+    This payload binds execution inputs and records what must be reassessed. It
+    deliberately does not claim architecture quality or promote a prior
+    assessment to ``passed``; prior coverage is context only.
+    """
+    root = project_root.resolve()
+    if not root.is_dir():
+        raise ArchitectureError(f"Project directory does not exist: {root}")
+    review_path = review_path if review_path.is_absolute() else root / review_path
+    review_path = require_within_root(
+        root,
+        review_path,
+        "review execution prior review",
+    )
+    profile_path = root / ".architecture" / "profile.yaml"
+    profile = validate_file(profile_path, "project-profile.schema.json")
+    validate_profile_review_requirements(profile, profile_path)
+    review = validate_review(
+        review_path,
+        rule_pack_ids=profile["project"]["rule_packs"],
+        strict_trust=True,
+        repository_root=root,
+        require_current_selection=True,
+    )
+    if review["review"]["verification_state"] != "verified":
+        raise ArchitectureError(
+            "Review execution planning requires a verified prior review"
+        )
+    reviewed_commit = review["review"].get("commit")
+    if not reviewed_commit or reviewed_commit != base_commit:
+        raise ArchitectureError(
+            "Review execution plan base_commit must exactly match the prior "
+            "verified review commit"
+        )
+    git_output(root, "cat-file", "-e", f"{base_commit}^{{commit}}")
+    head = current_git_commit(root)
+    if not git_is_ancestor(root, base_commit, head):
+        raise ArchitectureError(
+            f"Review execution plan base commit {base_commit} is not an ancestor "
+            f"of HEAD {head}"
+        )
+    if not git_is_clean(root):
+        raise ArchitectureError(
+            "Review execution planning requires a clean working tree so paths "
+            "bind to commits"
+        )
+
+    declared_scope = _declared_repository_paths(scope, "scope")
+    declared_changed = sorted(git_changed_paths(root, base_commit, head))
+    gate_policy = validate_file(
+        root / ".architecture" / "gate-policy.yaml",
+        "gate-policy.schema.json",
+    )
+    change_requirements = gate_policy["change_requirements"]
+    impact_patterns = {
+        "critical": change_requirements["critical_paths"],
+        "security": change_requirements["security_paths"],
+        "public_contract": change_requirements["public_contract_paths"],
+        "migration": change_requirements["migration_paths"],
+    }
+    changed_set = set(declared_changed)
+    impact_paths = {
+        key: matching_paths(changed_set, impact_patterns[key])
+        for key in REVIEW_EXECUTION_IMPACTS
+    }
+    impact = {key: bool(impact_paths[key]) for key in REVIEW_EXECUTION_IMPACTS}
+
+    packs = load_rule_packs(
+        profile["project"]["rule_packs"],
+        local_rule_pack_roots(root),
+    )
+    rule_ids = sorted(expected_rules(packs))
+    coverage = {item["rule_id"]: item for item in review["coverage"]}
+    evidence_by_rule: dict[str, set[str]] = {}
+    for finding in review["findings"]:
+        evidence_by_rule.setdefault(finding["rule_id"], set()).update(
+            path
+            for item in finding["evidence"]
+            if (path := evidence_path(item)) is not None
+        )
+    rule_execution = []
+    for rule_id in rule_ids:
+        prior = coverage.get(rule_id)
+        overlap = sorted(evidence_by_rule.get(rule_id, set()) & set(declared_changed))
+        rule_execution.append(
+            {
+                "id": rule_id,
+                "prior_status": prior["status"] if prior else "unassessed",
+                "changed_evidence_paths": overlap,
+                "reuse": (
+                    "context-only"
+                    if prior and prior["status"] == "assessed"
+                    else "none"
+                ),
+                "action": "reassess",
+            }
+        )
+
+    critical_flows_path = require_within_root(
+        root,
+        root / profile["project"]["critical_flows_file"],
+        "profile.project.critical_flows_file",
+    )
+    headings = re.findall(
+        r"^## (?!Flow template\s*$)(.+?)\s*$",
+        critical_flows_path.read_text(encoding="utf-8"),
+        flags=re.MULTILINE,
+    )
+    prior_flows = {
+        item["id"]: item for item in review.get("critical_flow_coverage", [])
+    }
+    critical_flow_execution = [
+        {
+            "id": flow_id,
+            "prior_status": prior_flows.get(flow_id, {}).get("status", "unassessed"),
+            "reuse": (
+                "context-only"
+                if prior_flows.get(flow_id, {}).get("status") == "assessed"
+                else "none"
+            ),
+            "action": "reassess",
+        }
+        for flow_id in sorted({slugify(heading) for heading in headings})
+    ]
+    out_of_scope = sorted(
+        path for path in declared_changed if not _path_in_scope(path, declared_scope)
+    )
+    if out_of_scope:
+        raise ArchitectureError(
+            "Review execution scope excludes changed paths: " + ", ".join(out_of_scope)
+        )
+    return {
+        "runtime_payload_version": "1.0",
+        "kind": "review-execution-plan",
+        "repository": {
+            "project_id": profile["project"]["id"],
+            "base_commit": base_commit,
+            "head_commit": head,
+        },
+        "prior_verified_review": {
+            "path": review_path.relative_to(root).as_posix(),
+            "id": review["review"]["id"],
+            "commit": reviewed_commit,
+            "sha256": file_sha256(review_path),
+        },
+        "changed_paths": declared_changed,
+        "scope": declared_scope,
+        "scope_exclusions": out_of_scope,
+        "impact": {key: impact[key] for key in REVIEW_EXECUTION_IMPACTS},
+        "impact_paths": {key: impact_paths[key] for key in REVIEW_EXECUTION_IMPACTS},
+        "execution": {
+            "architecture_quality_inferred": False,
+            "rules": rule_execution,
+            "critical_flows": critical_flow_execution,
+            "guardrails": [
+                "Prior assessments are context-only and never pass current execution.",
+                "Every listed rule and critical flow requires explicit reassessment.",
+                "Out-of-scope changed paths require explicit scope resolution.",
+            ],
         },
     }
 
@@ -6188,6 +6788,18 @@ def build_parser() -> argparse.ArgumentParser:
     bindings_parser.add_argument("--project", required=True)
     bindings_parser.add_argument("--candidate", required=True)
 
+    execution_plan_parser = subparsers.add_parser(
+        "plan-review-execution",
+        help=(
+            "Build a deterministic review execution payload bound to a verified "
+            "prior review and explicit change scope."
+        ),
+    )
+    execution_plan_parser.add_argument("--project", required=True)
+    execution_plan_parser.add_argument("--review", required=True)
+    execution_plan_parser.add_argument("--base-commit", required=True)
+    execution_plan_parser.add_argument("--scope", action="append", required=True)
+
     diff_parser = subparsers.add_parser(
         "review-diff",
         help="Compare findings and rule coverage between two valid reviews.",
@@ -6611,6 +7223,15 @@ def run(args: argparse.Namespace) -> int:
         result = review_bindings(
             Path(args.project),
             Path(args.candidate),
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "plan-review-execution":
+        result = plan_review_execution(
+            Path(args.project),
+            Path(args.review),
+            base_commit=args.base_commit,
+            scope=args.scope,
         )
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0

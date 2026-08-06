@@ -33,24 +33,36 @@ Load the project's profile, constraints, and critical flows. Use `project-archit
    .architecture/knowledge-context-ai-agent.yaml --selection
    .architecture/knowledge-selection-ai-agent.yaml --facts
    .architecture/repository-facts.yaml --profile .architecture/profile.yaml`.
-   Read the compact context index and every Markdown path it selects only after
-   validation succeeds; reserve the full exclusion ledger for scripts, Reviews,
-   and Gates. Do not load unrelated packs.
+   Read the compact context projection only after validation succeeds; reserve
+   the full exclusion ledger for scripts, Reviews, and Gates. Do not load every
+   selected Markdown entry by default. Open a complete selected entry only
+   after verifying its recorded hash and only when a candidate-driving claim,
+   ambiguity, volatile fact, or explicit trade-off depends on its source
+   detail. Do not load unrelated packs.
 3. Draw the control path from user intent through orchestration, model calls, retrieval, tools, persisted state, human approval, and side effects.
 4. Separate deterministic services and policy enforcement from model judgment.
 5. Identify trust boundaries for user content, retrieved content, prompts, tools, credentials, memory, and model providers.
-6. Trace context and memory lifecycles: creation, scoping, provenance, retention, mutation, retrieval, deletion, and recovery.
-7. Trace long-running task state, idempotency, retries, cancellation, checkpoints, resumption, and duplicate side effects.
-8. Inspect model routing, timeouts, fallbacks, degraded modes, cost budgets, latency budgets, and failure visibility.
-9. Inspect evidence capture, source attribution, evaluation coverage, production feedback, and human confirmation boundaries.
-10. Assess every applicable AI rule and record explicit `not_applicable` or `not_assessed` states.
+6. Inventory every context source and record its owner, purpose, necessity, authority, scope, freshness, sensitivity, transformation, retention, and disposal. Require an explicit reason for every included source and evidence for every omitted source that could affect a critical flow.
+7. Trace context and memory lifecycles: creation, scoping, provenance, retention, mutation, retrieval, deletion, and recovery. Inspect budget, truncation, summarization, ranking, and fallback behavior; require preservation or explicit rejection of authority, provenance, and recency.
+8. Compare context ordering across retries, tasks, tenants, and releases. Inspect cache keys, cache boundaries, invalidation, and reuse so ordering changes or volatile data cannot silently cross an authorization or provenance boundary.
+9. Classify stable policy, contracts, and instructions separately from volatile user input, retrieval results, task state, and provider responses. Prevent volatile or sensitive material from entering stable context or reusable caches.
+10. Minimize sensitive and personal data independently at prompt, retrieval, memory, and trace boundaries. Inspect field-level allowlists, redaction, purpose limitation, scope, retention, deletion, and reference-versus-raw-content choices.
+11. Trace long-running task state, idempotency, retries, cancellation, checkpoints, resumption, and duplicate side effects.
+12. Inspect model routing, timeouts, fallbacks, degraded modes, cost budgets, latency budgets, and failure visibility.
+13. Bind behavior evidence to exact model/runtime, prompt, tool policy and schema, retriever/index/ranking configuration, context treatment, evaluation data, environment, timestamp, and hashes where available.
+14. For any new or upgraded agent runtime, protocol, model, or framework, compare adopt, retain, and reject decisions against the current baseline using critical-flow evidence for quality, compatibility, security, operations, cost, ownership, rollout, and rollback.
+15. Inspect evidence capture, source attribution, evaluation coverage, production feedback, and human confirmation boundaries.
+16. Assess every applicable AI rule and record explicit `not_applicable` or `not_assessed` states.
 
-For each finding, prove the complete failure path. A prompt containing untrusted text is not by itself a prompt-injection vulnerability; show how it can cross a policy or tool boundary.
+For each finding or strength, bind the assessment to at least one concrete affected critical flow and prove the complete trigger-to-impact or control-to-outcome path. State findings as architecture invariants and affected capabilities; record technology names only as versioned evidence. A prompt containing untrusted text is not by itself a prompt-injection vulnerability; show how it can cross a policy or tool boundary.
 
 ## Verification handoff and output
 
 Apply the candidate evidence requirements in `review-contract.md`. Leave every
 finding at `verification.status: candidate`.
+Do not turn this candidate handoff into a verified conclusion; preserve the
+candidate/verification boundary and hand off confirmation to the independent
+verifier.
 
 Write persistent artifacts under `.architecture/reviews/` using kind `ai-agent`:
 

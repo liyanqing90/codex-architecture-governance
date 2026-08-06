@@ -27,6 +27,10 @@ sources:
 
 Select technology from required capabilities, operational ownership, compatibility, exit cost, and current official evidence.
 
+When the candidate is emerging or proposed as an upgrade/replacement, assess
+replacement value against a measured current baseline. Novelty, market
+attention, a vendor roadmap, or a capability list is not a reason to change.
+
 ## Mechanism
 
 Apply the mechanism at its owning boundary, keep authority and contracts explicit, and bind the choice to measurable scenarios rather than technology presence.
@@ -41,7 +45,11 @@ The technology is already an immutable constraint and only compliant use is unde
 
 ## Required capabilities
 
-An accountable owner, explicit compatibility and failure semantics, proportional tests, observable outcomes, and an affordable operating model are required.
+An accountable owner, a measurable capability or quality gap, explicit
+compatibility and failure semantics, migration and exit cost, rollback, current
+official evidence for volatile claims, proportional tests, observable shadow
+or pilot outcomes, explicit revisit triggers, and an affordable operating
+model are required.
 
 ## Benefits
 
@@ -53,7 +61,10 @@ It adds implementation, migration, cognitive, and operational costs that must be
 
 ## Failure modes
 
-It fails when adopted from naming, popularity, or hypothetical scale without ownership, negative-path behavior, and acceptance evidence.
+It fails when adopted from naming, popularity, hypothetical scale, stale
+volatile claims, or an official capability statement without project-fit
+evidence, ownership, negative-path behavior, migration/rollback evidence, or a
+bounded shadow/pilot.
 
 ## Alternatives
 
@@ -61,15 +72,25 @@ Keep the current architecture with a local correction, or select the next simple
 
 ## Migration and exit
 
-Introduce the new behavior behind a compatible boundary, observe a bounded cohort, preserve rollback, and remove the old path only after consumers and data are verified.
+Keep the current path as the baseline. If a measured gap survives comparison,
+introduce the new behavior behind a compatible boundary, observe a bounded
+shadow or pilot cohort, preserve rollback, and remove the old path only after
+consumers, data, operating fit, and exit evidence are verified.
 
 ## Evidence to inspect
 
-Inspect the product scenario, owning code and configuration, consumers, persisted contracts, tests, runtime evidence when applicable, team capability, and cost boundary.
+Inspect the product scenario, owning code and configuration, consumers,
+persisted contracts, tests, current official sources for volatile claims,
+runtime shadow/pilot evidence, team capability, migration/rollback path, lock-in
+and exit cost boundary.
 
 ## Evidence that changes the recommendation
 
-A simpler option meeting the same measurable outcome, missing operational ownership, incompatible consumers, or contrary runtime evidence changes the recommendation.
+A simpler keep-current or local option meeting the same measurable outcome,
+missing operational ownership, incompatible consumers, unaffordable migration
+or exit, stale official evidence, an unsuccessful pilot, or contrary runtime
+evidence changes the recommendation. A valid conclusion is to keep current and
+revisit on a named trigger.
 
 ## Quality trade-offs
 
@@ -77,4 +98,7 @@ Prioritize maintainability while explicitly recording effects on reliability, se
 
 ## Volatile facts
 
-Versions, support status, compatibility, security advisories, licensing, pricing, and service limits require current official confirmation; they are not timeless architecture facts.
+Versions, support status, compatibility, security advisories, licensing,
+pricing, service limits, roadmaps, and benchmarks require current official
+confirmation recorded with publisher, URL, scope, and review date; they are not
+timeless architecture facts or proof of project fit.

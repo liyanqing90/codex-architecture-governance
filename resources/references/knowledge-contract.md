@@ -20,6 +20,23 @@ technology profiles, reference architectures, migration guides,
 anti-patterns, and case studies distinct. Legacy YAML catalogs are read-only
 compatibility inputs.
 
+## Compact context and source disclosure
+
+The generated `knowledge-context.yaml` is a model-facing, validated compact
+projection of the full Knowledge Selection. Its ordered entries carry the
+canonical ID, path, entry hash, priority, and selection reasons; the full
+Selection remains the provenance lock and must remain readable for scripts,
+Reviews, and Gates. A compact projection may guide routing without loading the
+selected Markdown entries or the complete exclusion ledger.
+
+Use progressive disclosure: stable operational rules first, project-stable
+Profile and constraints second, run-specific facts and Selection third, and
+full source evidence on demand. Read a complete Knowledge entry after verifying
+its recorded hash when a claim drives a candidate, an ambiguity cannot be
+resolved from the projection, a volatile fact is used, or an explicit trade-off
+requires the entry's mechanism and failure sections. Never treat the projection
+as evidence for a candidate-driving claim.
+
 ## Entry standard
 
 Every entry states:

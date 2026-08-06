@@ -1,65 +1,123 @@
-schema_version: "1.2"
+schema_version: "1.3"
 plan:
-  id: example-project-19700101-remediation
-  source_review: example-project-19700101-project
-  source_review_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
-  source_decision: ADR-EXAMPLE-001
-  source_decision_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
-  generated_at: "1970-01-01T00:00:00+00:00"
+  id: order-platform-greenfield-20260820
+  plan_kind: greenfield-implementation
+  source_context: .architecture/architecture-design-brief.yaml
+  source_context_sha256: "ea5abf99454c5ed961ff1a254301c1996b57a1b0c49a47c94a7a52663c3a070e"
+  source_decision: ADR-ORDER-TARGET-001
+  source_decision_sha256: "b4d8e2f1a6c9e3b7d0f5a2c8e1b6d9f4a7c0e3b8d2f6a1c5e9b4d7f0a3c6e8b2"
+  generated_at: "2026-08-20T16:00:00+08:00"
   scope:
-    - example-component
+    - checkout-api
+    - order-domain
+    - payment-adapter
+    - fulfillment-coordinator
   status: draft
 items:
-  - id: PLAN-EXAMPLE-001
-    finding_ids:
-      - EXAMPLE-ARC-001
-    finding_bindings:
-      - id: EXAMPLE-ARC-001
-        fingerprint: "0000000000000000000000000000000000000000000000000000000000000000"
+  - id: PLAN-ORDER-BOUNDARIES-001
     knowledge_ids:
-      - migration.layered-monolith-to-modular
+      - style.modular-monolith
+      - pattern.idempotency-key
+      - technology.fastapi
+      - technology.postgresql
     assumptions:
-      - Replace with an implementation assumption whose failure triggers replanning.
-    desired_invariant: Replace with the boundary invariant the change must restore.
-    owner: unassigned
+      - The launch team can own all four runtime units within one deployable application.
+      - The payment provider accepts an idempotency key for every authorization request.
+    target_bindings:
+      runtime_units:
+        - checkout-api
+        - order-domain
+        - payment-adapter
+        - fulfillment-coordinator
+      deployment_units:
+        - order-application-prod
+      data_owners:
+        - order-records
+        - payment-records
+        - fulfillment-handoffs
+      interfaces:
+        - submit-checkout
+        - create-order
+        - authorize-payment
+        - receive-provider-webhook
+        - record-payment-result
+        - enqueue-fulfillment
+        - send-fulfillment-request
+      trust_boundaries:
+        - public-api-boundary
+        - payment-provider-boundary
+        - fulfillment-partner-boundary
+        - operator-access-boundary
+      technologies:
+        - technology.fastapi
+        - technology.postgresql
+      critical_flows:
+        - checkout-authorization
+        - payment-reconciliation
+      constraints:
+        - modular-boundaries
+        - relational-order-records
+        - synchronous-checkout
+        - single-production-deployment
+    desired_invariant: Each order and payment transition has one owning module, one durable record, and one replay-safe command path.
+    owner: order-platform-team
     recommended_option:
-      title: Replace with the recommended option
-      rationale: Explain why this option best fits current evidence and constraints.
+      title: Implement the modular monolith target architecture
+      rationale: It satisfies the accepted target boundaries while keeping deployment and recovery simple for the launch team.
       tradeoffs:
-        - Replace with a real cost or limitation.
+        - Module contracts and architecture tests add implementation work before the first release.
+        - A later service extraction will require preserving these contracts and ownership records.
     alternatives:
-      - title: Replace with a viable alternative
-        when_preferred: Explain the conditions that would make it preferable.
+      - title: Keep informal boundaries in the current application
+        when_preferred: Prefer this only when the target architecture is withdrawn and launch timing prevents boundary work.
         tradeoffs:
-          - Replace with a real cost or limitation.
-    do_nothing: State the consequence of retaining the confirmed risk.
+          - Lower initial effort but no executable ownership invariant.
+          - Greater risk of duplicate authorization and incomplete audit history.
+      - title: Split checkout and payment into separate services
+        when_preferred: Prefer this after measured volume or team ownership requires independent deployment.
+        tradeoffs:
+          - Adds distributed timeout, retry, tracing, and data-ownership complexity.
+          - Requires a staffed operating model before launch.
+    do_nothing: Without explicit ownership, duplicate checkout retries can create conflicting payment state and leave audit transitions incomplete.
     effort:
       size: m
-      uncertainty: high
+      uncertainty: medium
       assumptions:
-        - Replace with an effort assumption.
-    change_risk: medium
-    governed_change: false
-    dependencies: []
+        - Existing checkout behavior can be covered by contract tests before module extraction.
+        - Database changes can be deployed with backward-compatible columns and indexes.
+    change_risk: high
+    governed_change: true
+    dependencies:
+      - payment-provider-test-credentials
+      - PostgreSQL-backup-verification
+      - fulfillment-partner-contract
     sequence:
-      - Establish behavioral safety-net evidence.
-      - Introduce the smallest reversible compatibility seam.
-      - Migrate callers and verify acceptance criteria.
+      - Capture current checkout and webhook behavior with contract tests.
+      - Establish module ownership, interfaces, and durable transition records.
+      - Add idempotent payment authorization and provider-event deduplication.
+      - Enable fulfillment handoff after critical-flow evidence passes.
     test_protection:
-      - Prove the primary critical flow.
-      - Prove the owning-boundary invariant.
-      - Prove an adjacent failure or alternate path.
-    rollback: State the rollback or containment path.
-    migration_type: code
-    data_compatibility: State why persisted data remains compatible or how it migrates.
-    deployment_strategy: State the reversible rollout and mixed-version behavior.
+      - Prove one authorization for repeated checkout commands with one idempotency key.
+      - Prove every order and payment transition includes owner, actor, request, and timestamp.
+      - Prove delayed and replayed provider webhooks converge to one payment state.
+    rollback: Disable the new route, retain the compatible transition columns, and replay durable provider events through the previous handler until the invariant is restored.
+    migration_type: mixed
+    data_compatibility: Additive transition records preserve existing order identifiers and allow old readers to ignore new audit fields during rollout.
+    deployment_strategy: Roll out database additions first, then the application behind a feature flag, and enable fulfillment handoff only after mixed-version checks pass.
     observability_changes:
-      - Add the signal that proves rollout and acceptance.
+      - Emit checkout idempotency-hit and duplicate-prevention counters.
+      - Emit provider latency, webhook replay, transition-owner, and reconciliation-lag metrics.
     stop_conditions:
-      - Stop when an acceptance invariant regresses or rollback evidence is unavailable.
+      - Stop rollout if duplicate authorization count is non-zero in the rehearsal window.
+      - Stop rollout if any transition lacks an owner or durable correlation identifier.
+      - Stop rollout if webhook replay does not converge within the recovery objective.
     acceptance_criteria:
-      - Replace with a measurable behavioral outcome.
+      - Repeated checkout requests with one idempotency key create exactly one authorization.
+      - The primary checkout flow reaches fulfillment with all four target bindings observable.
+      - A delayed or replayed provider webhook converges without changing the final order outcome.
     acceptance_evidence_types:
       - test
+      - contract
+      - runtime
       - operational
     completion_evidence: []

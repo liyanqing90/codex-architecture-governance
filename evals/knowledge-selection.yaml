@@ -98,3 +98,27 @@ cases:
     requirements:
       - exact decision-intent matches remain eligible when the most relevant entry is Standard
       - ambiguous local-first wording does not activate client data-authority guidance
+  - id: open-greenfield-target-architecture
+    skill: architecture-solution-advisor
+    facts: [react, fastapi, postgresql]
+    fact_roles: [production]
+    task: Design an open Greenfield target architecture with runtime units, deployment units, data ownership, interfaces, trust boundaries, critical flows, operations, and measurable quality scenarios.
+    must_include:
+      - domain.web-frontend
+      - domain.backend-api
+    requirements:
+      - the selection remains decision-specific and binds the target architecture reasoning
+      - Knowledge capability claims do not become repository facts
+  - id: constrained-design-preserves-constraint-evidence
+    skill: architecture-solution-advisor
+    facts: [postgresql, kubernetes]
+    fact_roles: [production]
+    task: Specify a constrained architecture with required data residency, preferred managed operations, and prohibited shared database writes.
+    must_include:
+      - domain.backend-api
+    requirements:
+      - required constraints are challenged before selection
+      - preferred constraints may lose with a recorded trade-off
+      - prohibited options are hard-eliminated
+      - a technology-evolution entry is not selected merely because the task says constrained
+      - no version pin is inferred from memory

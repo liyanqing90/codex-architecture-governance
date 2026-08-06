@@ -2,8 +2,9 @@
 
 ## Supported versions
 
-Until the project reaches `1.0.0`, only the latest released minor version
-receives security fixes.
+The latest `1.x` release receives security fixes. Older `1.x` releases receive
+fixes only when a maintainer explicitly identifies them as affected; `0.x`
+releases are unsupported after `1.0.0`.
 
 ## Reporting a vulnerability
 

@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "run", "result"],
   "properties": {
-    "schema_version": {"enum": ["1.0", "1.1"]},
+    "schema_version": {"enum": ["1.0", "1.1", "1.2"]},
     "run": {
       "type": "object",
       "additionalProperties": false,
@@ -104,7 +104,18 @@
             "type": "string",
             "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
           }
-        }
+        },
+        "dependency_inputs_before": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/dependencyInput"}
+        },
+        "dependency_inputs_after": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/dependencyInput"}
+        },
+        "cache_mode": {"enum": ["isolated", "unbound"]}
       }
     },
     "result": {
@@ -152,9 +163,38 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {"schema_version": {"const": "1.2"}},
+        "required": ["schema_version"]
+      },
+      "then": {
+        "properties": {
+          "run": {
+            "required": [
+              "completed_commit",
+              "dirty_tree_after",
+              "dependency_inputs_before",
+              "dependency_inputs_after",
+              "cache_mode"
+            ]
+          }
+        }
+      }
     }
   ],
   "$defs": {
+    "dependencyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "bytes"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "bytes": {"type": "integer", "minimum": 0}
+      }
+    },
     "output": {
       "type": "object",
       "additionalProperties": false,

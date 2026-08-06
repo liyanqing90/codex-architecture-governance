@@ -188,6 +188,9 @@
             "type": "string",
             "minLength": 1
           },
+          "historical": {
+            "type": "boolean"
+          },
           "freshness": {
             "type": "string",
             "minLength": 1

@@ -1,6 +1,6 @@
 ---
 name: hengmu
-description: Unified public entry point for Hengmu. Use when the user invokes $hengmu, cannot remember a focused Hengmu Skill name, asks what Hengmu can do, wants a read-only lifecycle or status explanation, or wants Hengmu to route a natural-language request for repository, AI-agent, mobile, or portfolio audit, finding verification, emerging technology-evolution assessment, solution comparison, remediation planning, or a deterministic quality gate.
+description: Unified public entry point for Hengmu. Use when the user invokes $hengmu, cannot remember a focused Hengmu Skill name, asks what Hengmu can do, wants a read-only lifecycle or status explanation, or wants Hengmu to route a natural-language request for repository, AI-agent, mobile, or portfolio audit, finding verification, open or constrained design/specification, emerging technology-evolution assessment, solution comparison, remediation planning, or a deterministic quality gate. Chinese design, specification, and constraint requests route the same way.
 ---
 
 # Use Hengmu
@@ -30,7 +30,8 @@ routing so the authority boundary remains visible.
 | `mobile`, iOS/client state, offline sync, notifications, migrations | `../mobile-architecture-audit/SKILL.md` |
 | `portfolio`, multiple projects, shared capability, stack sprawl, coupling | `../portfolio-architecture-audit/SKILL.md` |
 | `verify`, challenge or confirm candidate findings | `../architecture-finding-verifier/SKILL.md` |
-| `decide`, `evolve`, `upgrade`, `replace`, or compare architecture, pattern, technology, or keep-current options | `../architecture-solution-advisor/SKILL.md` |
+| `decide`, `design`, `specify`, `constrain`, `evolve`, `upgrade`, `replace`, or compare architecture, pattern, technology, or keep-current options | `../architecture-solution-advisor/SKILL.md` |
+| Chinese `设计`, `方案`, `规格`, `约束`, `限定`, `演进`, or equivalent solution requests | `../architecture-solution-advisor/SKILL.md` |
 | `plan`, turn an accepted decision into a safe migration | `../architecture-remediation-planner/SKILL.md` |
 | `gate`, apply contract, finding, change, or release policy | `../architecture-quality-gate/SKILL.md` |
 | `status`, `lifecycle`, `next`, or “what should I do next?” | Use the read-only lifecycle/status navigation below; do not start a workflow without an explicit request. |
@@ -110,6 +111,8 @@ showing the menu.
 - Keep audit findings candidate-only until the verifier confirms them.
 - Do not turn verification into solution selection or implementation.
 - Require decision-driving evidence before solution selection.
+- Treat open and constrained design as advisor work; required, preferred, and
+  prohibited constraints are inputs to challenge and comparison, not proof.
 - Require an accepted decision before remediation planning.
 - Let only trusted, schema-valid artifacts reach the deterministic gate.
 - Do not use the router to bypass a focused Skill's stop condition.

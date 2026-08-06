@@ -1,7 +1,10 @@
-# Bilingual diagrams
+# Bilingual architecture-decision diagrams
 
-Hengmu's governance flow is maintained as a complete editable set for each
-README language.
+Hengmu's governance flow shows both first-class source paths: current-state
+assessment reaches a verified Review, while target design starts from an
+approved Design Brief. Both converge on a proposed target Decision, authorized
+acceptance, remediation or Greenfield planning, and deterministic policy. The
+flow is maintained as a complete editable set for each README language.
 
 | Locale | Mermaid source | Editable scene | Rendered vector | Rendered raster |
 | --- | --- | --- | --- | --- |

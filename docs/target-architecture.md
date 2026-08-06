@@ -1,40 +1,49 @@
 # Target architecture
 
-Version 0.3 separates four concerns that evolve and fail differently:
+Hengmu 1.0 keeps the evidence and authority chain from 0.4 and adds one
+explicit design path: the existing Solution Advisor can produce either an open
+target or a constrained target. No public Skill is added.
 
 ```text
-public workflow Skills
-        │
-        ├── deterministic repository facts
-        ├── declared and inferred project Profile
-        └── task-scoped knowledge selection
-                         │
-                         ▼
-candidate Review → verified Review → accepted Decision → remediation Plan
-        │                 │                 │                  │
-        └──────── exact hashes, fingerprints, coverage, and provenance ───────┘
-                                          │
-                                          ▼
-                              deterministic quality gate
+Profile + facts + Brief + constraints + selected Knowledge
+                          │
+                          ▼
+candidate Review → verified Review → proposed Decision → accepted Decision
+       │                                  │                    │
+       └── remediation source              └── target architecture ──┘
+                                                                  │
+                                                                  ▼
+                              Plan (remediation or Greenfield) → deterministic gate
 ```
 
 ## Runtime boundaries
 
 | Boundary | Owns | Must not own |
 | --- | --- | --- |
-| Public Skills | Workflow routing, evidence questions, artifact handoff | Deterministic validation or timeless product-version claims |
-| Repository inspector | Observable files, manifests, detected dependencies, Git state, and scope | Suitability, severity, or architecture recommendations |
-| Profile builder | Separation of detected, declared, and inferred context | Treating inference as observed fact |
-| Knowledge selector | Reproducible inclusion, exclusion, reasons, and context budget | Selecting a target architecture |
-| Knowledge Packs | Sourced reusable decision knowledge and freshness | Repository-specific conclusions |
-| Review/Decision/Plan contracts | Provenance and authority transitions | Synthesizing missing verification |
-| Quality gate | Deterministic policy over trusted artifacts | Interpreting candidate model prose |
-| Maintainer curator | Knowledge lifecycle and release maintenance | End-user product audit or solution authority |
+| `hengmu` router | Public discovery, language routing, read-only lifecycle navigation | Audit, verification, decision acceptance, planning, or gate authority |
+| Eight focused Skills | Workflow questions, source selection, reasoning, and artifact handoff | Deterministic proof or model-memory version claims |
+| Repository inspector | Observable files, manifests, dependencies, Git state, and scope | Suitability, severity, or architecture recommendations |
+| Profile/Brief context | Declared intent, quality scenarios, and constraint inputs | Treating an input as verified evidence |
+| Knowledge selector | Reproducible inclusion, exclusion, reasons, and budgets | Selecting a target architecture |
+| Solution Advisor | Open/constrained comparison, target architecture, proposed Decision | Accepting a Decision, creating a Plan, or implementing code |
+| Remediation planner | Accepted Decision to ordered plan, for Findings or Greenfield targets | Reopening architecture or inventing Findings |
+| Quality gate | Deterministic policy over trusted artifacts | Interpreting candidate prose |
+
+The Greenfield path enters the same CLI through an explicit Decision source:
+
+```bash
+python3 resources/scripts/architecture_tool.py gate --project <repo> \
+  --decision <greenfield-decision.yaml> --stage change
+```
+
+At `change`, the Decision must be accepted by an authorized role and have an
+active bound Plan. At `release`, the Plan must be complete and every declared
+acceptance evidence type must resolve to repository-contained hashed evidence.
 
 ## Public workflow surface
 
-The plugin exposes one stable public routing entry, `hengmu`, plus exactly
-eight focused public workflow Skills:
+The plugin exposes one stable routing entry, `hengmu`, and exactly eight focused
+workflow Skills. The names remain compatibility contracts:
 
 1. project architecture audit;
 2. AI-agent architecture audit;
@@ -42,88 +51,69 @@ eight focused public workflow Skills:
 4. portfolio architecture audit;
 5. finding verification;
 6. architecture solution advice;
-7. remediation planning;
+7. remediation planning; and
 8. architecture quality gating.
 
-The `hengmu` entry accepts commands or natural language, shows the complete
-menu when invoked without a task, and then hands control to exactly one focused
-Skill. It owns no audit, verification, decision, planning, or gate authority.
-All focused names remain directly invocable compatibility contracts.
+`design`, `specify`, and `constrain`, including Chinese equivalents, route to
+`architecture-solution-advisor`. They do not create a ninth Skill. The router
+only selects a workflow and preserves that Skill's stop conditions and authority.
 
-Knowledge curation is intentionally under `maintainer/skills/`. It ships with
-the source repository but is not routed as an end-user plugin workflow.
+## Source and artifact modes
 
-## Project-local state
+| Source | Meaning | Decision | Plan |
+| --- | --- | --- | --- |
+| Verified Review | Confirmed unresolved Findings require a solution | remediation Decision 1.2 (all Decision artifacts through 1.3 remain readable) | remediation Plan 1.2 |
+| Design Brief 1.0 | Open Greenfield quality scenarios and boundaries | Decision 1.3 | Plan 1.3 when accepted |
+| Design Brief 1.1 | Current open or constrained Greenfield; constrained mode records required/preferred/prohibited inputs | Decision 1.4 | Plan 1.3 when accepted |
 
-Each audited repository owns:
+Greenfield Decisions contain no Finding IDs. Greenfield Plans bind the Brief and
+Decision directly and map implementation to the target rather than manufacturing
+remediation evidence.
 
-```text
-.architecture/
-├── profile.yaml
-├── repository-facts.yaml
-├── knowledge-selection.yaml
-├── knowledge-context.yaml
-├── constraints.md
-├── critical-flows.md
-├── gate-policy.yaml
-├── baseline.yaml
-├── risk-acceptances.yaml
-├── evidence-providers.yaml
-├── evidence/
-├── rules/
-└── reviews/
-```
+## Target architecture contents
 
-Facts are observations. The Profile is declared intent plus explicit bounded
-inference. A selection is a reproducible context decision. Reviews, Decisions,
-and Plans bind exact bytes from those inputs.
+A selected target, especially a constrained 1.4 Decision, is not an option title.
+It records the following bound model:
 
-## Knowledge architecture
+- runtime units, responsibilities, and ownership;
+- deployment units, environments, rollout, mixed-version behavior, and on-call;
+- authoritative data owners, lifecycle, consistency, and recovery;
+- interfaces, consumers, schemas, compatibility, and evolution;
+- trust boundaries, identities, permissions, secrets, and untrusted inputs;
+- critical flow triggers, steps, failures, recovery, and measurable outcomes;
+- operations, observability, capacity, backup/restore, and incident controls;
+- an assessment for each required, preferred, and prohibited constraint; and
+- the selected Knowledge IDs, versions, and hashes.
 
-`resources/knowledge/manifest.yaml` registers ten Markdown/frontmatter packs:
+Required constraints are challenged before they become hard requirements. Every
+surviving required constraint must be satisfied. Preferred constraints may lose
+with an explicit trade-off. Prohibited constraints hard-eliminate violating
+options. None of these inputs proves feasibility or compliance on its own.
 
-- foundations;
-- domains;
-- decision guides;
-- architecture styles;
-- patterns;
-- technology profiles;
-- reference architectures;
-- migration guides;
-- anti-patterns;
-- case studies.
+## Project-local state and Knowledge
 
-Every entry has a canonical ID, semantic version, kind, domains, triggers,
-quality attributes, relationships, source policy, authoritative sources,
-review date, and review window. Technology profiles explicitly mark dynamic
-facts and require current official confirmation when used.
+Each audited repository owns facts, Profile, constraints, critical flows,
+Knowledge selections, and review history under `.architecture/`. A Greenfield
+Brief adds the design objective, quality scenarios, boundaries, data owners,
+trust boundaries, critical flows, decision questions, success criteria, and (for
+1.1) typed constraint records.
 
-The 0.2 YAML catalogs remain read-only compatibility data. New decisions bind
-the selected Markdown entry versions and SHA-256 values.
+Knowledge is task-scoped Markdown with source, freshness, relationships, and
+hashes. It supplies vocabulary, mechanisms, and decision guides. It never
+overrides local evidence or proves project fit. Technology-evolution is a narrow
+assessment lens for explicit upgrade/replacement questions; versions must be
+bound to current official or repository evidence, never recalled from memory.
 
 ## Trust transitions
 
-- A candidate Review may contain `not_assessed` coverage, but never claims
-  independent verification.
-- A verified Review binds the source candidate, Profile, facts, selection,
-  Rule Packs, critical flows, verifier, run, and Finding semantics.
-- An accepted Decision binds a verified Review and the exact selected
-  knowledge snapshot.
-- A Plan binds confirmed Finding fingerprints, accepted Decision knowledge,
-  assumptions, migration steps, rollback, and acceptance evidence.
-- A gate reads trusted artifacts; it does not promote candidates.
+- candidate Reviews are not trusted conclusions;
+- verified Reviews bind facts, selection, rules, critical flows, evidence, and
+  Finding semantics;
+- proposed Decisions bind a verified Review or Brief and Knowledge snapshot;
+- accepted Decisions authorize planning but not implementation;
+- remediation Plans bind Finding fingerprints, while Greenfield Plans bind the
+  Brief and target architecture with empty Finding lists; and
+- the gate consumes only schema-valid, hash-bound trusted artifacts.
 
-Schema `1.2` adds these bindings without invalidating readable `1.0` or trusted
-`1.1` history. Aggregate Portfolio Reviews continue to use the 1.1
-system-of-systems contract while binding each registered repository's facts
-and selection as evidence.
-
-## Determinism and safety
-
-Runtime scripts use no network, telemetry, credentials, or shell execution.
-Repository scope is contained under an explicit root. Outputs refuse overwrite
-unless the command exposes and receives an explicit force flag. Packaging is
-runtime-only, sorted, timestamp-stable, checksummed, and SBOM-covered.
-
-The accepted boundary decision is
-[workflow, knowledge, and script separation](decisions/2026-07-29-adopt-workflow-knowledge-script-separation.md).
+The accepted boundary is recorded in
+[the 1.0 constrained-target ADR](decisions/2026-08-06-add-constrained-target-architecture.md).

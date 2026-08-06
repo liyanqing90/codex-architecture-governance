@@ -2,6 +2,105 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local.architecture/schemas/architecture-design-brief.schema.json",
   "title": "Greenfield architecture design brief",
+  "$defs": {
+    "fileEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "description"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "description": {"type": "string", "minLength": 8}
+      }
+    },
+    "sshSignature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "identity", "namespace", "path"],
+      "properties": {
+        "format": {"const": "ssh"},
+        "identity": {"type": "string", "minLength": 1},
+        "namespace": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1}
+      }
+    },
+    "architectureConstraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "disposition",
+        "target",
+        "scope",
+        "authority",
+        "rationale",
+        "review_when"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9._-]{2,63}$"
+        },
+        "kind": {
+          "enum": [
+            "architecture-style",
+            "pattern",
+            "technology",
+            "platform",
+            "deployment",
+            "data",
+            "integration",
+            "security",
+            "compliance"
+          ]
+        },
+        "disposition": {
+          "enum": ["required", "preferred", "prohibited"]
+        },
+        "target": {
+          "type": "string",
+          "minLength": 3
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 3
+        },
+        "authority": {
+          "type": "string",
+          "minLength": 3
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 8
+        },
+        "review_when": {
+          "type": "string",
+          "minLength": 3
+        },
+        "knowledge_id": {
+          "type": "string",
+          "minLength": 3
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["architecture-style", "pattern", "technology"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {"required": ["knowledge_id"]}
+        }
+      ]
+    }
+  },
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -16,7 +115,17 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.0"
+      "enum": ["1.0", "1.1"]
+    },
+    "design_mode": {
+      "enum": ["open", "constrained"]
+    },
+    "architecture_constraints": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/architectureConstraint"
+      }
     },
     "brief": {
       "type": "object",
@@ -42,6 +151,39 @@
         },
         "status": {
           "enum": ["draft", "approved", "superseded"]
+        },
+        "approval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "approved_by",
+            "approved_at",
+            "authority",
+            "evidence",
+            "signatures"
+          ],
+          "properties": {
+            "approved_by": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            },
+            "approved_at": {"type": "string", "format": "date-time"},
+            "authority": {"type": "string", "minLength": 3},
+            "evidence": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"$ref": "#/$defs/fileEvidence"}
+            },
+            "signatures": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"$ref": "#/$defs/sshSignature"}
+            }
+          }
         },
         "supersedes": {
           "type": "string",
@@ -232,5 +374,67 @@
       "type": "array",
       "items": {"type": "string", "minLength": 3}
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.1"}
+        },
+        "required": ["schema_version"]
+      },
+      "then": {
+        "required": ["design_mode", "architecture_constraints"],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "design_mode": {"const": "constrained"}
+              },
+              "required": ["design_mode"]
+            },
+            "then": {
+              "properties": {
+                "architecture_constraints": {
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "design_mode": {"const": "open"}
+              },
+              "required": ["design_mode"]
+            },
+            "then": {
+              "properties": {
+                "architecture_constraints": {
+                  "maxItems": 0
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.1"},
+          "brief": {
+            "properties": {"status": {"const": "approved"}},
+            "required": ["status"]
+          }
+        },
+        "required": ["schema_version", "brief"]
+      },
+      "then": {
+        "properties": {
+          "brief": {"required": ["approval"]}
+        }
+      }
+    }
+  ]
 }

@@ -1,120 +1,129 @@
 ---
 name: architecture-solution-advisor
-description: Compares architecture styles, patterns, technologies, keep-current options, and emerging upgrades or replacements for confirmed findings or an approved Greenfield design brief with explicit quality-attribute scenarios. Use after architecture verification for remediation, or before implementation for a new system, when a project needs a target architecture, technology-evolution assessment, technology selection, ADR-like decision, tradeoff analysis, or a reasoned choice between monoliths, services, events, workflows, agent runtimes, mobile data models, or shared portfolio capabilities. Emerging candidates require current official evidence, a measurable gap, compatibility and migration analysis, and bounded shadow or pilot evidence; popularity or novelty is not a recommendation. Produces an architecture decision, not an implementation plan or code change.
+description: Compare, design, specify, or constrain an architecture for a verified remediation Review or an approved Design Brief. Use for open or constrained target architecture, technology and pattern selection, ADR-like decisions, trade-off analysis, and bounded technology-evolution assessment. Required, preferred, and prohibited constraints are challenged inputs; they are not proof. Produce a decision and target architecture, never an implementation plan or code change.
 ---
 
 # Advise an architecture solution
 
-Select the least-complex option that satisfies current evidence, quality
-attributes, team capability, cost, and migration constraints.
+Produce the least-complex target that satisfies the evidence, quality scenarios,
+accountable constraints, and operating reality. Keep the decision proposed until
+an authorized decision maker accepts it.
 
-## Establish a valid decision context
+## Establish the source and design mode
 
 Read `../../resources/references/review-contract.md`,
-`../../resources/references/solution-decision-contract.md`, the project
-Profile, constraints, critical flows, and this Skill's
-`references/decision-artifact-workflow.md` before creating artifacts.
+`../../resources/references/solution-decision-contract.md`, the project Profile,
+constraints, critical flows, and
+`references/decision-artifact-workflow.md` completely before creating artifacts.
 
 Choose exactly one source mode:
 
-- **Remediation:** use a verified Review and its bound repository facts and
-  knowledge selection.
-- **Greenfield:** use an approved, validated Design Brief. Do not manufacture
-  an empty Review.
+- **Remediation:** bind a verified Review and its repository facts, critical-flow
+  coverage, and Knowledge selection. Include only confirmed unresolved Findings.
+- **Legacy open Greenfield:** continue to read an approved Design Brief 1.0 and
+  its Decision 1.3 chain. Do not manufacture a Review or Finding list.
+- **Current Greenfield target:** bind an approved Design Brief 1.1. Honor its
+  explicit `open` or `constrained` design mode; constrained mode binds every
+  declared constraint record. Treat the Brief as the design question, not as
+  independent proof.
 
-Create a decision-specific knowledge selection. Read the selected Markdown
-entries completely. Default discretionary Advisor context to Golden Knowledge.
-Allow standard Knowledge only for a required contract dependency, an explicit
-caller include, maintainer mode, or an exact detected technology/profile
-domain without a declared Golden replacement. A shared broad domain or task
-trigger is never a replacement match.
+Stop when remediation has no confirmed unresolved Finding, Greenfield has no
+approved brief or measurable scenario, or the decision owner is missing. Do not
+invent scale, budget, team capability, compliance, migration requirements, or
+observations.
 
-Stop when remediation has no confirmed unresolved Finding, or Greenfield work
-has no approved brief, measurable quality scenario, or decision authority. Do
-not invent scale, team, budget, compliance, or migration requirements.
+Use the open mode when the brief asks what architecture should satisfy its
+scenarios without typed constraints. Use the constrained mode when it declares
+required, preferred, or prohibited constraints and asks for a compliant target.
+A constrained request is still advisor work; do not route it to a new Skill.
 
-## Assess technology evolution without trend recommendations
+## Normalize and challenge constraints
 
-Treat an emerging architecture or technology candidate as a hypothesis to
-assess, never as a reason to change. This is an assessment lens within the
-Remediation or Greenfield source modes above, not a third source mode or a
-market-scanning workflow. Stop when there is no valid source context. A request
-that supplies only a trend, vendor announcement, popularity signal, or vague
-upgrade wish must first establish repository evidence or an approved brief.
+Record each constraint with its kind, disposition, target, scope, accountable
+authority, rationale, and review trigger:
 
-Before comparing a candidate, record all of the following in the companion
-Markdown decision record described by `references/decision-artifact-workflow.md`:
+- **required:** challenge conflicts, ambiguity, infeasibility, and hidden
+  consequences. Keep a required constraint only when the authority and evidence
+  survive that challenge. Produce variants that comply with every surviving hard
+  requirement; if none exists, stop with the conflict instead of weakening it.
+- **preferred:** compare it as a weighted preference. It may lose to a quality,
+  safety, cost, or compatibility trade-off; record why.
+- **prohibited:** hard-eliminate an option that violates the prohibition and
+  record the exact reason. Do not score it as a merely weak alternative.
 
-1. The keep-current/local-correction baseline, including the current owner,
-   operating model, and consequence of doing nothing.
-2. A measurable capability or quality gap: scenario, current observation,
-   target, measurement method, evidence location, and decision threshold. A
-   hypothetical future scale or benefit is an unknown, not a gap.
-3. A volatile-claims register. For every version, support/lifecycle,
-   compatibility, security, license, pricing, service-limit, roadmap, or
-   benchmark claim, cite a current official source, publisher, URL, scope,
-   review date, and freshness decision. If a current official source is
-   unavailable or stale, record the claim as unknown and do not use it to
-   select the candidate.
-4. Compatibility and migration cost across public and persisted contracts,
-   consumers, data, deployment, mixed versions, and the cost of exit.
-5. Operational and team fit: accountable owner, on-call or support burden,
-   required skills, observability, failure handling, security, and total
-   operating cost. Documentation of capability does not prove fit.
-6. Lock-in and reversibility: proprietary APIs or data formats, portability,
-   exit path, rollback point, rollback data semantics, and irreversible gate.
-7. Shadow or pilot evidence with a bounded cohort, success and stop criteria,
-   observed quality/cost/operational measures, and evidence owner. If a safe
-   shadow or pilot is applicable but has not run, select keep-current or a
-   bounded evidence-only option; do not select adoption.
-8. Explicit revisit triggers with a metric or event, threshold, owner, review
-   date or cadence, and evidence that will reopen the comparison.
+Inputs, owner assertions, and Knowledge guidance do not prove that a constraint
+is feasible or that a selected architecture works. Distinguish fact, inference,
+assumption, unknown, and constraint assessment in the artifact. Never turn a
+technology name, detected dependency, preference, or “must” in prose into an
+observed fact.
 
-The assessment must include keep-current, the smallest compatible correction,
-and a materially viable upgrade or replacement when evidence supports one.
-Select a replacement only when the measured gap remains after the current
-baseline is tested and the candidate's compatibility, fit, rollback, and
-shadow/pilot evidence are sufficient. A valid outcome is keep-current and
-revisit later; do not manufacture a recommendation to fill an emerging-tech
-request. Acceptance of a proposed decision remains a separate authority act.
+## Select Knowledge and compare options
 
-## Compare viable options
+Create a decision-specific Knowledge selection and read every selected Markdown
+entry completely after its compact context validates. Bind selected IDs,
+versions, and SHA-256 values. Default discretionary context to Golden Knowledge;
+use Standard entries only for required contract dependencies, explicit includes,
+maintainer mode, or an exact detected domain without a declared Golden
+replacement.
 
-1. Restate the problem as quality-attribute scenarios: source, stimulus,
-   environment, owning component, response, and measurable outcome.
-2. Map runtime units, data owners, integration, deployment, and team
-   responsibility from evidence, not directory names.
-3. Record constraints and assumptions that would change the decision.
-4. Generate a keep-current/local-correction option, the smallest viable
-   structural improvement, and one materially viable alternative when evidence
-   supports it.
-5. Reject broad microservices without independent deployment and team
-   autonomy; durable workflow when queue plus database state is enough; event
-   sourcing for ordinary CRUD without temporal value; offline-first when server
-   authority plus cache fits; and multi-agent orchestration when a fixed
-   workflow or one agent suffices.
-6. Compare every surviving option by business fit, quality effects, team
-   capability, implementation and operational complexity, migration risk,
-   reversibility, cost, maturity, and lock-in. For an emerging candidate,
-   include measured gap, official-evidence freshness, shadow/pilot result,
-   and exit cost in the comparison.
-7. Select one option and explain why every non-selected option loses under
-   current evidence.
-8. Record measurable revisit triggers. Do not treat a score, benchmark, vendor
-   claim, or current official capability statement as proof of project fit.
+Restate quality-attribute scenarios with source, stimulus, environment, owning
+unit, response, and measure. Map current and proposed runtime units, deployment
+units, data owners, interfaces, trust boundaries, critical flows, and operations
+from evidence and the Brief. Compare at least:
 
-Treat framework documentation as capability evidence, not fit proof. Verify
-volatile claims against current official sources and record the review date.
+1. keep-current or the smallest local correction;
+2. the smallest compatible structural improvement; and
+3. a materially viable alternative when current evidence supports one.
 
-## Produce a decision, not a plan
+Compare business fit, quality effects, team fit, runtime and deployment burden,
+data and interface compatibility, migration and rollback, operations, cost,
+maturity, reversibility, and lock-in. Reject broad microservices, durable
+workflow, event sourcing, offline-first, or multi-agent designs when their
+independent invariant is not evidenced. Explain why every non-selected option
+loses, including hard eliminations.
 
-Write the bound Architecture Decision YAML and companion Markdown in the
-configured review directory. Keep the decision proposed until an authorized
-decision maker accepts it. Include at least three options, hard eliminations,
-rejection reasons, known facts, assumptions, unknowns, compatible migration or
-implementation slices, rollback, validation, and stop conditions.
+## Technology evolution is a narrow lens, not trend recommendations
 
-Use the command and schema procedures in
-`references/decision-artifact-workflow.md` to select Knowledge, obtain
-bindings, choose the correct decision schema, and validate the result. Do not
-implement code or create a remediation plan in this workflow.
+Use `technology-evolution` only when the user explicitly asks about an emerging
+technology, upgrade, or replacement and a valid Remediation or Greenfield source
+context exists. Require the companion assessment's measured gap, current
+official evidence for volatile claims, compatibility, migration, operational and
+team fit, lock-in, rollback, bounded shadow or pilot evidence, or an explicit
+keep-current disposition, and measurable
+revisit triggers. A newer release, popularity, vendor claim, benchmark, or
+Knowledge capability statement is not project fit. Do not put version pins in an
+artifact from memory; record a version only when it is bound to current official
+evidence or repository evidence.
+
+## Produce the decision and target architecture
+
+Write the bound Architecture Decision YAML and companion Markdown under the
+configured review directory. Preserve Decision 1.3 for existing Brief 1.0
+chains. Use Decision 1.4 for new Brief 1.1 targets in either open or constrained
+mode. Validate the exact source, selection, and evidence hashes.
+
+Every 1.4 Decision must include a target architecture with:
+
+- runtime units with responsibilities, accountable owners, deployment-unit
+  references, and Knowledge-bound technology IDs;
+- deployment units with environment, owner, rollout, mixed-version, and on-call
+  behavior;
+- data ownership with stable ID, owning runtime unit, store, lifecycle,
+  consistency, and recovery;
+- interfaces and external systems with stable endpoints, contracts,
+  compatibility, evolution, and trust-boundary references;
+- structured trust boundaries covering identities, permissions, secrets,
+  untrusted inputs, and controls;
+- an exact binding from every Brief critical flow to runtime units, including
+  failure outcome, recovery, and measure;
+- operational deployment, observability, recovery, capacity, backup/restore,
+  on-call, and incident controls;
+- one assessment for every required, preferred, and prohibited constraint; and
+- the exact Knowledge selection and hashes used to reason about the target.
+
+Keep `problem.finding_ids` empty for all Greenfield decisions. Do not implement
+the target or create a remediation plan in this workflow. Use the remediation
+planner only after the decision is accepted.
+
+Use the commands and binding procedures in
+`references/decision-artifact-workflow.md` to validate the result.

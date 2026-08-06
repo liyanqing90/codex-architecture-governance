@@ -3,6 +3,442 @@
   "$id": "https://local.architecture/schemas/architecture-decision.schema.json",
   "title": "Architecture solution decision",
   "$defs": {
+    "constraintAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["constraint_id", "status", "rationale"],
+      "properties": {
+        "constraint_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9._-]{2,63}$"
+        },
+        "status": {
+          "enum": ["satisfied", "violated", "unknown", "not-applicable"]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 8
+        },
+        "knowledge_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "target_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        }
+      }
+    },
+    "runtimeUnit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "responsibility",
+        "owner",
+        "deployment_unit",
+        "technologies"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "responsibility": {
+          "type": "string",
+          "minLength": 8
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 3
+        },
+        "deployment_unit": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "technologies": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^technology\\.[a-z0-9][a-z0-9._-]*$"
+          }
+        }
+      }
+    },
+    "deploymentUnit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "environment",
+        "owner",
+        "rollout",
+        "mixed_version",
+        "on_call"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "environment": {
+          "type": "string",
+          "minLength": 3
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 3
+        },
+        "rollout": {
+          "type": "string",
+          "minLength": 8
+        },
+        "mixed_version": {
+          "type": "string",
+          "minLength": 8
+        },
+        "on_call": {
+          "type": "string",
+          "minLength": 3
+        }
+      }
+    },
+    "dataOwnership": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "data",
+        "owner",
+        "store",
+        "lifecycle",
+        "consistency",
+        "recovery"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "data": {
+          "type": "string",
+          "minLength": 3
+        },
+        "owner": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "store": {
+          "type": "string",
+          "minLength": 3
+        },
+        "lifecycle": {
+          "type": "string",
+          "minLength": 8
+        },
+        "consistency": {
+          "type": "string",
+          "minLength": 8
+        },
+        "recovery": {
+          "type": "string",
+          "minLength": 8
+        }
+      }
+    },
+    "externalSystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "owner", "trust_boundary"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 3
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 3
+        },
+        "trust_boundary": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        }
+      }
+    },
+    "architectureInterface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "from",
+        "to",
+        "contract",
+        "mode",
+        "compatibility",
+        "evolution"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "contract": {
+          "type": "string",
+          "minLength": 3
+        },
+        "mode": {
+          "enum": ["sync", "async", "batch", "file"]
+        },
+        "compatibility": {
+          "type": "string",
+          "minLength": 8
+        },
+        "evolution": {
+          "type": "string",
+          "minLength": 8
+        }
+      }
+    },
+    "trustBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "runtime_units",
+        "identities",
+        "permissions",
+        "secrets",
+        "untrusted_inputs",
+        "controls"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 8
+        },
+        "runtime_units": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "identities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 3}
+        },
+        "permissions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 3}
+        },
+        "secrets": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 3}
+        },
+        "untrusted_inputs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 3}
+        },
+        "controls": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 3}
+        }
+      }
+    },
+    "criticalFlowBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "flow_id",
+        "runtime_units",
+        "failure_outcome",
+        "recovery",
+        "measure"
+      ],
+      "properties": {
+        "flow_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "runtime_units": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        },
+        "failure_outcome": {
+          "type": "string",
+          "minLength": 8
+        },
+        "recovery": {
+          "type": "string",
+          "minLength": 8
+        },
+        "measure": {
+          "type": "string",
+          "minLength": 8
+        }
+      }
+    },
+    "targetArchitecture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "option_id",
+        "runtime_units",
+        "deployment_units",
+        "data_ownership",
+        "interfaces",
+        "external_systems",
+        "trust_boundaries",
+        "critical_flow_bindings",
+        "operational_model"
+      ],
+      "properties": {
+        "option_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "runtime_units": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/runtimeUnit"
+          }
+        },
+        "deployment_units": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/deploymentUnit"
+          }
+        },
+        "data_ownership": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/dataOwnership"
+          }
+        },
+        "interfaces": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/architectureInterface"
+          }
+        },
+        "external_systems": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/externalSystem"
+          }
+        },
+        "trust_boundaries": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/trustBoundary"
+          }
+        },
+        "critical_flow_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/criticalFlowBinding"
+          }
+        },
+        "operational_model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "deployment",
+            "observability",
+            "recovery",
+            "capacity",
+            "backup_restore",
+            "on_call",
+            "incident_controls"
+          ],
+          "properties": {
+            "deployment": {
+              "type": "string",
+              "minLength": 8
+            },
+            "observability": {
+              "type": "string",
+              "minLength": 8
+            },
+            "recovery": {
+              "type": "string",
+              "minLength": 8
+            },
+            "capacity": {
+              "type": "string",
+              "minLength": 8
+            },
+            "backup_restore": {
+              "type": "string",
+              "minLength": 8
+            },
+            "on_call": {
+              "type": "string",
+              "minLength": 3
+            },
+            "incident_controls": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 3
+              }
+            }
+          }
+        }
+      }
+    },
     "fileEvidence": {
       "type": "object",
       "additionalProperties": false,
@@ -33,7 +469,7 @@
   "required": ["schema_version", "decision", "problem", "knowledge_snapshot", "options", "selected_option", "rationale", "revisit_triggers"],
   "properties": {
     "schema_version": {
-      "enum": ["1.1", "1.2", "1.3"]
+      "enum": ["1.1", "1.2", "1.3", "1.4"]
     },
     "decision": {
       "type": "object",
@@ -57,6 +493,9 @@
         },
         "assessment_kind": {
           "enum": ["standard", "technology-evolution"]
+        },
+        "architecture_intent": {
+          "enum": ["option-decision", "target-architecture"]
         },
         "source_context": {
           "type": "string",
@@ -324,6 +763,13 @@
           "rejected_reasons": {
             "type": "array",
             "items": {"type": "string", "minLength": 3}
+          },
+          "constraint_assessments": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/constraintAssessment"
+            }
           }
         }
       }
@@ -343,6 +789,9 @@
         "type": "string",
         "minLength": 3
       }
+    },
+    "target_architecture": {
+      "$ref": "#/$defs/targetArchitecture"
     },
     "acceptance_evidence": {
       "type": "array",
@@ -692,7 +1141,7 @@
       "if": {
         "properties": {
           "schema_version": {
-            "enum": ["1.2", "1.3"]
+            "enum": ["1.2", "1.3", "1.4"]
           }
         },
         "required": ["schema_version"]
@@ -712,6 +1161,71 @@
           "knowledge_snapshot": {
             "items": {
               "required": ["id", "version", "sha256"]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.4"}
+        },
+        "required": ["schema_version"]
+      },
+      "then": {
+        "required": ["target_architecture"],
+        "properties": {
+          "decision": {
+            "required": [
+              "decision_kind",
+              "architecture_intent",
+              "source_context",
+              "source_context_sha256"
+            ],
+            "properties": {
+              "decision_kind": {"const": "greenfield"},
+              "architecture_intent": {"const": "target-architecture"}
+            }
+          },
+          "problem": {
+            "properties": {
+              "finding_ids": {"maxItems": 0}
+            }
+          },
+          "options": {
+            "items": {
+              "properties": {
+                "technologies": {
+                  "items": {
+                    "pattern": "^technology\\.[a-z0-9][a-z0-9._-]*$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "1.4"},
+          "decision": {
+            "properties": {
+              "architecture_intent": {"const": "target-architecture"}
+            },
+            "required": ["architecture_intent"]
+          }
+        },
+        "required": ["schema_version", "decision"]
+      },
+      "then": {
+        "required": ["target_architecture"],
+        "properties": {
+          "options": {
+            "items": {
+              "required": ["constraint_assessments"]
             }
           }
         }

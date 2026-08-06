@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941" role="img" aria-labelledby="title desc">
+  <title id="title">从仓库事实与约束到目标架构</title>
+  <desc id="desc">青野角色在校准装置中检验必需、偏好和禁止约束，并依据仓库事实搭出目标架构。</desc>
+  <image href="../source/03-facts-constraints-target-base.png" width="1672" height="941"/>
+
+  <g fill="none" stroke="#6D7078" stroke-width="2">
+    <path d="M224 316 253 381"/>
+    <path d="M1397 301 1452 421"/>
+  </g>
+  <g fill="#FFFFFF" opacity="0.94">
+    <rect x="560" y="546" width="82" height="38"/>
+    <rect x="700" y="546" width="82" height="38"/>
+    <rect x="841" y="546" width="82" height="38"/>
+  </g>
+  <g font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-weight="600">
+    <text x="105" y="286" fill="#173FBE" font-size="28" letter-spacing="5">仓库事实</text>
+    <text x="574" y="572" fill="#161719" font-size="22" letter-spacing="4">必需</text>
+    <text x="714" y="572" fill="#6D7078" font-size="22" letter-spacing="4">偏好</text>
+    <text x="855" y="572" fill="#C9352B" font-size="22" letter-spacing="4">禁止</text>
+    <text x="1392" y="270" fill="#173FBE" font-size="28" letter-spacing="5">目标架构</text>
+  </g>
+</svg>

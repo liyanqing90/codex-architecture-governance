@@ -2,7 +2,7 @@
   <img
     src="docs/assets/brand/zh-CN/hengmu-banner.png"
     width="100%"
-    alt="衡木——证据化的软件工程决策系统；青野开源项目"
+    alt="衡木——受证据约束的架构设计与决策系统；青野开源项目"
   >
 </p>
 
@@ -16,7 +16,7 @@
     <img alt="CI" src="https://github.com/qingye-lab/hengmu/actions/workflows/ci.yml/badge.svg?branch=main">
   </a>
   <a href="https://github.com/qingye-lab/hengmu/releases">
-    <img alt="版本 0.4.2" src="https://img.shields.io/badge/version-0.4.2-173FBE">
+    <img alt="版本 1.0.0" src="https://img.shields.io/badge/version-1.0.0-173FBE">
   </a>
   <img alt="Python 3.11–3.13" src="https://img.shields.io/badge/python-3.11%E2%80%933.13-161719">
   <a href="LICENSE">
@@ -35,13 +35,19 @@
 
 ---
 
-衡木是一个本地优先、受证据约束的软件工程决策系统。它打通了从系统审查、
-问题独立核实到技术方案决策、改造规划和确定性质量门禁的完整闭环。
+衡木是一个本地优先、受证据约束的架构设计、决策与治理系统。它把仓库事实、
+已批准的设计意图和明确约束，转化为受证据约束的现状审查、开放式或受约束的
+目标架构、可追溯决策、可执行计划和确定性策略结果。
 
-架构是连接这些问题的系统视角，不是衡木唯一评估或决策的对象。当前审查规则
-覆盖性能效率、可靠性、安全与隐私边界、数据与 API 契约、可观测性、测试、
-部署、技术债和设计比例性；方案决策能力还支持目标架构、技术选型、模式比较，
-以及新项目或问题改造场景下的方案权衡。
+现状审查与目标设计是两条同等重要的入口。既有系统可以从候选问题出发，经过
+独立核实形成改造决策；新系统或重大重构可以从已批准的 Design Brief 出发，
+直接形成完整目标架构，不虚构 Review 或 Finding。必需、偏好和禁止约束都要
+接受挑战，不能被当作可行性或适配性的证明。
+
+这一架构视角覆盖性能效率、可靠性、安全与隐私边界、数据与 API 契约、
+可观测性、测试、部署、技术债、设计比例性、技术选型与运行现实。专项视角还
+覆盖 AI Agent 的 Context 与经济性、Memory、工具权限、隐私、行为证据、
+技术演进、移动系统和多项目组合。
 
 它同时覆盖两个层级：
 
@@ -51,10 +57,10 @@
 
 | 能力 | 衡木做什么 |
 | --- | --- |
-| 系统审查 | 审查结构与工程质量，包括有运行证据支撑的性能预算和运行行为。 |
-| 技术方案 | 比较维持现状与结构性方案，权衡质量、成本、复杂度、成熟度、锁定、迁移风险和可逆性。 |
-| 专项审查 | 为 AI Agent、移动应用和多项目组合提供专门检查视角。 |
-| 决策治理 | 把事实、证据、来源、权限、改造与确定性策略绑定为可审计链路。 |
+| 现状审查 | 审查边界与工程质量，并让问题保持候选状态，直到独立核实完成证据解析。 |
+| 目标架构设计 | 围绕运行与部署单元、数据所有权、接口、信任边界、关键链路、运维和技术选择，设计开放式或受约束目标。 |
+| 决策与计划 | 比较可行方案、记录未选方案为何落选，再把已授权决策转成有顺序的改造或 Greenfield 实施切片。 |
+| 证据治理 | 把事实、Knowledge、来源、权限、接受状态和确定性策略绑定为一条可审计链路。 |
 
 ## 为什么选择衡木
 
@@ -64,6 +70,7 @@
 | 常见审核失效方式 | 衡木的应对 |
 | --- | --- |
 | 模型看到大文件或单例，就直接认定架构有问题。 | 候选问题必须经过独立核实和证据解析，才能成为可信结论。 |
+| 团队指定了技术栈，却没有目标架构或明确取舍。 | 衡木会挑战必需、偏好和禁止约束，比较合规变体，并记录完整目标架构，而不是把技术名称当作证明。 |
 | 缺失能力只被当作批评，却没有形成设计。 | 已确认缺口会进入方案比较、改造切片、回滚、测试和验收标准。 |
 | 每个项目复制同一份架构提示词，随后逐渐分叉。 | 一套全局方法读取仓库本地的 Profile 和真实约束。 |
 | 单看每个仓库都合理，放在一起却重复建设基础设施。 | 项目组合审核会建模共享能力、依赖、数据流、所有权和耦合。 |
@@ -71,8 +78,8 @@
 
 <p align="center">
   <img
-    src="assets/hengmu-readme-illustrations/zh-CN/01-from-critique-to-closure.png"
-    alt="青野角色先用代码证据量出真实缺口，再把改造楔块拉入承重结构"
+    src="assets/hengmu-readme-illustrations/zh-CN/03-facts-constraints-target.png"
+    alt="青野角色校准仓库事实与必需、偏好、禁止约束，并搭出目标架构"
     width="100%"
   >
 </p>
@@ -131,7 +138,9 @@ python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
 └── reviews/
 ```
 
-### 3. 在 Codex 中运行审计
+### 3. 在 Codex 中选择目标
+
+对于既有系统，从现状审查开始：
 
 ```text
 使用 $hengmu 审计当前仓库。
@@ -147,7 +156,35 @@ $hengmu 核实最新的候选问题
 $hengmu 比较队列与持久工作流方案
 ```
 
-也可以直接从这一步开始：Skill 会调用准备命令，并在缺失时自动初始化
+对于新系统或重大重构，先补充并批准 Design Brief，再要求开放式或受约束目标：
+
+```bash
+if [ ! -e /path/to/your-project/.architecture/architecture-design-brief.yaml ]; then
+  cp "$HENGMU_ROOT/resources/templates/architecture-design-brief.yaml" \
+    /path/to/your-project/.architecture/architecture-design-brief.yaml
+fi
+
+python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
+  validate-design-brief \
+  /path/to/your-project/.architecture/architecture-design-brief.yaml \
+  --project /path/to/your-project
+```
+
+复制得到的模板固定为 `draft`。改成 `approved` 前，必须补充
+`brief.approval`：包括 Gate 策略授权的决策者身份，以及至少一条仓库内批准证据的
+路径和 SHA-256，并为每位批准者提供一份 detached SSH 签名。签名必须通过项目
+`artifact_signatures` 策略验证。验证器不会把模板作者或一个状态字符串当成批准。
+
+```text
+$hengmu 根据已批准的 Design Brief 设计开放式目标架构
+$hengmu 把目标限定为 FastAPI、PostgreSQL 和一个生产部署单元；逐项挑战约束并记录落选方案
+```
+
+当前 Brief 1.1 路径会生成带完整目标架构的拟议 Decision 1.4。衡木不会代替
+用户批准 Brief 或 Decision，也不会实现业务代码。具名决策者接受 Decision 后，
+`$hengmu plan …` 可以生成 Greenfield Plan 1.3。
+
+审查路径也可以直接从这一步开始：Skill 会调用准备命令，并在缺失时自动初始化
 `.architecture/`。只有明确要求“只读”时，才会执行不写入仓库产物的一次性
 Advisory 审计。
 
@@ -176,18 +213,23 @@ python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
 
 python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
   gate --project /path/to/your-project --stage change
+
+python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
+  gate --project /path/to/your-project \
+  --decision .architecture/reviews/<greenfield-decision.yaml> --stage change
 ```
 
 门禁退出码：`0` 表示通过，`1` 表示策略不通过，`2` 表示输入或配置无效。
 
 ## 工作原理
 
-衡木把模型判断与确定性信任分开。候选审计是有价值的输入，但它本身不是策略。
+衡木把模型判断与确定性信任分开。它支持两条来源路径；候选审计和约束声明
+都不是策略或证明。
 
 <p align="center">
   <img
     src="diagrams/zh-CN/hengmu-governance-loop.svg"
-    alt="仓库证据、项目画像、约束、规则和已选择知识进入候选审计，随后依次经过独立核实、可信审核、方案决策、改造计划和确定性质量门禁"
+    alt="仓库事实和已批准 Design Brief 分别进入现状审查或开放式、受约束目标设计路径，最终汇合到授权决策、计划和确定性门禁"
     width="100%"
   >
 </p>
@@ -196,14 +238,17 @@ python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
 [Mermaid 源文件](diagrams/zh-CN/hengmu-governance-loop.mmd)和
 [可编辑 Excalidraw 文件](diagrams/zh-CN/hengmu-governance-loop.excalidraw)。
 
-1. **建立事实。** 检查仓库，但不把检测到的技术或文件名直接变成建议。
-2. **加载上下文。** 绑定 Profile、约束、关键链路、已选择 Rule Pack 和任务范围内的 Knowledge。
-3. **执行审计。** 产出候选问题，包括重要的缺失能力及其可能影响。
-4. **独立核实。** 挑战每个候选问题，解析证据，并保留被否定的假设和局限。
-5. **比较决策。** 围绕质量、业务、团队、演进、锁定、迁移风险和成本，
-   比较维持现状与结构性方案。
-6. **规划改造。** 把已接受方案拆成有顺序的切片、保护措施、回滚、
-   停止条件和验收证据。
+1. **建立事实与意图。** 检查仓库并绑定 Profile；目标设计还需要一份包含
+   可度量场景和边界的已批准 Brief。
+2. **加载上下文。** 绑定约束、关键链路、已选择 Rule Pack 和任务范围内的
+   Knowledge，但不把检测到的技术或所有者声明变成证明。
+3. **审查或设计。** 既有系统产出候选问题并进入独立核实；Greenfield 工作
+   根据已批准 Brief 比较开放式或符合约束的目标，不制造 Finding。
+4. **形成决策。** 记录目标、落选方案、取舍、完整架构模型、来源绑定和拟议状态。
+5. **完成授权。** 具名决策者接受、拒绝或替代 Decision；衡木路由器和方案顾问
+   都不能执行这一权限转换。
+6. **制定计划。** 把已接受的改造或 Greenfield 目标拆成有顺序的实施切片、
+   保护措施、回滚、停止条件和验收证据。
 7. **执行门禁。** 对绑定来源的产物应用确定性的契约、问题、变更或发布策略。
 
 ## 一套方法，多个项目
@@ -213,7 +258,8 @@ python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
 - `profile.yaml`：项目类型、关键质量属性和必需审核；
 - `constraints.md`：真实的技术、产品、监管和团队限制；
 - `critical-flows.md`：不能回归的业务和运行链路；
-- `reviews/`：候选、核实、决策、计划和证据历史。
+- `architecture-design-brief.yaml`：目标意图、质量场景、边界和类型化约束；
+- `reviews/`：候选与可信 Review、Decision、Plan 和证据历史。
 
 <p align="center">
   <img
@@ -231,17 +277,15 @@ python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
 可安装插件公开一个稳定入口和八个聚焦的工作流 Skill。日常只需使用
 `$hengmu`；原始 Skill 名称继续供自动化和兼容调用。
 
-| 你输入的内容 | 执行结果 |
-| --- | --- |
-| `$hengmu` | 显示完整菜单，并根据仓库已声明的上下文推荐可能的下一步。 |
-| `$hengmu audit …` | 审查单个仓库。 |
-| `$hengmu ai …` | 审查 AI / Agent 系统。 |
-| `$hengmu mobile …` | 审查移动端系统。 |
-| `$hengmu portfolio …` | 审查多个已登记项目。 |
-| `$hengmu verify …` | 独立核实候选问题。 |
-| `$hengmu decide …` | 比较架构、技术和维持现状方案。 |
-| `$hengmu plan …` | 把已接受决策规划成安全迁移切片。 |
-| `$hengmu gate …` | 运行确定性策略门禁。 |
+| 你输入的内容 | 必需输入 | 输出 |
+| --- | --- | --- |
+| `$hengmu` | 已声明的仓库上下文（如有） | 菜单和只读下一步说明 |
+| `$hengmu audit/ai/mobile/portfolio …` | 仓库或组合事实与 Profile | 对应范围内的候选 Review |
+| `$hengmu verify …` | 候选 Review 与可解析证据 | 绑定来源的可信 Review |
+| `$hengmu decide …` | 可信 Review 或已批准 Design Brief | 拟议 Architecture Decision |
+| `$hengmu design/specify/constrain …` | 已批准 Brief 1.1、事实、约束和已选择 Knowledge | 带开放式或受约束目标架构的拟议 Decision 1.4 |
+| `$hengmu plan …` | 已接受的改造或 Greenfield Decision | 有顺序的改造 Plan 1.2 或 Greenfield Plan 1.3 |
+| `$hengmu gate …` | Schema 有效且绑定来源的产物 | 确定性策略结果与稳定退出码 |
 
 子命令不是必需的。像 `$hengmu 帮我比较这两个技术方案` 这样的自然语言，
 也会自动进入正确的聚焦工作流。
@@ -255,9 +299,27 @@ python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
 | 审计 | `mobile-architecture-audit` | 本地状态、同步、迁移、后台任务、通知、隐私、缓存和生命周期行为。 |
 | 审计 | `portfolio-architecture-audit` | 跨项目的重复建设、技术栈扩散、共享能力、依赖、数据流、所有权和隐性耦合。 |
 | 核实 | `architecture-finding-verifier` | 挑战候选问题、解析证据、分配 V0–V5 核实等级，并产出绑定来源的可信 Review。 |
-| 决策 | `architecture-solution-advisor` | 围绕质量、约束、团队能力、风险、成本和锁定，比较维持现状与结构性方案。 |
-| 变更 | `architecture-remediation-planner` | 把接受的决策转成迁移切片、保护、停止条件、回滚和验收标准。 |
+| 决策 | `architecture-solution-advisor` | 设计和比较开放式/受约束目标，挑战必需约束，记录偏好取舍，硬排除禁止选项，并绑定单元、链路、边界、运维和 Knowledge。 |
+| 计划 | `architecture-remediation-planner` | 把已接受的改造或 Greenfield 目标转成有顺序的实施切片、适用时的迁移控制、保护、停止条件、回滚和验收标准，不虚构 Finding。 |
 | 执行 | `architecture-quality-gate` | 对可信产物应用确定性的契约、问题、变更和发布策略。 |
+
+`$hengmu` 也可以基于现有产物解释只读生命周期状态和下一条有效工作流。
+它不会核实 Finding、接受 Decision、修改策略，或代替用户运行 Gate。
+
+### 项目自有的质量证据
+
+衡木把语言 Linter 和质量分析器视为可选 Evidence Provider，而不是架构真相。
+内置目录覆盖 Python、JavaScript/TypeScript、Rust、Go、Swift 和 Kotlin/JVM，
+也包含架构、契约、测试、运行时、安全与供应链 Provider。
+
+Provider 发现会区分适用标记、项目配置、启用状态、可执行文件可用性和就绪状态。
+缺失的可执行文件会保留为明确的“未评估”证据面。衡木不会隐式下载、安装、启用
+或添加依赖；如果安装工具能显著改善审查，它会先说明具体工具、范围、版本策略、
+命令、受影响文件和后果，再请求授权。
+
+Provider 通过只证明被捕获的命令、可执行文件、声明的项目依赖闭包、隔离缓存模式、
+配置、Commit 和输出字节。
+只有当结果绑定到适用不变量并经过独立审查后，才会成为架构证据。
 
 Knowledge 策展仅供维护者使用。其源工作流位于
 `maintainer/skills/architecture-knowledge-curator/`，不会扩大公开的最终用户 Skill 表面。
@@ -362,7 +424,7 @@ python3 resources/scripts/architecture_tool.py validate-knowledge-context \
 | [评估指南](docs/evaluation.md) | 行为 Benchmark、消融、评分和解释边界。 |
 | [Knowledge 编写](docs/knowledge-authoring.md) | 来源质量、新鲜度、Frontmatter 和策展规则。 |
 | [兼容性](docs/compatibility.md) | 支持的 Python、Schema、产物和版本边界。 |
-| [迁移到 0.4.2](docs/migrating-to-0.4.2.md) | 上下文精度、历史产物和当前运行时要求。 |
+| [迁移到 1.0](docs/migrating-to-1.0.md) | 开放/受约束 Brief/Decision/Plan 产物、共存和回滚。 |
 | [发布验证](docs/releasing.md) | 确定性 ZIP、校验和、SBOM 和 Attestation。 |
 | [实施矩阵](docs/comprehensive-review-implementation.md) | 审核建议如何映射为可执行能力与证据。 |
 | [自审历史](.architecture/reviews/README.md) | 衡木如何治理自身仓库。 |
@@ -396,8 +458,8 @@ python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/hengmu-0.4.2.zip \
-  --output dist/hengmu-0.4.2.spdx.json
+  --archive dist/hengmu-1.0.0.zip \
+  --output dist/hengmu-1.0.0.spdx.json
 ```
 
 CI 会在 Linux、macOS 和 Windows 上验证支持的 Python 边界。带 Tag 的发布

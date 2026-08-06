@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941" role="img" aria-labelledby="title desc">
+  <title id="title">From repository facts and constraints to a target architecture</title>
+  <desc id="desc">The Qingye builder tests required, preferred, and prohibited constraints in a calibration jig, using repository facts to assemble a target architecture.</desc>
+  <image href="../source/03-facts-constraints-target-base.png" width="1672" height="941"/>
+
+  <g fill="none" stroke="#6D7078" stroke-width="2">
+    <path d="M224 316 253 381"/>
+    <path d="M1397 301 1452 421"/>
+  </g>
+  <g fill="#FFFFFF" opacity="0.94">
+    <rect x="548" y="546" width="130" height="38"/>
+    <rect x="686" y="546" width="138" height="38"/>
+    <rect x="825" y="546" width="148" height="38"/>
+  </g>
+  <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="600">
+    <text x="92" y="286" fill="#173FBE" font-size="24" letter-spacing="3">REPOSITORY FACTS</text>
+    <text x="558" y="572" fill="#161719" font-size="18" letter-spacing="2">REQUIRED</text>
+    <text x="695" y="572" fill="#6D7078" font-size="18" letter-spacing="2">PREFERRED</text>
+    <text x="835" y="572" fill="#C9352B" font-size="18" letter-spacing="2">PROHIBITED</text>
+    <text x="1238" y="270" fill="#173FBE" font-size="22" letter-spacing="2">TARGET ARCHITECTURE</text>
+  </g>
+</svg>

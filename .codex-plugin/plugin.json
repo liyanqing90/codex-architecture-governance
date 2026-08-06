@@ -1,7 +1,7 @@
 {
   "name": "hengmu",
-  "version": "0.4.2",
-  "description": "Knowledge-backed architecture audits, solution decisions, verification, remediation, portfolio governance, and trustworthy deterministic gates for Codex.",
+  "version": "1.0.0",
+  "description": "Evidence-bound current-state assessment, open or constrained target-architecture design, decisions, planning, and deterministic governance for Codex.",
   "author": {
     "name": "Qingye Open Source",
     "url": "https://github.com/qingye-lab"
@@ -11,6 +11,8 @@
   "license": "MIT",
   "keywords": [
     "architecture",
+    "architecture-design",
+    "target-architecture",
     "audit",
     "governance",
     "quality-gate",
@@ -21,8 +23,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Hengmu",
-    "shortDescription": "Knowledge-backed architecture decisions and governance",
-    "longDescription": "Audit repositories and portfolios, verify evidence and provenance, compare architecture and technology options, record decisions, plan migrations, maintain sourced knowledge, benchmark behavior, and enforce trusted findings with layered deterministic policy. Local helpers require Python 3.11–3.13 with PyYAML and jsonschema.",
+    "shortDescription": "Evidence-bound architecture design and governance",
+    "longDescription": "Assess repositories and portfolios, design open or constrained target architectures, compare architecture and technology options, verify evidence and provenance, record decisions, plan remediation or Greenfield implementation, and enforce trusted artifacts with layered deterministic policy. Hengmu proposes artifacts; it does not accept decisions, implement application code, or run gates implicitly. Local helpers require Python 3.11–3.13 with PyYAML and jsonschema.",
     "developerName": "Qingye",
     "category": "Developer Tools",
     "capabilities": [
@@ -33,7 +35,7 @@
     "defaultPrompt": [
       "Use $hengmu to show the available engineering workflows for this repository.",
       "Use $hengmu to audit this repository and verify every architecture finding.",
-      "Use $hengmu to compare architecture options and record an evidence-backed decision."
+      "Use $hengmu to design an open or constrained target from an approved Brief and record a proposed decision."
     ]
   }
 }

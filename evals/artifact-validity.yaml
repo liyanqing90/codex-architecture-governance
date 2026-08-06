@@ -24,3 +24,23 @@ cases:
     artifact: Migrated Review
     mutation: Preserve a legacy confirmed status without independent 1.2 verification.
     expected: migration-must-downgrade-to-candidate
+  - id: constrained-brief-input-is-not-proof
+    artifact: Design Brief 1.1
+    mutation: Mark a required constraint as satisfied without an owner, source, conflict challenge, or resulting assessment.
+    expected: validation-error
+  - id: prohibited-option-hard-elimination
+    artifact: Architecture Decision 1.4
+    mutation: Keep an option that violates a prohibited constraint as a viable scored alternative.
+    expected: validation-error
+  - id: constrained-target-architecture-completeness
+    artifact: Architecture Decision 1.4
+    mutation: Omit runtime/deployment units, data ownership, interfaces, trust boundaries, critical flows, operations, or Knowledge binding.
+    expected: validation-error
+  - id: greenfield-plan-no-fake-findings
+    artifact: Remediation Plan 1.3
+    mutation: Add invented Finding IDs or Finding fingerprints to a plan sourced from an accepted Greenfield Decision.
+    expected: validation-error
+  - id: greenfield-plan-source-chain
+    artifact: Remediation Plan 1.3
+    mutation: Change the bound Brief or accepted Decision bytes without updating their hashes.
+    expected: validation-error

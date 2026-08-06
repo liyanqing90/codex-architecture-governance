@@ -1,53 +1,70 @@
-schema_version: "1.2"
+schema_version: "1.4"
 decision:
-  id: ADR-EXAMPLE-001
+  id: ADR-ORDER-TARGET-001
+  decision_kind: greenfield
+  architecture_intent: target-architecture
   assessment_kind: standard
-  source_review: example-project-19700101-project
-  source_review_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
-  decided_at: "1970-01-01T00:00:00+00:00"
+  source_context: .architecture/architecture-design-brief.yaml
+  source_context_sha256: "ea5abf99454c5ed961ff1a254301c1996b57a1b0c49a47c94a7a52663c3a070e"
+  decided_at: "2026-08-20T15:00:00+08:00"
   decision_makers:
-    - unassigned
+    - platform-architecture-team
+    - order-domain-lead
+    - operations-lead
   status: proposed
   knowledge_selection_path: .architecture/knowledge-selection.yaml
-  knowledge_selection_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  knowledge_selection_sha256: "c7a4e2d1f53b9a9e0b1d6c8f4a7e3d2c1b9f8e7d6c5a4b3c2d1e0f9a8b7c6d5e"
 problem:
   quality_attributes:
-    - maintainability
+    - reliability
+    - auditability
   constraints:
-    - Replace with an authoritative constraint.
-  finding_ids:
-    - EXAMPLE-ARC-001
+    - modular-boundaries
+    - relational-order-records
+    - synchronous-checkout
+    - single-production-deployment
+  finding_ids: []
   assumptions:
-    - Replace with an assumption whose failure changes the decision.
+    - One product team owns checkout and fulfillment through launch.
+    - The payment provider supports idempotency keys and replayable webhooks.
   known_facts:
-    - Replace with a directly observed and source-bound fact.
+    - The launch deployment is single-region and operated by one on-call rotation.
+    - Checkout requires an immediate customer-visible authorization result.
   unknowns:
-    - Replace with an unresolved input that affects confidence.
+    - Seasonal peak concurrency must be confirmed by a load rehearsal.
+    - Provider webhook delay under failure must be measured before acceptance.
 knowledge_snapshot:
-  - {id: style.modular-monolith, version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-  - {id: pattern.feature-flag, version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-  - {id: technology.import-linter, version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-  - {id: migration.layered-monolith-to-modular, version: "1.0.0", sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+  - {id: style.modular-monolith, version: "1.0.0", sha256: "3f97c548665d8e6c4159c5f6ecee4a5d099a2ac4def69fba2b0a5d6d6703c3c0"}
+  - {id: style.microservices, version: "1.0.0", sha256: "0533dbcda24b99313c8fe8fccd64ea2ce08bd020e60571ad561c04a800ececf6"}
+  - {id: pattern.idempotency-key, version: "1.0.0", sha256: "468592aed0baefffd8c287cee02e55c557671a810576633c833375e387822e1a"}
+  - {id: technology.fastapi, version: "2.0.0", sha256: "feb8ff63fe866c89575be127317b8925ed51b32238ecdc436fb85904372cfbc6"}
+  - {id: technology.postgresql, version: "1.0.0", sha256: "77aed8013b5ea4f06c88ba53cfbd1340545b1e1a2b9c7aba3d0c49956d27adab"}
+  - {id: technology.rabbitmq, version: "1.0.0", sha256: "94dc6612eb0e61f57169f4a1796a4492dd44a680bfe73ab5f0b543d68471e67f"}
 options:
   - id: keep-current
-    title: Keep the current architecture and apply a local correction
+    title: Single deployable with informal module boundaries
     complexity_tier: keep-current
     architecture_styles: []
     patterns: []
-    technologies: []
+    technologies:
+      - technology.fastapi
+      - technology.postgresql
     benefits:
-      - Preserves current operating simplicity.
+      - Minimizes launch implementation and operational effort.
     liabilities:
-      - State the confirmed risk that remains or the local change cost.
+      - Leaves ownership and audit responsibilities implicit across checkout code.
     assumptions:
-      - The current deployment boundary remains appropriate.
+      - The team can maintain informal boundaries without repeated cross-domain changes.
     quality_attribute_effects:
-      - attribute: maintainability
-        effect: improves
-        rationale: The local correction restores the owning boundary.
-    business_fit: Preserves the current product and delivery model.
-    team_fit: Uses capabilities already owned by the current team.
-    evolution_fit: Preserves an incremental path if measured constraints later change.
+      - attribute: reliability
+        effect: neutral
+        rationale: One deployment is simple, but retry ownership remains ambiguous.
+      - attribute: auditability
+        effect: degrades
+        rationale: Shared code paths make complete transition attribution harder to prove.
+    business_fit: Meets the launch date but leaves future ownership work unplanned.
+    team_fit: Uses only existing application skills and the current deployment process.
+    evolution_fit: Provides no explicit extraction seam for a later scale change.
     implementation_complexity: low
     operational_complexity: low
     migration_risk: low
@@ -56,8 +73,8 @@ options:
     technical_maturity: mature
     lock_in: none
     tradeoff_scores:
-      business_fit: 2
-      quality_fit: 1
+      business_fit: 1
+      quality_fit: 0
       team_fit: 2
       implementation: 2
       operations: 2
@@ -66,103 +83,372 @@ options:
       cost: 2
       maturity: 2
       lock_in: 2
-      evolution: 1
-    rejected_reasons: []
-  - id: low-complexity-option
-    title: Apply a bounded structural improvement inside current deployment boundaries
+      evolution: 0
+    rejected_reasons:
+      - It does not make the required ownership and audit invariants executable.
+    constraint_assessments:
+      - {constraint_id: modular-boundaries, knowledge_id: style.modular-monolith, status: violated, rationale: Informal boundaries do not satisfy the required modular ownership rule.}
+      - {constraint_id: relational-order-records, knowledge_id: technology.postgresql, status: satisfied, rationale: A single application can use the required relational system of record.}
+      - {constraint_id: synchronous-checkout, knowledge_id: pattern.idempotency-key, status: satisfied, rationale: The current request path can preserve synchronous authorization semantics.}
+      - {constraint_id: single-production-deployment, status: satisfied, rationale: The current application remains one production deployable.}
+  - id: modular-monolith
+    title: Modular monolith with owned checkout and payment boundaries
     complexity_tier: low
     architecture_styles:
       - style.modular-monolith
-    patterns: []
-    technologies: []
+    patterns:
+      - pattern.idempotency-key
+    technologies:
+      - technology.fastapi
+      - technology.postgresql
     benefits:
-      - Improves the owning boundary without adding a distributed runtime.
+      - Makes domain ownership and retry handling explicit while retaining one deployment.
+      - Preserves a measured extraction seam without distributed launch operations.
     liabilities:
-      - Requires an incremental caller and ownership migration.
+      - Requires architecture tests and disciplined module interfaces.
     assumptions:
-      - One deployment and current operational model remain appropriate.
+      - One relational store can meet launch throughput and retention requirements.
     quality_attribute_effects:
-      - attribute: maintainability
+      - attribute: reliability
         effect: improves
-        rationale: Deterministic module boundaries reduce cross-owner change.
-    business_fit: Preserves current release and product boundaries.
-    team_fit: Requires only repository-level architecture tests and ownership.
-    evolution_fit: Creates an extraction seam without requiring future extraction.
-    implementation_complexity: low
+        rationale: Idempotent command handling owns duplicate prevention at the payment boundary.
+      - attribute: auditability
+        effect: improves
+        rationale: The order and payment modules emit explicit durable transition records.
+    business_fit: Meets launch reliability goals within the existing team and deployment model.
+    team_fit: Fits the team while adding small, reviewable boundary checks.
+    evolution_fit: Leaves stable interfaces for later extraction if measured load requires it.
+    implementation_complexity: medium
     operational_complexity: low
     migration_risk: low
-    reversibility: easy
+    reversibility: moderate
     cost: low
     technical_maturity: mature
     lock_in: low
     tradeoff_scores:
-      business_fit: 1
+      business_fit: 2
       quality_fit: 2
       team_fit: 2
       implementation: 1
       operations: 2
       migration: 1
-      reversibility: 2
+      reversibility: 1
       cost: 2
       maturity: 2
       lock_in: 1
       evolution: 2
-    rejected_reasons:
-      - State why the local correction is sufficient under current evidence.
-  - id: structural-option
-    title: Replace with a materially viable structural alternative
-    complexity_tier: medium
+    rejected_reasons: []
+    constraint_assessments:
+      - {constraint_id: modular-boundaries, knowledge_id: style.modular-monolith, status: satisfied, rationale: Explicit module ownership and interfaces enforce the required architecture style.}
+      - {constraint_id: relational-order-records, knowledge_id: technology.postgresql, target_refs: [payment-records], status: satisfied, rationale: "Orders, payment state, and audit records remain in the relational system of record."}
+      - {constraint_id: synchronous-checkout, knowledge_id: pattern.idempotency-key, target_refs: [create-order], status: satisfied, rationale: The payment adapter returns a synchronous authorization result with idempotency.}
+      - {constraint_id: single-production-deployment, target_refs: [order-application-prod], status: satisfied, rationale: All target runtime units remain modules in one production deployable.}
+  - id: service-oriented
+    title: Separate checkout, payment, and fulfillment services at launch
+    complexity_tier: high
     architecture_styles:
-      - style.modular-monolith
-    patterns: []
-    technologies: []
+      - style.microservices
+    patterns:
+      - pattern.idempotency-key
+    technologies:
+      - technology.fastapi
+      - technology.postgresql
+      - technology.rabbitmq
     benefits:
-      - State the quality attribute improved by this option.
+      - Provides independent deployment boundaries from the first release.
     liabilities:
-      - State the additional implementation or operational burden.
+      - Adds distributed failure modes and operational ownership before demand requires them.
     assumptions:
-      - State the evidence required for this option to remain suitable.
+      - The team can support several deployable units and a message broker immediately.
     quality_attribute_effects:
-      - attribute: maintainability
+      - attribute: reliability
+        effect: unknown
+        rationale: Independent units may isolate faults but introduce network and delivery failure modes.
+      - attribute: auditability
         effect: improves
-        rationale: Explain the mechanism and owning boundary.
-    business_fit: State how this option satisfies the current product stage and flow.
-    team_fit: State the delivery and operating capability this option requires.
-    evolution_fit: State which demonstrated future change this option protects.
-    implementation_complexity: medium
-    operational_complexity: low
-    migration_risk: medium
-    reversibility: moderate
-    cost: medium
-    technical_maturity: stable
-    lock_in: low
+        rationale: Separate ownership can clarify records if cross-service tracing is complete.
+    business_fit: Exceeds launch needs and increases delivery coordination.
+    team_fit: Requires distributed operations capability not yet staffed for the product.
+    evolution_fit: Supports extraction early but commits to its cost before scale evidence.
+    implementation_complexity: high
+    operational_complexity: high
+    migration_risk: high
+    reversibility: difficult
+    cost: high
+    technical_maturity: mature
+    lock_in: medium
     tradeoff_scores:
-      business_fit: 0
-      quality_fit: 2
-      team_fit: 0
-      implementation: -1
-      operations: 0
+      business_fit: -1
+      quality_fit: 1
+      team_fit: -1
+      implementation: -2
+      operations: -2
       migration: -1
-      reversibility: 0
-      cost: 0
-      maturity: 1
-      lock_in: 1
+      reversibility: -1
+      cost: -2
+      maturity: 2
+      lock_in: 0
       evolution: 2
     rejected_reasons:
-      - State why this option loses under current evidence.
-selected_option: keep-current
-rationale: Replace with the evidence-backed tradeoff and explain why non-selected options lose.
+      - It violates the one-deployment launch constraint and has disproportionate operational cost.
+    constraint_assessments:
+      - {constraint_id: modular-boundaries, knowledge_id: style.modular-monolith, status: violated, rationale: Separate services do not satisfy the required modular-monolith target.}
+      - {constraint_id: relational-order-records, knowledge_id: technology.postgresql, status: satisfied, rationale: The services can still use PostgreSQL as the relational system of record.}
+      - {constraint_id: synchronous-checkout, knowledge_id: pattern.idempotency-key, status: unknown, rationale: Synchronous behavior depends on cross-service timeout and retry coordination.}
+      - {constraint_id: single-production-deployment, status: violated, rationale: Separate services and a broker require multiple production deployables.}
+selected_option: modular-monolith
+rationale: The modular monolith satisfies the required ownership, relational data, and synchronous checkout constraints while keeping launch operations within one deployment and one team.
+target_architecture:
+  option_id: modular-monolith
+  runtime_units:
+    - id: checkout-api
+      responsibility: Accept checkout commands, validate idempotency, and return customer-visible status.
+      owner: checkout-domain-team
+      deployment_unit: order-application-prod
+      technologies:
+        - technology.fastapi
+        - technology.postgresql
+    - id: order-domain
+      responsibility: Own order lifecycle transitions and publish fulfillment handoff events.
+      owner: order-domain-team
+      deployment_unit: order-application-prod
+      technologies:
+        - technology.fastapi
+        - technology.postgresql
+    - id: payment-adapter
+      responsibility: Own provider authorization, webhook reconciliation, and payment audit transitions.
+      owner: payments-integration-team
+      deployment_unit: order-application-prod
+      technologies:
+        - technology.fastapi
+        - technology.postgresql
+    - id: fulfillment-coordinator
+      responsibility: Translate authorized orders into fulfillment partner requests and retries.
+      owner: fulfillment-domain-team
+      deployment_unit: order-application-prod
+      technologies:
+        - technology.fastapi
+        - technology.postgresql
+  deployment_units:
+    - id: order-application-prod
+      environment: Single-region production environment
+      owner: order-platform-team
+      rollout: Apply backward-compatible database changes, then use a rolling application rollout with a checkout feature flag.
+      mixed_version: Old and new application instances read the existing fields while only new instances write additive audit fields.
+      on_call: order-platform-primary
+  data_ownership:
+    - id: order-records
+      data: Order aggregate and customer-visible order status
+      owner: order-domain
+      store: PostgreSQL order schema
+      lifecycle: Retain active orders online and archive immutable order history for seven years.
+      consistency: Order transitions are serializable within one aggregate and fulfillment handoff uses an atomic outbox.
+      recovery: Restore the PostgreSQL backup, replay the outbox, and reconcile state by order identifier.
+    - id: payment-records
+      data: Payment authorization and provider event history
+      owner: payment-adapter
+      store: PostgreSQL payment schema
+      lifecycle: Retain authorization transitions and provider evidence for seven years under finance policy.
+      consistency: Idempotency keys and provider event IDs enforce one effective authorization transition.
+      recovery: Replay durable provider events and reconcile every authorization against provider status.
+    - id: fulfillment-handoffs
+      data: Fulfillment handoff attempts
+      owner: fulfillment-coordinator
+      store: PostgreSQL fulfillment schema
+      lifecycle: Retain delivery attempts through order completion and archive the final handoff record with the order.
+      consistency: At-least-once delivery is paired with a stable handoff ID and idempotent partner requests.
+      recovery: Replay pending outbox records and compare partner acknowledgements before retrying.
+  interfaces:
+    - id: submit-checkout
+      from: customer-channel
+      to: checkout-api
+      contract: Authenticated checkout request with order intent and idempotency key
+      mode: sync
+      compatibility: Additive request fields remain optional until every supported customer client sends them.
+      evolution: Introduce incompatible request semantics only through a new contract identifier and overlap window.
+    - id: create-order
+      from: checkout-api
+      to: order-domain
+      contract: Checkout command interface with idempotency key
+      mode: sync
+      compatibility: The command remains additive and rejects unknown required behavior before changing order state.
+      evolution: New order fields are introduced behind defaults and become required only after old callers retire.
+    - id: authorize-payment
+      from: order-domain
+      to: payment-adapter
+      contract: Payment authorization command
+      mode: sync
+      compatibility: The adapter accepts the current and immediately previous command shape during rollout.
+      evolution: Provider-specific additions stay inside the adapter and do not alter the domain command without a new contract.
+    - id: receive-provider-webhook
+      from: payment-provider
+      to: payment-adapter
+      contract: Signed provider authorization and reversal event
+      mode: async
+      compatibility: Unknown additive provider fields are ignored while event identity and signature fields remain mandatory.
+      evolution: A captured provider contract and replay rehearsal gate any incompatible webhook migration.
+    - id: record-payment-result
+      from: payment-adapter
+      to: order-domain
+      contract: Provider authorization result
+      mode: sync
+      compatibility: Existing result states remain stable and new states require an explicit unknown-state handling path.
+      evolution: State-machine changes ship additively and contract only after stored orders no longer use retired states.
+    - id: enqueue-fulfillment
+      from: order-domain
+      to: fulfillment-coordinator
+      contract: Authorized order handoff event
+      mode: async
+      compatibility: Consumers tolerate additive event fields and deduplicate by the stable handoff identifier.
+      evolution: Publish old and new event shapes during the consumer migration window before retiring the old shape.
+    - id: send-fulfillment-request
+      from: fulfillment-coordinator
+      to: fulfillment-partner
+      contract: Idempotent fulfillment request with order and handoff identifiers
+      mode: async
+      compatibility: Partner contract changes require a tested adapter that preserves the current request until acceptance.
+      evolution: Route a bounded cohort through the new partner contract and retain replayable old requests for rollback.
+  external_systems:
+    - id: customer-channel
+      name: Customer web and mobile checkout clients
+      owner: customer-experience-team
+      trust_boundary: public-api-boundary
+    - id: payment-provider
+      name: External payment authorization provider
+      owner: finance-vendor-management
+      trust_boundary: payment-provider-boundary
+    - id: fulfillment-partner
+      name: External fulfillment partner
+      owner: fulfillment-operations
+      trust_boundary: fulfillment-partner-boundary
+  trust_boundaries:
+    - id: public-api-boundary
+      description: Separates untrusted customer clients from the checkout application runtime.
+      runtime_units:
+        - checkout-api
+      identities:
+        - authenticated customer session
+        - anonymous pre-checkout session
+      permissions:
+        - create checkout for the current customer
+        - read the current customer's order status
+      secrets: []
+      untrusted_inputs:
+        - checkout payload
+        - idempotency key
+        - client headers
+      controls:
+        - schema validation and payload limits
+        - rate limiting and abuse detection
+        - authenticated customer-to-order authorization
+    - id: payment-provider-boundary
+      description: Separates the order application from the external payment provider and its webhook channel.
+      runtime_units:
+        - payment-adapter
+      identities:
+        - payment-adapter service identity
+        - verified provider webhook identity
+      permissions:
+        - authorize and query payments for bound merchant orders
+        - submit signed authorization events
+      secrets:
+        - provider API credential
+        - webhook signature secret
+      untrusted_inputs:
+        - provider API response
+        - provider webhook payload
+      controls:
+        - outbound allowlist and transport authentication
+        - webhook signature and replay-window validation
+        - provider event deduplication
+    - id: fulfillment-partner-boundary
+      description: Separates fulfillment coordination from the external partner request and acknowledgement channel.
+      runtime_units:
+        - fulfillment-coordinator
+      identities:
+        - fulfillment-coordinator service identity
+        - fulfillment partner identity
+      permissions:
+        - submit fulfillment for authorized orders
+        - acknowledge a bound fulfillment handoff
+      secrets:
+        - fulfillment partner credential
+      untrusted_inputs:
+        - partner acknowledgement payload
+      controls:
+        - request signing and destination allowlist
+        - stable handoff idempotency key
+        - acknowledgement schema validation
+    - id: operator-access-boundary
+      description: Separates internal support and operations users from order and payment administration functions.
+      runtime_units:
+        - order-domain
+        - payment-adapter
+      identities:
+        - support specialist identity
+        - on-call operator identity
+      permissions:
+        - read audited order and payment history
+        - replay quarantined provider events with approval
+      secrets:
+        - operator session credential
+      untrusted_inputs:
+        - search query
+        - replay request
+      controls:
+        - role-based authorization and step-up authentication
+        - immutable administrative audit log
+        - approval gate for event replay
+  critical_flow_bindings:
+    - flow_id: checkout-authorization
+      runtime_units:
+        - checkout-api
+        - order-domain
+        - payment-adapter
+        - fulfillment-coordinator
+      failure_outcome: Customer receives a pending or declined result without a duplicate authorization or lost order.
+      recovery: Retry by idempotency key, reconcile provider state, and resume the durable fulfillment outbox.
+      measure: Duplicate authorization count is zero and p95 retry completion remains below two seconds.
+    - flow_id: payment-reconciliation
+      runtime_units:
+        - payment-adapter
+        - order-domain
+      failure_outcome: Unmatched provider events are quarantined without mutating order state.
+      recovery: Validate and replay the durable provider event after correcting identity or mapping errors.
+      measure: Every valid provider event converges to one payment state within the reconciliation objective.
+  operational_model:
+    deployment: Deploy the order application as one rolling unit with database migrations gated before application rollout.
+    observability: Emit request, idempotency, provider latency, transition, and reconciliation metrics with correlation IDs.
+    recovery: Retry idempotent commands, replay durable provider events, restore PostgreSQL backups, and halt rollout on invariant regression.
+    capacity: Size the single deployment for 50,000 orders per day and verify peak concurrency during the release rehearsal.
+    backup_restore: Take encrypted PostgreSQL backups, verify restore monthly, and retain replayable outbox and provider-event logs.
+    on_call: One order-platform primary rotation owns the deployment with payments and fulfillment escalation contacts.
+    incident_controls:
+      - Disable checkout or fulfillment handoff independently with feature flags.
+      - Quarantine invalid provider events and preserve them for audited replay.
+      - Stop rollout when duplicate authorization, audit completeness, or reconciliation objectives regress.
 revisit_triggers:
-  - Replace with a measurable change in scale, team, quality target, or constraint.
+  - Reopen when sustained order volume exceeds 50,000 per day for two consecutive months.
+  - Reopen when p95 checkout latency exceeds 2 seconds after provider latency is excluded.
 acceptance_evidence:
-  - Replace with observable decision acceptance evidence.
-hard_eliminations: []
+  - Contract tests prove duplicate checkout requests create one authorization.
+  - Runtime rehearsal proves webhook replay restores the expected payment state.
+hard_eliminations:
+  - option_id: service-oriented
+    rule: required-constraint-violation
+    evidence:
+      - Constraint single-production-deployment requires one production deployable.
+      - The option introduces multiple deployable services and a message broker.
 migration:
   affected_paths:
-    - Replace with the exact project-relative contract, schema, data, or code path.
+    - checkout command contract
+    - order and payment relational schemas
+    - payment provider webhook handler
   slices:
-    - Introduce the selected behavior behind a compatible boundary.
-    - Verify acceptance evidence before contracting the old path.
-  rollback: Restore the previous routing while the old path remains compatible.
+    - Establish module ownership and contract tests before implementation.
+    - Introduce idempotent payment authorization and durable webhook reconciliation.
+    - Verify critical-flow evidence before enabling fulfillment handoff.
+  rollback: Disable the new checkout route and replay durable payment events while the previous compatible handler remains available.
   validation:
-    - Prove the primary quality scenario and one adjacent negative path.
+    - Prove primary checkout authorization and duplicate-request behavior.
+    - Prove webhook reconciliation after a transient provider timeout.

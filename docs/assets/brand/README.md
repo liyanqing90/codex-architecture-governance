@@ -1,11 +1,10 @@
 # Hengmu visual assets
 
-Hengmu is a 青野 open-source project for evidence-bound software engineering
-decisions: system assessment, finding verification, technical solution
-comparison, remediation planning, and deterministic governance. Architecture
-is the connecting system view, not the project's only capability. This
-directory contains the repository-ready visual system used by both README
-editions.
+Hengmu is a 青野 open-source project for evidence-bound architecture design,
+decisions, and governance. Current-state assessment and open or constrained
+target design are equal entry paths; accepted decisions flow into remediation
+or Greenfield planning and deterministic policy. This directory contains the
+repository-ready visual system used by both README editions.
 
 ## Asset matrix
 
@@ -15,7 +14,7 @@ editions.
 | 青野 blue wordmark | `qingye-wordmark-blue.*` | `qingye-wordmark-blue.*` | SVG, PNG |
 | Project icon | `en/hengmu-icon.*` | `zh-CN/hengmu-icon.*` | SVG, PNG |
 | Project banner | `en/hengmu-banner.*` | `zh-CN/hengmu-banner.*` | SVG, PNG |
-| README editorial figures | `../../../assets/hengmu-readme-illustrations/en/` | `../../../assets/hengmu-readme-illustrations/zh-CN/` | PNG |
+| README editorial figures | `../../../assets/hengmu-readme-illustrations/en/` | `../../../assets/hengmu-readme-illustrations/zh-CN/` | SVG, PNG |
 | Governance flow | `../../../diagrams/en/` | `../../../diagrams/zh-CN/` | Mermaid, Excalidraw, SVG, PNG |
 
 The two icon files deliberately use the same language-neutral geometry while

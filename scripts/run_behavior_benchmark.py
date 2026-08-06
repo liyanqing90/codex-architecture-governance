@@ -892,7 +892,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--surface", required=True)
-    parser.add_argument("--skill-version", default="0.4.2")
+    parser.add_argument("--skill-version", default="1.0.0")
     parser.add_argument(
         "--condition",
         choices=["base", "full", "compressed"],

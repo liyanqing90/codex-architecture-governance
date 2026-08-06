@@ -29,6 +29,32 @@ Use a profile to select applicable architecture rules, not to predetermine findi
 
 Do not encode a current framework, database, or hosting vendor as an immutable constraint unless a real compatibility, cost, legal, or operational requirement makes it one.
 
+## Constraint records for design
+
+When a project asks for an open or constrained target architecture, preserve the
+distinction between context and proof. A Brief 1.1 constraint record names its
+ID, kind, disposition, target, scope, accountable authority, rationale, review
+trigger, and optional Knowledge ID. Its disposition is one of:
+
+- `required`: a candidate hard requirement that the Advisor must challenge for
+  authority, conflict, feasibility, and hidden consequences before treating it
+  as surviving;
+- `preferred`: a negotiable preference that may lose to measured quality,
+  compatibility, safety, cost, or operational evidence; or
+- `prohibited`: a hard exclusion whose violating options are eliminated with an
+  explicit reason.
+
+Profile and Brief constraints are inputs. They do not prove that a design is
+compliant, feasible, secure, or suitable. Keep facts, inferences, assumptions,
+unknowns, and constraint assessments separate. Do not promote a detected
+dependency, framework name, Knowledge entry, or owner assertion into a fixed
+constraint without an authoritative reason.
+
+For constrained Greenfield work, the Brief and Decision must assess every
+declared constraint and bind the resulting target architecture. Required
+conflicts with no surviving compliant variant are a stop condition, not a reason
+to silently weaken the constraint.
+
 ## Suggested review selection
 
 | Project characteristic | Additional review |

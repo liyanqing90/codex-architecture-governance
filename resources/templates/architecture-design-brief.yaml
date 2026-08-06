@@ -1,56 +1,147 @@
-schema_version: "1.0"
+schema_version: "1.1"
 brief:
-  id: DESIGN-BRIEF-EXAMPLE-001
-  created_at: "1970-01-01T00:00:00+00:00"
+  id: ORDER-DESIGN-BRIEF-001
+  created_at: "2026-08-06T09:30:00+08:00"
   authors:
-    - unassigned
+    - platform-architecture-team
+    - order-domain-lead
+  # Copying this template never grants approval. Replace the example values,
+  # then add an authorized approval block with hashed repository evidence and
+  # one detached SSH signature per approver.
   status: draft
+  # approval:
+  #   approved_by: [architecture-owner]
+  #   approved_at: "1970-01-01T00:00:00+00:00"
+  #   authority: Replace with the approving decision authority.
+  #   evidence:
+  #     - path: .architecture/approvals/design-brief-approval.md
+  #       sha256: Replace with the exact 64-character lowercase SHA-256.
+  #       description: Replace with the approval evidence description.
+  #   signatures:
+  #     - format: ssh
+  #       identity: architecture-owner
+  #       namespace: architecture-governance
+  #       path: .architecture/approvals/design-brief.yaml.sig
+  supersedes: ORDER-DESIGN-BRIEF-000
+design_mode: constrained
+architecture_constraints:
+  - id: modular-boundaries
+    kind: architecture-style
+    disposition: required
+    target: Modular monolith with explicit domain-owned modules
+    scope: Order capture, payment authorization, and fulfillment coordination
+    authority: Architecture review board decision ARB-2026-08
+    rationale: The team needs independently testable ownership boundaries without operating a distributed system at launch.
+    review_when: Reassess after sustained order volume exceeds 50,000 orders per day.
+    knowledge_id: style.modular-monolith
+  - id: relational-order-records
+    kind: data
+    disposition: required
+    target: PostgreSQL remains the system of record for orders and payment state
+    scope: Order aggregate, payment authorization state, and audit history
+    authority: Finance data-retention policy FIN-14
+    rationale: Transactional order state and auditability require durable relational consistency.
+    review_when: Reassess when regional data residency or write-scale requirements change.
+    knowledge_id: technology.postgresql
+  - id: synchronous-checkout
+    kind: integration
+    disposition: preferred
+    target: Checkout authorization uses a synchronous request with an idempotency key
+    scope: Checkout API to payment authorization adapter
+    authority: Checkout API contract ORD-CHK-2
+    rationale: Customers need an immediate authorization result while retries remain safe.
+    review_when: Reassess if the payment provider introduces a mandatory asynchronous authorization flow.
+    knowledge_id: pattern.idempotency-key
+  - id: single-production-deployment
+    kind: deployment
+    disposition: required
+    target: One production deployable operated by the launch team
+    scope: Checkout, payment authorization, and fulfillment coordination
+    authority: Launch operating-model decision OPS-2026-12
+    rationale: The launch team has one on-call rotation and cannot safely own a distributed production topology.
+    review_when: Reassess after independent service ownership and on-call coverage are funded.
 context:
-  objective: Replace with the user outcome and the architectural decision this design must enable.
+  objective: Define a constrained launch architecture for reliable checkout while preserving clear ownership and a measured path to later extraction.
   users:
-    - Replace with a real user or operating role.
+    - customer placing an order
+    - checkout support specialist
+    - fulfillment operator
   lifecycle: early
   constraints:
-    - Replace with an authoritative delivery, stack, cost, security, or migration constraint.
+    - The launch team operates one production deployment and has one on-call rotation.
+    - Payment authorization must be idempotent across client and provider retries.
+    - Order and payment audit records must remain queryable for seven years.
   known_facts:
-    - Replace with a directly observed or owner-confirmed fact.
+    - Checkout and fulfillment are owned by the same product team today.
+    - The payment provider exposes a synchronous authorization API and webhook retries.
+    - Existing operations can support PostgreSQL backups and application metrics.
   assumptions:
-    - Replace with an assumption whose failure changes an option.
+    - Launch traffic remains below 50,000 orders per day for the first two quarters.
+    - A single regional deployment satisfies the initial residency requirement.
   unknowns:
-    - Replace with an unresolved input and name how it will be learned.
+    - Peak seasonal checkout concurrency will be measured during the first load rehearsal.
+    - Provider webhook delay distribution will be confirmed with production-like traffic.
 quality_scenarios:
-  - id: QS-EXAMPLE-001
-    attribute: maintainability
+  - id: QS-CHECKOUT-001
+    attribute: reliability
+    priority: critical
+    source: A customer submits checkout while the provider response is delayed.
+    stimulus: The browser retries the request with the same idempotency key.
+    environment: Normal production operation with one transient provider timeout.
+    target: Checkout API and payment authorization adapter.
+    response: Exactly one order authorization is recorded and the customer receives a recoverable result.
+    measure: Duplicate authorization rate is zero and p95 retry completion is below 2 seconds.
+  - id: QS-AUDIT-001
+    attribute: auditability
     priority: high
-    source: A maintainer changes one bounded capability.
-    stimulus: The capability needs a compatible behavior change.
-    environment: Normal development and release conditions.
-    target: The owning module and its consumers.
-    response: The change remains inside the declared boundary.
-    measure: Focused tests and contract validation pass without unrelated edits.
+    source: A support specialist investigates a payment dispute.
+    stimulus: The specialist requests the order history and authorization transitions.
+    environment: Production data with normal read traffic.
+    target: Order module and audit store.
+    response: Every state transition is attributable to an actor, request, and timestamp.
+    measure: 100 percent of sampled transitions contain the required audit fields.
 boundaries:
   in_scope:
-    - Replace with one owned product or system boundary.
+    - Checkout API and order aggregate ownership
+    - Payment authorization adapter and webhook reconciliation
+    - Fulfillment handoff after an authorized order
   out_of_scope:
-    - Replace with an adjacent capability intentionally excluded.
+    - Inventory reservation policy
+    - Multi-region active-active deployment
   external_systems:
-    - Replace with an external dependency or write none.
+    - Payment provider authorization API
+    - Fulfillment partner webhook endpoint
   data_owners:
-    - Replace with an authoritative data owner and record type.
+    - Order domain owns order lifecycle and customer-visible status.
+    - Finance domain owns payment authorization and settlement evidence.
   trust_boundaries:
-    - Replace with an identity, permission, network, or tool boundary.
+    - Customer browser to public checkout API
+    - Application runtime to payment provider
+    - Application runtime to internal operator console
 critical_flows:
-  - id: primary-flow
-    trigger: Replace with the event that begins the critical flow.
+  - id: checkout-authorization
+    trigger: Customer submits a checkout request with an idempotency key.
     steps:
-      - Replace with one observable step and owner.
-    failure_outcome: Replace with the user-visible or operational failure.
-    recovery: Replace with the retry, rollback, resume, or manual recovery path.
+      - Checkout API validates the request and records the pending order.
+      - Payment adapter authorizes the amount with the provider.
+      - Order module records the authorization result and emits fulfillment handoff.
+    failure_outcome: Customer sees a pending or declined checkout without a duplicate charge.
+    recovery: Retry the authorization by idempotency key and reconcile provider webhooks.
+  - id: payment-reconciliation
+    trigger: Payment provider sends an authorization or reversal webhook.
+    steps:
+      - Webhook handler authenticates and deduplicates the provider event.
+      - Payment adapter maps the event into an order state transition.
+      - Audit writer records the source event and resulting state.
+    failure_outcome: Unmatched events remain visible for operator review without changing order ownership.
+    recovery: Replay the provider event from the durable inbox after correcting the mapping.
 decision_questions:
-  - id: DQ-EXAMPLE-001
-    question: Which least-complex architecture satisfies the declared quality scenarios?
-    decision_owner: unassigned
+  - id: DQ-ORDER-001
+    question: Which launch architecture satisfies checkout reliability and auditability within one operating team?
+    decision_owner: platform-architecture-team
+    deadline: "2026-08-20"
 success_criteria:
-  - The selected option satisfies every critical quality scenario with observable evidence.
+  - The selected option satisfies both critical quality scenarios with executable contract and runtime evidence.
+  - Every runtime unit and data owner has an explicit boundary and accountable operator.
 prohibited_options:
-  - Replace with an option forbidden by an authoritative constraint, or remove this item.
+  - A shared mutable database owned jointly by checkout and fulfillment modules.

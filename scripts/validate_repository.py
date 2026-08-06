@@ -61,6 +61,7 @@ REQUIRED_FILES = (
     "docs/migrating-to-0.3.md",
     "docs/migrating-to-0.4.md",
     "docs/migrating-to-0.4.2.md",
+    "docs/migrating-to-1.0.md",
     "docs/target-architecture.md",
     "docs/target-architecture-implementation.md",
     "resources/templates/evolution-assessment.md",

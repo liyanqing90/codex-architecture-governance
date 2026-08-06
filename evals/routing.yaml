@@ -8,6 +8,7 @@ cases:
   - {id: portfolio-direct, expected_skill: portfolio-architecture-audit}
   - {id: verifier-direct, expected_skill: architecture-finding-verifier}
   - {id: solution-direct, expected_skill: architecture-solution-advisor}
+  - {id: solution-edge, expected_skill: architecture-solution-advisor}
   - {id: remediation-direct, expected_skill: architecture-remediation-planner}
   - {id: gate-direct, expected_skill: architecture-quality-gate}
 acceptance:

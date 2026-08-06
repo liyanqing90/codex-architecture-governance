@@ -1,117 +1,126 @@
 # Architecture solution decision contract
 
-Use `../schemas/architecture-decision.schema.json` after a verified review for
-remediation, or after an approved
-`../schemas/architecture-design-brief.schema.json` for Greenfield design.
+Use `../schemas/architecture-decision.schema.json` after a verified Review for
+remediation, or after an approved Design Brief for Greenfield work. Existing
+Decision artifacts through 1.3 remain readable. New Brief 1.1 Greenfield
+targets use schema 1.4 in either explicit open or constrained mode and are part
+of the 1.0 product release.
 
-## Decision boundary
+## Decision boundary and source modes
 
-A remediation decision solves confirmed findings. A Greenfield decision solves
-explicit Design Brief questions and quality scenarios with an empty Finding
-list. A decision does not discover findings, accept risk, plan implementation,
-or authorize change.
+A remediation Decision solves confirmed unresolved Findings. A legacy open
+Greenfield Decision solves Brief 1.0. A current Greenfield Decision solves Brief
+1.1 in explicit open or constrained mode; constrained mode assesses every
+required, preferred, and prohibited constraint. Greenfield
+`problem.finding_ids` is always empty. A
+Decision does not discover Findings, verify evidence, accept risk, plan work, or
+authorize implementation.
 
-Always include a keep-current/local-correction option. Add structural options
-only when current constraints support them. Compare at least three options.
-Every option records benefits, liabilities, assumptions, all declared
-quality-attribute effects, business/team/evolution fit, complexity tier,
-implementation and operational complexity, maturity and lock-in, migration
-risk, reversibility, cost, and the complete trade-off scorecard.
+Always compare keep-current/local correction, the smallest compatible structural
+improvement, and a materially viable alternative when evidence supports one.
+Every option records benefits, liabilities, assumptions, quality effects,
+business/team/evolution fit, implementation and operational complexity,
+maturity, lock-in, migration risk, reversibility, cost, and trade-off scores.
 
-Use the task-scoped Markdown entries selected from
-`../knowledge/manifest.yaml` as maintained decision evidence:
+## Constraint semantics
 
-- quality model for vocabulary and scenarios;
-- styles for system organization;
-- patterns for bounded mechanisms;
-- technology profiles for implementation capabilities and lock-in;
-- reference architectures for complete control/data paths;
-- migrations for staged evolution;
-- domain guidance for specialist requirements;
-- decision guides for hard rejection rules.
+Constraints are inputs to reasoning, not proof of feasibility, quality, or
+compliance. Bind each one by ID, kind, disposition, target, scope, accountable
+authority, rationale, review trigger, required Knowledge ID for architecture
+style/pattern/technology constraints, and exact Brief bytes.
 
-Knowledge entries do not override project evidence. A technology's capability
-does not prove project fit.
+- Challenge required constraints for authority, ambiguity, conflict,
+  feasibility, and hidden consequences. Only surviving required constraints are
+  hard requirements, and every selected variant must satisfy all of them.
+- Treat preferred constraints as weighted preferences. A preferred constraint
+  may lose to a measured quality, compatibility, safety, cost, or operational
+  trade-off; record the loss.
+- Hard-eliminate prohibited options. Preserve the prohibition and reason outside
+  the scorecard; do not allow a prohibited option to win on other scores.
 
-## Emerging upgrades and replacements
+Record fact, inference, assumption, unknown, and constraint assessment
+separately. A detected dependency, Knowledge entry, owner assertion, or word
+such as “must” never becomes evidence merely by appearing in the input. If
+required constraints conflict and no compliant variant survives, stop with the
+conflict rather than weakening a requirement.
 
-An emerging architecture or technology is an assessment hypothesis, not a
-recommendation. A decision may consider one only when it is grounded in a valid
-Remediation or Greenfield source context and the companion Markdown contains a
-complete evolution assessment packet. The packet must include:
+## Required target architecture
 
-- a keep-current/local-correction baseline with current owner, observed
-  measures, and do-nothing consequence;
-- a measurable capability or quality gap with scenario, current value, target,
-  measurement method, evidence, and threshold;
-- current official evidence for every volatile claim: version, support or
-  lifecycle, compatibility, security, license, pricing, limits, roadmap, or
-  benchmark. Record publisher, URL, scope, review/access date, and freshness;
-- compatibility and migration cost for consumers, public or persisted
-  contracts, data, deployment, mixed-version operation, and exit;
-- operational and team fit, including accountable owner, required skills,
-  support/on-call, observability, failure semantics, security, and operating
-  cost;
-- lock-in, portability, rollback point, rollback data semantics, and the
-  irreversible gate;
-- bounded shadow or pilot evidence with success/stop criteria, observed
-  quality/cost/operational measures, and an evidence owner; and
-- explicit revisit triggers containing a measurable metric or event, threshold,
-  owner, review date or cadence, and reopening evidence.
+Every 1.4 Decision must include a target architecture bound to the
+selected option and Knowledge snapshot. It must describe:
 
-If a volatile claim lacks current official evidence, or an applicable
-shadow/pilot has not run, treat it as an unknown. Do not convert novelty,
-popularity, a vendor promise, a benchmark, or an official capability statement
-into project fit. The decision may select keep-current and revisit later; a
-bounded pilot is evidence collection, not adoption authority. Acceptance is a
-separate authorized lifecycle transition and is never implied by the advisor,
-the stable router, or a score.
+- runtime units, responsibilities, and unit-level ownership;
+- deployment units, environments, rollout, mixed-version behavior, and
+  operational ownership;
+- authoritative data owners, stores, lifecycle, consistency, and recovery;
+- interfaces, consumers, schemas/contracts, compatibility, and evolution;
+- trust boundaries, covered runtime units, identities, permissions, secrets,
+  and untrusted inputs;
+- critical flows, triggers, steps, failure outcomes, recovery, and measures;
+- operations, observability, capacity, backup/restore, on-call, and incident
+  controls;
+- an assessment for every required, preferred, and prohibited constraint; and
+- the exact Knowledge IDs, versions, and SHA-256 values used by the decision.
 
-Mark this path with `decision.assessment_kind: technology-evolution`. Bind the
-project-relative companion Markdown path and exact SHA-256 in
-`evolution_assessment`, together with a `keep-current`, `evidence-only`, or
-`adopt` disposition and structured baseline, gap, volatile-claim,
-compatibility, operations, lock-in/exit, rollback, pilot, and revisit records.
-Bind every measurement, gap record, official-source capture, and observed pilot
-measure to a normalized project-relative file path and exact SHA-256. The
-validator rejects an upgrade or replacement adoption unless every volatile
-claim is current and the completed pilot contains bound observed measures.
-Existing standard decisions remain compatible and do not require this binding.
+Every assessment repeats the Brief Knowledge ID exactly. A satisfied selected
+constraint binds concrete `target_refs`; a technology constraint points only to
+runtime units whose `technologies` contain that ID. A prohibited constraint can
+be satisfied only when its Knowledge ID is absent from both the selected option
+and target runtime.
 
-## Status and authority
+Legacy open 1.3 Decisions remain readable and may lack a structured target. Do
+not retrofit constraints by mutating them. Start current open or constrained
+target work with Brief 1.1 and Decision 1.4; the absence of constraints in open
+mode does not excuse missing data ownership, interfaces, trust boundaries,
+critical flows, or operations.
 
-- `proposed`: advisor output awaiting authority;
-- `accepted`: authorized decision that may enter remediation;
-- `rejected`: considered but not selected for implementation;
-- `superseded`: replaced by another recorded decision.
+## Knowledge and evidence
 
-Bind remediation to the verified Review ID and file SHA-256. Bind Greenfield
-to the Design Brief path and file SHA-256. Bind every cited
-architecture style, pattern, technology profile, reference architecture, and
-migration guide to the exact selected entry version and SHA-256. Bind the
-selection artifact itself. Remediation includes only confirmed, unresolved
-Finding IDs; Greenfield includes none.
-Record known facts, assumptions, unknowns, hard eliminations, why every
-nonselected option was rejected, compatible migration slices, all decision
-makers, and at least one measurable revisit trigger.
+Use task-scoped Markdown entries selected from `../knowledge/manifest.yaml`:
+quality models for scenarios; styles for organization; patterns for mechanisms;
+technology profiles for capabilities and lock-in; reference architectures for
+complete paths; migrations for staged change; domains for specialist needs; and
+decision guides for rejection rules. Bind selected IDs, versions, and hashes.
+Knowledge is guidance. It never overrides repository evidence or proves project
+fit.
 
-Generate the non-inferable bindings with:
+## Technology evolution
 
-```bash
-python3 ../scripts/architecture_tool.py decision-bindings \
-  --project <repository-root> \
-  --review <verified-review.yaml> \
-  --knowledge-selection <decision-knowledge-selection.yaml>
-```
+Use `decision.assessment_kind: technology-evolution` only for an explicit
+emerging technology, upgrade, or replacement question inside a valid
+Remediation or Greenfield source mode. Require a companion packet with:
 
-For Greenfield, replace `--review` with
-`--design-brief <architecture-design-brief.yaml>`.
+- keep-current baseline, owner, observed measures, and do-nothing consequence;
+- measurable gap, current value, target, method, evidence, and threshold;
+- current official source for every volatile version, lifecycle,
+  compatibility, security, license, pricing, limit, roadmap, or benchmark claim;
+- consumer, public/persisted contract, data, deployment, mixed-version, and exit
+  migration cost;
+- accountable operator, skills, support, observability, failure, security, and
+  operating cost;
+- portability, lock-in, rollback point, data recovery, and irreversible gate;
+- bounded pilot/shadow evidence or an explicit keep-current/evidence-only
+  disposition; and
+- measurable, owned revisit triggers with date/cadence and reopening evidence.
 
-Validate with:
+Missing or stale official evidence and an unrun applicable pilot are unknowns;
+they cannot support adoption. Never pin a version from model memory. A current
+official capability statement, benchmark, popularity signal, or vendor promise
+does not establish project fit.
 
-```bash
-python3 ../scripts/architecture_tool.py validate-decision \
-  <decision.yaml> --review <verified-review.yaml> --project <repository-root>
-```
+## Authority, migration, and validation
 
-For Greenfield validation, replace `--review` with `--design-brief`.
+Use `proposed`, `accepted`, `rejected`, and `superseded` as authority states.
+An approved Brief 1.1 also binds policy-authorized approver identities,
+approval time/authority, repository-relative SHA-256 evidence, and one detached
+SSH signature per approver; template authors and status text do not grant
+authority.
+Only an authorized decision maker may move a Decision to `accepted`. Bind
+remediation Decisions to the verified Review ID and SHA-256. Bind Greenfield
+Decisions to the Design Brief path and SHA-256. Bind the Knowledge selection and
+all cited entries.
+
+Include compatible migration slices, rollback, validation, hard eliminations,
+revisit triggers, decision makers, known facts, assumptions, unknowns, and the
+reason every non-selected option loses. Validate the complete chain with the
+architecture tool; status strings alone are never proof.

@@ -128,6 +128,13 @@ repository-relative run path, and run SHA-256. The run contract binds the
 actual executable, provider definition, project configuration, Git state, and
 captured output. See `evidence-provider-contract.md`.
 
+For a current Review 1.2, every `coverage.status: assessed` row and every
+assessed critical flow carries at least one Git-resolvable evidence binding at
+`review.commit`. The verified Review's `source_candidate` repeats that exact
+repository snapshot. Finding evidence from another commit is rejected unless
+it is explicitly marked `historical: true`, and historical-only evidence cannot
+confirm the current repository state.
+
 Short excerpts are optional and must be redacted. Do not paste credentials, personal data, full logs, or large copyrighted text.
 
 An architecture risk requires a relationship or failure path:

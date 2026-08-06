@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Maintain a distributable Codex plugin containing focused architecture-governance Skills and deterministic artifact tooling.
+Maintain a distributable Codex plugin containing focused architecture
+assessment, target-design, decision-governance Skills, and deterministic
+artifact tooling.
 
 ## Layout
 
@@ -53,8 +55,8 @@ python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/hengmu-0.4.2.zip \
-  --output dist/hengmu-0.4.2.spdx.json
+  --archive dist/hengmu-1.0.0.zip \
+  --output dist/hengmu-1.0.0.spdx.json
 ```
 
 The accepted target boundary is recorded in

@@ -8,6 +8,7 @@ import tempfile
 import unittest
 from datetime import UTC, date, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -905,17 +906,33 @@ setup(name="example", install_requires=RUNTIME_REQUIREMENTS)
             }
             for entry_id in (
                 "style.modular-monolith",
-                "pattern.feature-flag",
-                "technology.import-linter",
-                "migration.layered-monolith-to-modular",
+                "style.microservices",
+                "pattern.idempotency-key",
+                "technology.fastapi",
+                "technology.postgresql",
+                "technology.rabbitmq",
             )
         ]
+        brief_path = ROOT / "resources" / "templates" / "architecture-design-brief.yaml"
+        decision["decision"]["source_context_sha256"] = architecture_tool.file_sha256(
+            brief_path
+        )
         decision_path = self.root / "decision.yaml"
         decision_path.write_text(
             yaml.safe_dump(decision, sort_keys=False),
             encoding="utf-8",
         )
-        architecture_tool.validate_decision(decision_path)
+        approved_brief = architecture_tool.load_yaml(brief_path)
+        approved_brief["brief"]["status"] = "approved"
+        with patch.object(
+            architecture_tool,
+            "validate_design_brief",
+            return_value=approved_brief,
+        ):
+            architecture_tool.validate_decision(
+                decision_path,
+                design_brief_path=brief_path,
+            )
 
         tampered = copy.deepcopy(decision)
         tampered["knowledge_snapshot"][0]["sha256"] = "0" * 64
@@ -923,11 +940,21 @@ setup(name="example", install_requires=RUNTIME_REQUIREMENTS)
             yaml.safe_dump(tampered, sort_keys=False),
             encoding="utf-8",
         )
-        with self.assertRaisesRegex(
-            architecture_tool.ArchitectureError,
-            "hash is stale",
+        with (
+            patch.object(
+                architecture_tool,
+                "validate_design_brief",
+                return_value=approved_brief,
+            ),
+            self.assertRaisesRegex(
+                architecture_tool.ArchitectureError,
+                "hash is stale",
+            ),
         ):
-            architecture_tool.validate_decision(decision_path)
+            architecture_tool.validate_decision(
+                decision_path,
+                design_brief_path=brief_path,
+            )
 
 
 if __name__ == "__main__":

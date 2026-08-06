@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "kind": "article",
+  "project": "Hengmu README",
+  "locales": ["en", "zh-CN"],
+  "canvas": {
+    "width": 1672,
+    "height": 941
+  },
+  "deliverables": [
+    {
+      "stem": "01-from-critique-to-closure",
+      "formats": ["png"]
+    },
+    {
+      "stem": "02-one-method-many-projects",
+      "formats": ["png"]
+    },
+    {
+      "stem": "03-facts-constraints-target",
+      "formats": ["svg", "png"]
+    }
+  ]
+}

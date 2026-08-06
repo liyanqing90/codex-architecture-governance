@@ -32,9 +32,10 @@ summary:
   needs_evidence: 0
 coverage:
   - rule_id: PROJECT.BOUNDARY.001
-    status: assessed
+    status: not_assessed
     finding_ids:
       - EXAMPLE-ARC-001
+    reason: Replace with an assessment and Git-bound evidence at review.commit.
 findings:
   - id: EXAMPLE-ARC-001
     kind: risk

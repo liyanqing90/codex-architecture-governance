@@ -31,4 +31,16 @@ cases:
   - id: technology-refresh
     decision_guide: foundation.technology-selection
     must_compare: [keep-current, measured-gap, official-current-evidence, compatibility, migration, operations, pilot, rollback, cost, lock-in, revisit-trigger]
-    prohibited_shortcut: A newer release, framework, model, or protocol is automatically an upgrade.
+    prohibited_shortcut: A newer release, framework, model, or protocol is automatically an upgrade; ordinary constrained design must not be mislabeled technology-evolution, and versions must not be pinned from memory.
+  - id: open-target-architecture
+    decision_guide: decision.target-architecture
+    must_compare: [runtime-units, deployment-units, data-ownership, interfaces, trust-boundaries, critical-flows, operations, knowledge]
+    prohibited_shortcut: A Greenfield brief permits an abstract option list without a target architecture or permits fabricated Findings.
+  - id: constrained-target-architecture
+    decision_guide: decision.constrained-target-architecture
+    must_compare: [required-constraint-conflicts, compliant-variants, preferred-tradeoffs, prohibited-hard-eliminations, constraint-assessments, target-architecture]
+    prohibited_shortcut: Required, preferred, and prohibited inputs are proof; a preferred constraint must win; or a prohibited option may remain in the scorecard.
+  - id: greenfield-remediation-plan
+    decision_guide: decision.greenfield-plan
+    must_compare: [brief-binding, decision-binding, target-units, critical-flows, constraints, no-fake-findings]
+    prohibited_shortcut: A Greenfield plan invents Findings or uses remediation fingerprints when the accepted target has no source Review.

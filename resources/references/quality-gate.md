@@ -1,6 +1,8 @@
 # Architecture quality gate contract
 
-The gate is deterministic. It consumes schemas, a verified review, policy, baseline, and waivers; it does not ask a model to reassess architecture.
+The gate is deterministic. It consumes schemas and either a verified Review
+chain or an explicitly selected Greenfield Brief → Decision → Plan chain,
+together with policy; it does not ask a model to reassess architecture.
 
 ## Inputs
 
@@ -22,6 +24,12 @@ Portfolio inputs use the same policy contracts under `.architecture-portfolio/`.
 Use an explicitly supplied review when reproducibility matters. Otherwise the
 tool selects the verified review with the latest `performed_at`, using ID and
 filename only as deterministic tie-breakers.
+
+For Greenfield implementation, pass `--decision <decision.yaml>`. The Gate
+requires a current approved Brief with authorized hashed approval evidence and
+detached approver signatures, an accepted Decision with authorized decision
+makers, an active Plan at `change`,
+and a complete Plan with hashed completion evidence at `release`.
 
 ## Evaluation
 
@@ -80,6 +88,9 @@ python3 /absolute/path/to/architecture_tool.py gate \
 ```
 
 Use `--portfolio "$PORTFOLIO_ROOT"` for a portfolio review.
+
+Use `--decision "$GREENFIELD_DECISION"` instead of `--review` for an explicit
+Greenfield chain.
 
 Exit codes:
 

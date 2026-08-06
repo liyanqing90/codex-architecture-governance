@@ -25,6 +25,40 @@ architecture_tool = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(architecture_tool)
 
 
+def as_legacy_remediation_decision(
+    decision: dict,
+    schema_version: str,
+) -> dict:
+    """Remove current Greenfield-only fields when exercising a legacy contract."""
+    decision["schema_version"] = schema_version
+    for field in (
+        "decision_kind",
+        "architecture_intent",
+        "source_context",
+        "source_context_sha256",
+    ):
+        decision["decision"].pop(field, None)
+    decision.pop("target_architecture", None)
+    decision.pop("hard_eliminations", None)
+    for option in decision["options"]:
+        option.pop("constraint_assessments", None)
+        option["architecture_styles"] = []
+        option["patterns"] = []
+        option["technologies"] = []
+    return decision
+
+
+def as_legacy_remediation_plan(plan: dict, schema_version: str) -> dict:
+    """Remove Greenfield-only source and target fields for legacy plan tests."""
+    plan["schema_version"] = schema_version
+    for field in ("plan_kind", "source_context", "source_context_sha256"):
+        plan["plan"].pop(field, None)
+    for item in plan["items"]:
+        item.pop("target_bindings", None)
+        item["acceptance_evidence_types"] = ["test", "operational"]
+    return plan
+
+
 class ArchitectureToolTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -528,6 +562,7 @@ class ArchitectureToolTests(unittest.TestCase):
                 for finding in migrated["findings"]
             )
         )
+        self.assertEqual(migrated["findings"][0]["status"], "open")
         self.assertIn(
             "Legacy conclusions were deliberately downgraded to candidates.",
             migrated["limitations"],
@@ -538,6 +573,51 @@ class ArchitectureToolTests(unittest.TestCase):
             strict_trust=True,
             repository_root=self.root,
         )
+
+        resolved_source = architecture_tool.load_yaml(review_path)
+        resolved_source["review"]["id"] = "test-project-resolved-source"
+        resolved_source["findings"][0]["status"] = "resolved"
+        resolved_source_path = config_root / "reviews" / "resolved-source.yaml"
+        self.write_yaml(resolved_source_path, resolved_source)
+        resolved_migrated_path = config_root / "reviews" / "resolved-migrated.yaml"
+        resolved_result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "resources" / "scripts" / "migrate_artifacts.py"),
+                "--project",
+                str(self.root),
+                "--review",
+                str(resolved_source_path),
+                "--facts",
+                str(facts_path),
+                "--knowledge-selection",
+                str(selection_path),
+                "--output",
+                str(resolved_migrated_path),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(resolved_result.returncode, 0, resolved_result.stderr)
+        resolved_migrated = architecture_tool.load_yaml(resolved_migrated_path)
+        self.assertEqual(resolved_migrated["findings"][0]["status"], "resolved")
+
+        unsupported_assessment = copy.deepcopy(migrated)
+        unsupported_assessment["coverage"][0].update({"status": "assessed"})
+        unsupported_assessment["coverage"][0].pop("reason", None)
+        unsupported_path = config_root / "reviews" / "unsupported-coverage.yaml"
+        self.write_yaml(unsupported_path, unsupported_assessment)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "assessed coverage .* has no evidence",
+        ):
+            architecture_tool.validate_review(
+                unsupported_path,
+                rule_pack_ids=["project-core"],
+                strict_trust=True,
+                repository_root=self.root,
+            )
 
         stale_selection = copy.deepcopy(migrated)
         stale_selection["selected_knowledge"][0]["sha256"] = "0" * 64
@@ -602,6 +682,7 @@ class ArchitectureToolTests(unittest.TestCase):
         decision = architecture_tool.load_yaml(
             ROOT / "resources" / "templates" / "architecture-decision.yaml"
         )
+        as_legacy_remediation_decision(decision, "1.2")
         decision["decision"].update(
             {
                 "id": "ADR-TEST-012",
@@ -636,6 +717,8 @@ class ArchitectureToolTests(unittest.TestCase):
         plan = architecture_tool.load_yaml(
             ROOT / "resources" / "templates" / "remediation-plan.yaml"
         )
+        as_legacy_remediation_plan(plan, "1.2")
+        plan["plan"]["plan_kind"] = "remediation"
         plan["plan"].update(
             {
                 "source_review": verified["review"]["id"],
@@ -651,6 +734,7 @@ class ArchitectureToolTests(unittest.TestCase):
                 "fingerprint": verified["findings"][0]["fingerprint"],
             }
         ]
+        plan["items"][0]["knowledge_ids"] = [decision["knowledge_snapshot"][0]["id"]]
         plan_path = config_root / "reviews" / "plan-12.yaml"
         self.write_yaml(plan_path, plan)
         architecture_tool.validate_plan(
@@ -1023,6 +1107,20 @@ class ArchitectureToolTests(unittest.TestCase):
         self,
     ) -> None:
         config_root = self.init_project()
+        manifest_path = self.root / ".codex-plugin" / "plugin.json"
+        manifest_path.parent.mkdir()
+        manifest_path.write_text(
+            json.dumps({"name": "test-plugin", "version": "0.4.2"}),
+            encoding="utf-8",
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", str(manifest_path)],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Add plugin manifest"],
+            check=True,
+        )
         anchor = architecture_tool.current_git_commit(self.root)
         selector_source_path = self.root / "resources" / "selector-source.json"
         selector_source_path.parent.mkdir(parents=True)
@@ -1058,6 +1156,23 @@ class ArchitectureToolTests(unittest.TestCase):
         )
         self.assertEqual(result["selector_source"]["commit"], anchor)
         self.assertEqual(result["reviewed_implementation"]["commit"], anchor)
+
+        selector_source = json.loads(selector_source_path.read_text(encoding="utf-8"))
+        selector_source["plugin_version"] = "1.0.0"
+        selector_source_path.write_text(
+            json.dumps(selector_source),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "plugin version does not match",
+        ):
+            architecture_tool.validate_history_anchors(self.root, review_path)
+        selector_source["plugin_version"] = "0.4.2"
+        selector_source_path.write_text(
+            json.dumps(selector_source),
+            encoding="utf-8",
+        )
 
         detached_branch = "unmerged-anchor"
         subprocess.run(
@@ -1295,6 +1410,8 @@ class ArchitectureToolTests(unittest.TestCase):
                 ],
                 "allow_without_detection": True,
                 "output_source": "stdout",
+                "dependency_inputs": [".architecture/evidence-providers.yaml"],
+                "cache_mode": "isolated",
             }
         )
         provider.pop("result_path", None)
@@ -1326,7 +1443,25 @@ class ArchitectureToolTests(unittest.TestCase):
             require_passed=True,
         )
         self.assertEqual(validated["run"]["provider_id"], "test-results")
-        self.assertEqual(validated["schema_version"], "1.1")
+        self.assertEqual(validated["schema_version"], "1.2")
+        self.assertEqual(
+            validated["run"]["dependency_inputs_before"],
+            validated["run"]["dependency_inputs_after"],
+        )
+
+        mismatched_closure = copy.deepcopy(artifact)
+        mismatched_closure["run"]["dependency_inputs_before"][0]["sha256"] = "0" * 64
+        self.write_yaml(artifact_path, mismatched_closure)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "stable dependency closure",
+        ):
+            architecture_tool.validate_evidence_run(
+                artifact_path,
+                self.root,
+                require_passed=True,
+            )
+        self.write_yaml(artifact_path, artifact)
 
         legacy_artifact = copy.deepcopy(artifact)
         legacy_artifact["schema_version"] = "1.0"
@@ -1387,6 +1522,8 @@ class ArchitectureToolTests(unittest.TestCase):
                 ],
                 "allow_without_detection": True,
                 "output_source": "stdout",
+                "dependency_inputs": [".architecture/evidence-providers.yaml"],
+                "cache_mode": "isolated",
             }
         )
         provider.pop("result_path", None)
@@ -1430,6 +1567,8 @@ class ArchitectureToolTests(unittest.TestCase):
                 ],
                 "allow_without_detection": True,
                 "output_source": "stdout",
+                "dependency_inputs": [".architecture/evidence-providers.yaml"],
+                "cache_mode": "isolated",
             }
         )
         provider.pop("result_path", None)
@@ -1514,6 +1653,37 @@ class ArchitectureToolTests(unittest.TestCase):
         ):
             architecture_tool.validate_evidence_provider_config(config_path)
 
+        config["providers"][0]["command"] = ["npm", "ci"]
+        self.write_yaml(config_path, config)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "may install or download tools",
+        ):
+            architecture_tool.validate_evidence_provider_config(config_path)
+
+    def test_deterministic_provider_requires_dependency_closure(self) -> None:
+        self.init_project()
+        config_path = self.root / ".architecture" / "evidence-providers.yaml"
+        config = architecture_tool.load_yaml(config_path)
+        provider = next(
+            item for item in config["providers"] if item["id"] == "test-results"
+        )
+        provider.update(
+            {
+                "enabled": True,
+                "command": [sys.executable, "-c", "print('ok')"],
+                "allow_without_detection": True,
+                "output_source": "stdout",
+            }
+        )
+        provider.pop("result_path", None)
+        self.write_yaml(config_path, config)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "dependency_inputs closure",
+        ):
+            architecture_tool.validate_evidence_provider_config(config_path)
+
     def test_provider_executable_rejects_extensionless_shell_wrapper(self) -> None:
         wrapper = self.root / "scripts" / "run-provider"
         wrapper.parent.mkdir()
@@ -1563,6 +1733,8 @@ class ArchitectureToolTests(unittest.TestCase):
                 "command": [sys.executable, "-c", "print('not json')"],
                 "allow_without_detection": True,
                 "output_source": "stdout",
+                "dependency_inputs": [".architecture/evidence-providers.yaml"],
+                "cache_mode": "isolated",
             }
         )
         self.write_yaml(config_path, config)
@@ -1656,6 +1828,214 @@ class ArchitectureToolTests(unittest.TestCase):
                 "namespace": "architecture-governance",
             },
         )
+
+    @unittest.skipUnless(shutil.which("ssh-keygen"), "ssh-keygen is unavailable")
+    def test_greenfield_change_gate_validates_signed_real_chain(self) -> None:
+        args = self.project_args()
+        args.qualities = ["reliability", "auditability"]
+        config_root = architecture_tool.init_project(args)
+        policy_path = config_root / "gate-policy.yaml"
+        policy = architecture_tool.load_yaml(policy_path)
+        policy["block"]["require_clean_tree"] = False
+        policy["stages"]["release"] = True
+        policy["release_requirements"]["require_no_dirty_tree"] = False
+        policy["artifact_signatures"] = {
+            "allowed_signers_file": ".architecture/allowed_signers",
+            "namespace": "architecture-governance",
+        }
+        self.write_yaml(policy_path, policy)
+
+        key_path = self.root / "brief-signing-key"
+        subprocess.run(
+            [
+                "ssh-keygen",
+                "-q",
+                "-t",
+                "ed25519",
+                "-N",
+                "",
+                "-f",
+                str(key_path),
+            ],
+            check=True,
+        )
+        public_key = key_path.with_suffix(".pub").read_text(encoding="utf-8")
+        (config_root / "allowed_signers").write_text(
+            f"architecture-owner {public_key}",
+            encoding="utf-8",
+        )
+        approvals = config_root / "approvals"
+        approvals.mkdir()
+        approval_record = approvals / "design-brief-approval.md"
+        approval_record.write_text(
+            "Architecture owner approves this bounded Design Brief.\n",
+            encoding="utf-8",
+        )
+        brief_path = config_root / "architecture-design-brief.yaml"
+        brief = architecture_tool.load_yaml(
+            ROOT / "resources" / "templates" / "architecture-design-brief.yaml"
+        )
+        brief["brief"]["status"] = "approved"
+        brief["brief"]["approval"] = {
+            "approved_by": ["architecture-owner"],
+            "approved_at": "2026-08-06T12:00:00+00:00",
+            "authority": "Project architecture decision authority",
+            "evidence": [
+                {
+                    "path": approval_record.relative_to(self.root).as_posix(),
+                    "sha256": architecture_tool.file_sha256(approval_record),
+                    "description": "Recorded approval rationale and scope.",
+                }
+            ],
+            "signatures": [
+                {
+                    "format": "ssh",
+                    "identity": "architecture-owner",
+                    "namespace": "architecture-governance",
+                    "path": brief_path.with_suffix(".yaml.sig")
+                    .relative_to(self.root)
+                    .as_posix(),
+                }
+            ],
+        }
+        self.write_yaml(brief_path, brief)
+        subprocess.run(
+            [
+                "ssh-keygen",
+                "-Y",
+                "sign",
+                "-f",
+                str(key_path),
+                "-n",
+                "architecture-governance",
+                str(brief_path),
+            ],
+            check=True,
+            capture_output=True,
+        )
+        architecture_tool.validate_design_brief(
+            brief_path,
+            repository_root=self.root,
+        )
+
+        selection_path = config_root / "knowledge-selection.yaml"
+        selection = architecture_tool.select_knowledge(
+            config_root / "repository-facts.yaml",
+            profile_path=config_root / "profile.yaml",
+            task="Design the approved constrained order target architecture.",
+            skill="architecture-solution-advisor",
+            maximum_entries=32,
+            includes=[
+                "style.modular-monolith",
+                "style.microservices",
+                "pattern.idempotency-key",
+                "technology.fastapi",
+                "technology.postgresql",
+                "technology.rabbitmq",
+            ],
+        )
+        self.write_yaml(selection_path, selection)
+
+        decision = architecture_tool.load_yaml(
+            ROOT / "resources" / "templates" / "architecture-decision.yaml"
+        )
+        decision["decision"].update(
+            {
+                "source_context_sha256": architecture_tool.file_sha256(brief_path),
+                "decision_makers": ["architecture-owner"],
+                "status": "accepted",
+                "knowledge_selection_sha256": architecture_tool.file_sha256(
+                    selection_path
+                ),
+            }
+        )
+        decision["knowledge_snapshot"] = [
+            {
+                "id": item["id"],
+                "version": item["version"],
+                "sha256": item["sha256"],
+            }
+            for item in selection["selection"]
+        ]
+        decision_path = config_root / "reviews" / "greenfield-decision.yaml"
+        self.write_yaml(decision_path, decision)
+
+        missing_plan = architecture_tool.gate_greenfield(
+            self.root,
+            decision_path,
+            mode="change",
+        )
+        self.assertEqual(missing_plan["status"], "fail")
+        self.assertIn("requires an accepted", missing_plan["policy_failures"][0])
+
+        plan = architecture_tool.load_yaml(
+            ROOT / "resources" / "templates" / "remediation-plan.yaml"
+        )
+        plan["plan"].update(
+            {
+                "source_context_sha256": architecture_tool.file_sha256(brief_path),
+                "source_decision_sha256": architecture_tool.file_sha256(decision_path),
+                "status": "accepted",
+            }
+        )
+        plan_path = config_root / "reviews" / "greenfield-plan.yaml"
+        self.write_yaml(plan_path, plan)
+
+        result = architecture_tool.gate_greenfield(
+            self.root,
+            decision_path,
+            mode="change",
+        )
+        self.assertEqual(result["status"], "pass", result)
+        self.assertEqual(result["subject_kind"], "greenfield-decision")
+        self.assertTrue(
+            any("no Git source commit" in warning for warning in result["warnings"])
+        )
+
+        policy["block"]["require_clean_tree"] = True
+        self.write_yaml(policy_path, policy)
+        policy_enforced = architecture_tool.gate_greenfield(
+            self.root,
+            decision_path,
+            mode="change",
+        )
+        self.assertEqual(policy_enforced["status"], "fail")
+        self.assertTrue(
+            any(
+                "not a git repository" in item
+                for item in policy_enforced["policy_failures"]
+            )
+        )
+        policy["block"]["require_clean_tree"] = False
+        self.write_yaml(policy_path, policy)
+
+        release = architecture_tool.gate_greenfield(
+            self.root,
+            decision_path,
+            mode="release",
+        )
+        self.assertEqual(release["status"], "fail")
+        self.assertTrue(
+            any(
+                "complete implementation plan" in item
+                for item in release["policy_failures"]
+            )
+        )
+        self.assertTrue(
+            any("missing evidence types" in item for item in release["policy_failures"])
+        )
+
+        tampered_brief = architecture_tool.load_yaml(brief_path)
+        tampered_brief["context"]["objective"] += " Tampered after approval."
+        self.write_yaml(brief_path, tampered_brief)
+        with self.assertRaisesRegex(
+            architecture_tool.ArchitectureError,
+            "SSH signature is invalid",
+        ):
+            architecture_tool.validate_design_brief(
+                brief_path,
+                repository_root=self.root,
+            )
 
     def test_init_and_validate_empty_portfolio(self) -> None:
         target = architecture_tool.init_portfolio(self.portfolio_args())
@@ -1753,6 +2133,9 @@ class ArchitectureToolTests(unittest.TestCase):
                 "status": "approved",
             }
         )
+        brief["schema_version"] = "1.0"
+        brief.pop("design_mode")
+        brief.pop("architecture_constraints")
         brief["quality_scenarios"][0]["attribute"] = "recoverability"
         brief_path = config_root / "architecture-design-brief.yaml"
         self.write_yaml(brief_path, brief)
@@ -1780,8 +2163,11 @@ class ArchitectureToolTests(unittest.TestCase):
             ROOT / "resources" / "templates" / "architecture-decision.yaml"
         )
         decision["schema_version"] = "1.3"
-        decision["decision"].pop("source_review")
-        decision["decision"].pop("source_review_sha256")
+        decision["decision"].pop("architecture_intent", None)
+        decision["decision"].pop("source_review", None)
+        decision["decision"].pop("source_review_sha256", None)
+        decision.pop("target_architecture")
+        decision.pop("hard_eliminations", None)
         decision["decision"].update(
             {
                 "id": "ADR-GREENFIELD-001",
@@ -1799,6 +2185,10 @@ class ArchitectureToolTests(unittest.TestCase):
         decision["problem"]["quality_attributes"] = ["recoverability"]
         decision["problem"]["finding_ids"] = []
         for option in decision["options"]:
+            option.pop("constraint_assessments", None)
+            option["architecture_styles"] = []
+            option["patterns"] = []
+            option["technologies"] = []
             option["quality_attribute_effects"] = [
                 {
                     "attribute": "recoverability",
@@ -1856,15 +2246,20 @@ class ArchitectureToolTests(unittest.TestCase):
         decision = architecture_tool.load_yaml(
             ROOT / "resources" / "templates" / "architecture-decision.yaml"
         )
-        decision["schema_version"] = "1.1"
+        as_legacy_remediation_decision(decision, "1.1")
         decision["decision"].pop("knowledge_selection_path")
         decision["decision"].pop("knowledge_selection_sha256")
         decision["problem"].pop("known_facts")
         decision["problem"].pop("unknowns")
         decision.pop("migration")
+        decision["problem"]["quality_attributes"] = ["recoverability"]
         for option in decision["options"]:
-            option["architecture_styles"] = [
-                value.removeprefix("style.") for value in option["architecture_styles"]
+            option["quality_attribute_effects"] = [
+                {
+                    "attribute": "recoverability",
+                    "effect": "neutral",
+                    "rationale": "The remediation preserves recoverability.",
+                }
             ]
         decision["decision"].update(
             {
@@ -1885,8 +2280,8 @@ class ArchitectureToolTests(unittest.TestCase):
         plan = architecture_tool.load_yaml(
             ROOT / "resources" / "templates" / "remediation-plan.yaml"
         )
-        plan["schema_version"] = "1.1"
-        plan["items"][0].pop("finding_bindings")
+        as_legacy_remediation_plan(plan, "1.1")
+        plan["items"][0].pop("finding_bindings", None)
         plan["items"][0].pop("knowledge_ids")
         plan["items"][0].pop("assumptions")
         plan["plan"].update(
@@ -2052,7 +2447,7 @@ class ArchitectureToolTests(unittest.TestCase):
             base_commit=base_commit,
         )
 
-        self.assertEqual(result["status"], "pass")
+        self.assertEqual(result["status"], "pass", result)
         self.assertEqual(result["change_impacts"]["critical"], ["critical.py"])
         self.assertFalse(
             any(
@@ -2141,7 +2536,7 @@ class ArchitectureToolTests(unittest.TestCase):
         decision = architecture_tool.load_yaml(
             ROOT / "resources" / "templates" / "architecture-decision.yaml"
         )
-        decision["schema_version"] = "1.1"
+        as_legacy_remediation_decision(decision, "1.1")
         decision["decision"].pop("knowledge_selection_path")
         decision["decision"].pop("knowledge_selection_sha256")
         decision["decision"].update(
@@ -2155,12 +2550,16 @@ class ArchitectureToolTests(unittest.TestCase):
         )
         decision["problem"]["quality_attributes"] = ["recoverability"]
         decision["problem"]["finding_ids"] = []
+        decision["selected_option"] = "keep-current"
+        for option in decision["options"]:
+            option["rejected_reasons"] = (
+                []
+                if option["id"] == "keep-current"
+                else ["Keep-current is sufficient for this compatible migration."]
+            )
         decision["migration"]["affected_paths"] = ["migration.yaml"]
         decision["knowledge_snapshot"] = architecture_tool.decision_knowledge_snapshot()
         for option in decision["options"]:
-            option["architecture_styles"] = [
-                value.removeprefix("style.") for value in option["architecture_styles"]
-            ]
             option["quality_attribute_effects"] = [
                 {
                     "attribute": "recoverability",
@@ -2189,7 +2588,7 @@ class ArchitectureToolTests(unittest.TestCase):
             base_commit=base_commit,
         )
 
-        self.assertEqual(result["status"], "pass")
+        self.assertEqual(result["status"], "pass", result)
         self.assertEqual(result["change_impacts"]["migration"], ["migration.yaml"])
         self.assertFalse(
             any(
@@ -2824,7 +3223,7 @@ class ArchitectureToolTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(process.returncode, 0, process.stderr)
-        self.assertEqual(process.stdout.strip(), "architecture_tool.py 0.4.2")
+        self.assertEqual(process.stdout.strip(), "architecture_tool.py 1.0.0")
 
     def test_benchmark_score_cli_can_preserve_json_output(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

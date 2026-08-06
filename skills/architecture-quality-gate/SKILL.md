@@ -27,7 +27,9 @@ Provider runs, approvals, signatures, or gate inputs.
 
 1. Locate the project `.architecture/` or portfolio
    `.architecture-portfolio/` policy, baseline, risk-acceptance registry, and
-   explicitly supplied or newest-by-`performed_at` verified review.
+   explicitly supplied or newest-by-`performed_at` verified review. For a
+   Greenfield chain, locate the explicitly supplied accepted Decision, its
+   approved Brief, and every Plan bound to that Decision.
 2. Validate all inputs before evaluating them.
    For Review 1.2, first run:
 
@@ -40,13 +42,15 @@ python3 ../../resources/scripts/architecture_tool.py validate-coverage \
 ```bash
 python3 ../../resources/scripts/architecture_tool.py gate \
   --project <repo> \
-  [--review <verified-review.yaml>] \
+  [--review <verified-review.yaml> | --decision <greenfield-decision.yaml>] \
   [--base-commit <ancestor>] \
   [--stage contract|finding|change|release|all] \
   [--json] [--sarif-output <results.sarif>]
 ```
 
 Use `--portfolio <portfolio-root>` for portfolio reviews.
+Use `--decision` only for the Brief → Greenfield Decision → Plan path; it does
+not synthesize a Review or Findings.
 
 Resolve the script path from this Skill's directory.
 

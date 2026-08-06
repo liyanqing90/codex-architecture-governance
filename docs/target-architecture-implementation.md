@@ -1,61 +1,45 @@
 # Target architecture implementation matrix
 
-This matrix maps
-`codex-architecture-governance-target-architecture-implementation.md` to
-version 0.3 source and executable evidence.
-
-## Implementation status
+This matrix records the 1.0 public-contract implementation and its evidence.
 
 | Phase | Required outcome | Implementation | Evidence |
 | --- | --- | --- | --- |
-| 0 | Preserve trust and open-source baseline | 0.2 schemas and catalogs remain readable; release, security, governance, CI, locks, SBOM, and attestation paths remain intact | compatibility tests and repository validator |
-| 1 | Define target boundaries | One stable entry, eight focused public workflow Skills, maintainer-only curator, deterministic scripts, ten Knowledge Packs, and project-local facts/selection | target architecture and accepted ADRs |
-| 2 | Establish content contracts | Manifest, Markdown/frontmatter entry schema, sources, freshness, relationships, volatile-fact policy, and authoring guide | `validate_knowledge.py` and knowledge tests |
-| 3 | Acquire repository knowledge | Root-contained deterministic inspector for languages, frameworks, storage, interfaces, infrastructure, manifests, migrations, APIs, CI, and deployment | inspector tests, including scope escape |
-| 4 | Build project context | Profile builder keeps detected, declared, and inferred inputs separate and derives reviews, packs, qualities, and domains | Profile schema and CLI tests |
-| 5 | Select relevant knowledge | Skill/task/fact/Profile scoring, explicit includes/excludes, negative request handling, context budget, reasons, and complete exclusion ledger | selector regression and selection schema |
-| 6 | Strengthen artifacts | Review/Finding/Decision/Plan 1.2 hashes, fingerprints, facts, selected knowledge, critical flows, assumptions, migration, rollback, and acceptance bindings | tamper and compatibility tests |
-| 7 | Migrate safely | Legacy Review migration always downgrades conclusions to candidates and refuses overwrite | migration regression test and 0.3 guide |
-| 8 | Upgrade workflows | The stable entry routes natural language without owning workflow authority; all eight focused public Skills load facts and task-scoped knowledge at the appropriate boundary; verifier and gate enforce coverage | Skill static validation and 45 routing cases |
-| 9 | Evaluate behavior | Separate routing, selection, decision, false-positive, and artifact-validity corpora plus ten adversarial fixtures and a model-agnostic harness | evaluation docs, test corpora, benchmark scorer |
-| 10 | Release and govern | Versioned changelog, ADR, migration guide, compatibility policy, release checklist, deterministic ZIP, checksum, SPDX SBOM, and GitHub workflows | local release gate and tagged workflow |
+| 0 | Preserve public identity and prior artifacts | One router, eight focused names, readable 0.4 artifacts, no new Skill | compatibility checks and Skill validation |
+| 1 | Route design intent | Open, design, specify, constrain, and Chinese equivalents route to `architecture-solution-advisor` | routing corpus and exact public-surface check |
+| 2 | Support open and constrained source modes | Brief 1.0 remains legacy open; Brief 1.1 declares open or constrained mode, with typed constraints only in constrained mode; remediation still binds verified Review | Brief/Decision contract validation |
+| 3 | Challenge constraints | Required conflicts are challenged, preferred may lose, prohibited options hard-eliminate, inputs do not count as proof | decision-quality and artifact-validity cases |
+| 4 | Emit a target architecture | Runtime/deployment units, data ownership, interfaces, trust boundaries, critical flows, operations, constraint assessments, and Knowledge are bound | target-architecture contract and tamper cases |
+| 5 | Preserve evolution boundaries | Technology-evolution remains an explicit evidence lens; current official evidence is required and versions are never recalled from memory | decision-quality cases and evolution validation |
+| 6 | Plan accepted targets | Remediation Plans retain Finding bindings; Greenfield Plan 1.3 binds Brief/Decision, has no fake Findings, and maps work to units/flows/constraints | planner contract and artifact-validity cases |
+| 7 | Release one compatible product | New target artifacts release with Hengmu 1.0.0 and a migration guide; no mixed release of partial contracts | compatibility docs, ADR, changelog, packaging gate |
 
-## Delivered deterministic commands
+## Artifact chain
 
 ```text
-architecture_tool.py inspect-repository
-architecture_tool.py build-profile
-architecture_tool.py select-knowledge
-architecture_tool.py validate-coverage
-architecture_tool.py fingerprint-artifact
-resources/scripts/validate_knowledge.py
-resources/scripts/migrate_artifacts.py
+repository-facts + Profile + Brief/constraints + Knowledge selection
+        ├── verified Review ── proposed/accepted remediation Decision 1.2
+        │                                      └── remediation Plan 1.2
+        └── approved Brief 1.0 ─────────────── proposed/accepted Decision 1.3
+            approved Brief 1.1 ─────────────── proposed/accepted Decision 1.4
+                                                       └── Greenfield Plan 1.3
 ```
 
-The standalone scripts are also directly executable so a repository can call
-one bounded function without entering the larger CLI command surface.
+Every edge is checked by exact source hashes, semantic fingerprints, Knowledge
+bindings, authorized and signed approval evidence, target references, or
+complete evidence-backed coverage. A constraint input is not an evidence edge.
+A generated plan is not completion evidence, and a migrated status is not
+current verification.
 
-## Delivered artifact chain
+Brief 1.1 approval is itself an edge: authorized identities, SHA-256-bound
+repository evidence, and one detached SSH signature per approver are required.
+A satisfied constraint is also bound to the
+same Brief Knowledge ID and concrete target IDs; it cannot be asserted only by
+writing `status: satisfied`.
 
-```text
-repository-facts.yaml
-  └── profile.yaml
-      └── knowledge-selection.yaml
-          ├── knowledge-context.yaml
-          └── Review 1.2
-              └── Architecture Decision 1.2
-                  └── Remediation Plan 1.2
-                      └── quality gate and release evidence
-```
+## Delivery and rollback
 
-Every arrow is validated by identity, exact SHA-256, semantic fingerprint, or
-complete coverage. A generated plan is not completion evidence, and a migrated
-verified label is not current verification.
-
-## External evidence boundary
-
-The repository does not fabricate a model-quality score. It implements the
-corpus, fixtures, forward-test harness, metadata contract, and deterministic
-scorer. A published model result requires an actual identified model, Codex
-surface, version, date, and preserved run artifact. The deterministic 0.3
-release report covers repository contracts and selectors only.
+The 1.0 change is additive at the workflow boundary. Existing focused Skill
+names and readable artifact versions remain available. A consumer that cannot
+read Brief 1.1, Decision 1.4, or Plan 1.3 continues using the 1.0/1.2/1.3
+open or remediation path. Roll back by retaining the prior artifact chain and
+not accepting a new constrained Decision; no existing artifact is rewritten.

@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "kind": "banner",
+  "project": "Hengmu",
+  "locales": ["en", "zh-CN"],
+  "canvas": {
+    "width": 2172,
+    "height": 724
+  },
+  "deliverables": [
+    {
+      "stem": "hengmu-banner",
+      "formats": ["svg", "png"]
+    }
+  ]
+}

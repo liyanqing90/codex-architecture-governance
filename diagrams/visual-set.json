@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "kind": "diagram",
+  "project": "Hengmu architecture decision paths",
+  "locales": ["en", "zh-CN"],
+  "canvas": {
+    "width": 1950,
+    "height": 377
+  },
+  "deliverables": [
+    {
+      "stem": "hengmu-governance-loop",
+      "formats": ["mmd", "excalidraw", "svg", "png"]
+    }
+  ]
+}

@@ -7,7 +7,49 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-06
+
 ### Added
+
+- Constrained Greenfield design through the existing
+  `architecture-solution-advisor`: Brief 1.1 records required, preferred, and
+  prohibited constraints, and Decision 1.4 records their assessments and the
+  complete target architecture.
+- Greenfield target planning in Plan 1.3, bound directly to the accepted Brief
+  and Decision with no fabricated Findings, mapped to runtime/deployment units,
+  data ownership, interfaces, trust boundaries, critical flows, operations, and
+  constraints.
+- Routing and evaluation coverage for open/constrained design, specification,
+  constraint conflicts, Chinese equivalents, target-architecture completeness,
+  and Greenfield plan source validity.
+- Compatibility and migration guidance for the one coordinated 1.0 artifact
+  release, plus an accepted constrained-target architecture ADR.
+
+### Changed
+
+- Public positioning now presents Hengmu as an evidence-bound architecture
+  design, decision, and governance system with two first-class entry paths:
+  current-state assessment and open/constrained target design. The README,
+  website, plugin metadata, workflow metadata, banners, governance diagrams,
+  and editorial figures use the same model.
+- The stable `hengmu` router routes design, specify, constrain, and their Chinese
+  equivalents to the existing Solution Advisor. The public surface remains one
+  router plus eight focused workflow Skills.
+- Required constraints are challenged before becoming hard requirements;
+  preferred constraints may lose with a recorded trade-off; prohibited options
+  are hard-eliminated. Constraint inputs never substitute for proof.
+- Technology-evolution remains a narrow evidence lens. Version pins require
+  current official or repository evidence and are never supplied from memory.
+
+### Compatibility
+
+- Brief 1.0, Decision artifacts through 1.3, and Plan artifacts through 1.2
+  remain readable. Brief 1.1, Decision 1.4, and Plan 1.3 ship together as the
+  current 1.0 open/constrained target-design contract.
+
+### Other work included in 1.0.0
+
+#### Added
 
 - A stable `$hengmu` entry point that shows the full capability menu, accepts
   natural-language goals, and routes to one of eight focused workflow Skills
@@ -16,8 +58,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   `.architecture/` control plane when missing, validates existing governance,
   and refuses to overwrite partial user-owned state.
 - Localized 青野/Hengmu icons and banners, an original 青野 editorial
-  character, two paired English/Chinese article illustrations, and paired
-  Mermaid/Excalidraw/SVG/PNG governance flows.
+  character, three paired English/Chinese article illustrations including the
+  target-design hero, and paired Mermaid/Excalidraw/SVG/PNG governance flows.
 - A full Simplified Chinese README that mirrors the English quick start,
   trust model, workflows, development commands, and project policies.
 - Consumption-time `validate-knowledge-context` checks for the Selection lock,
@@ -25,7 +67,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - CI and release ancestry checks for the Selector source and latest reviewed
   implementation commits.
 
-### Changed
+#### Changed
 
 - The public surface now distinguishes one discoverability-only entry Skill
   from eight directly invocable workflow contracts; audit, verification,
@@ -44,15 +86,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   series, removing the vulnerable 8.4.2 test-runner dependency.
 - Runtime dependency bounds now require JSON Schema 4.26.0 and PyYAML 6.0.3,
   matching the verified lock files already used by installation and CI.
-- Public positioning now describes Hengmu as an evidence-bound software
-  engineering decision system spanning system assessment, performance and
-  other engineering qualities, technical solution comparison, remediation,
-  portfolio governance, and deterministic gates.
 - Git-verified archived Selection locks remain historically readable but can no
   longer create new trusted Review, Decision, Plan, coverage, or Gate chains;
   current deterministic replay is required.
 
-### Fixed
+#### Fixed
 
 - Profile construction now resolves facts stored at any depth under
   `.architecture/` from the repository root and records portable relative

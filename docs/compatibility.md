@@ -30,17 +30,24 @@ entry in at least one current Codex surface and record the application version,
 surface, operating system, and observed routing result. This manual evidence is
 time-bound and must not be represented as universal compatibility.
 
-## Artifact compatibility
+## Artifact compatibility and the 1.0 release
 
 - Schema `1.0` is readable history in 0.3.
 - Trusted schema `1.1` remains enforceable for 0.2 compatibility.
-- Schema `1.2` remains the current project, AI-agent, mobile, remediation
-  Decision, and Plan
-  contract. It binds repository facts, selected Markdown knowledge, critical
-  flows, evidence and Finding fingerprints, assumptions, and migrations.
-- Architecture Decision schema `1.3` adds an optional Greenfield path bound to
-  Design Brief schema `1.0`; schema `1.1` and `1.2` remediation artifacts remain
-  readable and enforceable.
+- Brief schema `1.0` remains the readable legacy open Greenfield contract. Brief
+  schema `1.1` makes the current mode explicit: `open` has no architecture
+  constraints, while `constrained` records required, preferred, and prohibited
+  inputs. It is new in the single 1.0 release.
+- Architecture Decision artifacts through `1.3` remain parseable and
+  migratable (including
+  remediation `1.1`/`1.2` and legacy open Greenfield `1.3`). Decision schema
+  `1.4` is the current Brief 1.1 target contract for both open and constrained
+  modes; it binds the Brief, target architecture, constraint assessments,
+  source evidence, and Knowledge.
+- Remediation Plan artifacts through `1.2` remain readable. Plan schema `1.3`
+  adds the accepted Greenfield target path: it binds Brief/Decision directly,
+  keeps Finding lists empty, and maps work to target units, flows, and
+  constraints.
 - Knowledge selection schema `1.1` adds context priority and preserves `1.0`
   selection readability.
 - Aggregate Portfolio Reviews continue to use the trusted `1.1` portfolio
@@ -62,9 +69,34 @@ time-bound and must not be represented as universal compatibility.
   focused workflow Skills. Existing focused names remain directly invocable.
   The Knowledge Curator lives under `maintainer/skills/` and is not an
   end-user plugin workflow.
+- The new Brief `1.1`, Decision `1.4`, and Plan `1.3` target-design contracts
+  ship together in Hengmu `1.0.0`; legacy artifact paths remain parseable and
+  migratable. No new target-design contract is released partially.
 - Breaking schema, CLI, or Skill-name changes require a major release after
   `1.0.0`; during `0.x`, they require explicit migration guidance and a minor
-  release at minimum.
+  release at minimum. The stable router and all eight focused Skill names do not
+  change in 1.0.
+
+### Coexistence and migration
+
+Old readers may continue to consume Brief 1.0 and artifacts through Decision
+1.3/Plan 1.2. A 1.0 reader must preserve those paths and must not silently
+reinterpret a legacy open Brief as a constrained Brief. To use constraints,
+create a new Brief 1.1, challenge and assess every constraint, create a Decision
+1.4, and obtain acceptance; do not mutate the old Brief or promote its prose.
+
+Parseability and migration support do not preserve an artifact's former trust
+status. A historical chain may be read without satisfying current Knowledge,
+source-identity, freshness, or independent-verification policy. Before an old
+artifact becomes accepted input to a current Gate, rerun the applicable
+independent verification and bind current provenance; never promote a legacy
+verification status by migration alone.
+
+For accepted Greenfield work, create a new Plan 1.3 bound to the exact Brief and
+Decision. For remediation, retain the existing Review/Finding bindings and Plan
+1.2 path. Rollback is artifact-level: keep the old accepted chain, reject or
+supersede the new proposal, and remove no legacy artifact. See
+[migrating to 1.0](migrating-to-1.0.md) for the operational sequence.
 
 See [the 0.4 migration guide](migrating-to-0.4.md) and
 [the 0.3 migration guide](migrating-to-0.3.md). The

@@ -2,7 +2,7 @@
   <img
     src="docs/assets/brand/en/hengmu-banner.png"
     width="100%"
-    alt="Hengmu — evidence-bound software engineering decisions, a 青野 open-source project"
+    alt="Hengmu — evidence-bound architecture design and decisions, a 青野 open-source project"
   >
 </p>
 
@@ -16,7 +16,7 @@
     <img alt="CI" src="https://github.com/qingye-lab/hengmu/actions/workflows/ci.yml/badge.svg?branch=main">
   </a>
   <a href="https://github.com/qingye-lab/hengmu/releases">
-    <img alt="Version 0.4.2" src="https://img.shields.io/badge/version-0.4.2-173FBE">
+    <img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-173FBE">
   </a>
   <img alt="Python 3.11–3.13" src="https://img.shields.io/badge/python-3.11%E2%80%933.13-161719">
   <a href="LICENSE">
@@ -35,18 +35,25 @@
 
 ---
 
-Hengmu is a local-first, evidence-bound software engineering decision system.
-It closes the loop from system assessment and independent finding verification
-to technical solution decisions, remediation planning, and deterministic
-quality gates.
+Hengmu is a local-first, evidence-bound architecture design, decision, and
+governance system. It turns repository facts, approved design intent, and
+explicit constraints into evidence-bound current-state assessments, open or
+constrained target architectures, traceable decisions, executable plans, and
+deterministic policy results.
 
-Architecture is the system view that connects these concerns, not the only
-thing Hengmu evaluates or decides. Its current assessment rules cover
-performance efficiency, reliability, security and privacy boundaries, data and
-API contracts, observability, testing, deployment, technical debt, and
-proportionality. Its Solution Advisor also supports target architecture,
-technology selection, pattern comparison, and greenfield or remediation
-trade-offs.
+Current-state assessment and target design are equal entry paths. Existing
+systems can move from candidate findings through independent verification to a
+remediation decision. New systems and major redesigns can start from an approved
+Design Brief and produce a complete target architecture without inventing a
+Review or Findings. Required, preferred, and prohibited constraints are
+challenged inputs, never proof of feasibility or fitness.
+
+The architecture view includes performance efficiency, reliability, security
+and privacy boundaries, data and API contracts, observability, testing,
+deployment, technical debt, proportionality, technology selection, and
+operating reality. Dedicated lenses cover AI-agent context and economics,
+Memory, tool authority, privacy, behavior evidence, technology evolution,
+mobile systems, and multi-project portfolios.
 
 It works at two levels:
 
@@ -57,10 +64,10 @@ It works at two levels:
 
 | Capability | What Hengmu does |
 | --- | --- |
-| System assessment | Reviews structure and engineering qualities, including evidence-backed performance budgets and runtime behavior. |
-| Technical solutions | Compares keep-current and structural options across quality, cost, complexity, maturity, lock-in, migration risk, and reversibility. |
-| Specialized review | Applies dedicated lenses for AI-agent context assembly and economics, memory, tool authority, privacy, behavior evidence, technology evolution, mobile applications, and multi-project portfolios. |
-| Decision governance | Binds facts, evidence, provenance, authority, remediation, and deterministic policy into one auditable chain. |
+| Current-state assessment | Reviews boundaries and engineering qualities, then keeps findings candidate-only until independent verification resolves their evidence. |
+| Target architecture design | Designs open or constrained targets across runtime and deployment units, data ownership, interfaces, trust boundaries, critical flows, operations, and technology choices. |
+| Decisions and plans | Compares viable options, records why alternatives lose, and turns an authorized decision into ordered remediation or Greenfield implementation slices. |
+| Evidence governance | Binds facts, Knowledge, provenance, authority, acceptance, and deterministic policy into one auditable chain. |
 
 ## Why Hengmu
 
@@ -70,6 +77,7 @@ Hengmu is designed around a longer, evidence-bound engineering decision chain.
 | Typical review failure | Hengmu's response |
 | --- | --- |
 | A model sees a large file or a singleton and declares an architecture problem. | Candidate findings must survive independent verification and evidence resolution before they become trusted. |
+| A team names a required stack but has no target architecture or explicit trade-offs. | Hengmu challenges required, preferred, and prohibited constraints, compares compliant variants, and records a complete target architecture instead of treating technology names as proof. |
 | A missing capability is mentioned as criticism but never designed. | Confirmed gaps flow into solution comparison, remediation slices, rollback, tests, and acceptance criteria. |
 | Every project copies the same architecture prompt and slowly diverges. | One global method reads a repository-local Profile and real constraints. |
 | Each repository looks reasonable in isolation while the portfolio duplicates infrastructure. | Portfolio review models shared capabilities, dependencies, data flow, ownership, and coupling. |
@@ -77,8 +85,8 @@ Hengmu is designed around a longer, evidence-bound engineering decision chain.
 
 <p align="center">
   <img
-    src="assets/hengmu-readme-illustrations/en/01-from-critique-to-closure.png"
-    alt="The 青野 builder measures a real gap with code evidence and pulls a remediation wedge into the load-bearing structure"
+    src="assets/hengmu-readme-illustrations/en/03-facts-constraints-target.png"
+    alt="The 青野 builder calibrates repository facts and required, preferred, and prohibited constraints into a target architecture"
     width="100%">
 </p>
 
@@ -138,7 +146,9 @@ missing, or validates and reuses the existing one without overwriting it:
 └── reviews/
 ```
 
-### 3. Run the audit in Codex
+### 3. Choose the outcome in Codex
+
+For an existing system, start with current-state assessment:
 
 ```text
 Use $hengmu to audit this repository.
@@ -155,9 +165,42 @@ $hengmu verify the latest candidate findings
 $hengmu compare the queue and durable-workflow options
 ```
 
-This step can be run directly: the Skill invokes the preparation command and
-initializes `.architecture/` automatically. Use an explicitly read-only request
-only when you want a one-off Advisory assessment with no repository artifacts.
+For a new system or major redesign, add and approve a Design Brief, then ask for
+an open or constrained target:
+
+```bash
+if [ ! -e /path/to/your-project/.architecture/architecture-design-brief.yaml ]; then
+  cp "$HENGMU_ROOT/resources/templates/architecture-design-brief.yaml" \
+    /path/to/your-project/.architecture/architecture-design-brief.yaml
+fi
+
+python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
+  validate-design-brief \
+  /path/to/your-project/.architecture/architecture-design-brief.yaml \
+  --project /path/to/your-project
+```
+
+The copied template is deliberately `draft`. Before changing it to `approved`,
+add `brief.approval` with an authorized decision-maker identity and at least one
+repository-relative approval-evidence path and SHA-256, plus one detached SSH
+signature per approver. The signatures must verify against the project's
+`artifact_signatures` policy. Validation never treats the template authors or
+a status string as approval.
+
+```text
+$hengmu design an open target architecture from the approved Design Brief
+$hengmu constrain the target to FastAPI, PostgreSQL, and one production deployment; challenge each constraint and record rejected alternatives
+```
+
+The current Brief 1.1 path produces a proposed Decision 1.4 with the complete
+target architecture. Hengmu does not approve the Brief or Decision and does not
+implement application code. After an authorized decision maker accepts the
+Decision, `$hengmu plan …` can produce a Greenfield Plan 1.3.
+
+The audit path can be run directly: the Skill invokes the preparation command
+and initializes `.architecture/` automatically. Use an explicitly read-only
+request only when you want a one-off Advisory assessment with no repository
+artifacts.
 
 The project Profile decides which qualities and specialist reviews matter.
 The global Skill provides the method; the repository provides the truth.
@@ -184,6 +227,10 @@ python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
 
 python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
   gate --project /path/to/your-project --stage change
+
+python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
+  gate --project /path/to/your-project \
+  --decision .architecture/reviews/<greenfield-decision.yaml> --stage change
 ```
 
 The gate returns `0` for pass, `1` for policy failure, and `2` for invalid
@@ -191,13 +238,14 @@ input or configuration.
 
 ## How it works
 
-Hengmu separates model judgment from deterministic trust. A candidate audit is
-useful input, not policy.
+Hengmu separates model judgment from deterministic trust. It accepts two source
+paths, and neither a candidate audit nor a constraint assertion is policy or
+proof.
 
 <p align="center">
   <img
     src="diagrams/en/hengmu-governance-loop.svg"
-    alt="Repository evidence, Profile, constraints, rules, and selected knowledge flow through candidate audit, independent verification, trusted review, solution decision, remediation plan, and deterministic quality gate"
+    alt="Repository facts and an approved Design Brief provide current-state assessment or open and constrained target-design paths that converge on an authorized decision, plan, and deterministic gate"
     width="100%">
 </p>
 
@@ -205,18 +253,22 @@ The diagram is maintained as
 [Mermaid source](diagrams/en/hengmu-governance-loop.mmd) and an
 [editable Excalidraw scene](diagrams/en/hengmu-governance-loop.excalidraw).
 
-1. **Establish facts.** Inspect the repository without turning detected
-   technologies or filenames into recommendations.
-2. **Load context.** Bind the Profile, constraints, critical flows, selected
-   Rule Packs, and task-scoped Knowledge.
-3. **Audit.** Produce candidate findings, including material missing
-   capability and plausible impact.
-4. **Verify.** Challenge each candidate, resolve evidence, and preserve
-   rejected hypotheses and limitations.
-5. **Decide.** Compare keep-current and structural options against quality,
-   business, team, evolution, lock-in, migration risk, and cost.
-6. **Remediate.** Turn the accepted option into ordered slices, protections,
-   rollback, stop conditions, and acceptance evidence.
+1. **Establish facts and intent.** Inspect the repository and bind the Profile;
+   for target design, add an approved Brief with measurable scenarios and
+   boundaries.
+2. **Load context.** Bind constraints, critical flows, selected Rule Packs, and
+   task-scoped Knowledge without turning detected technology or owner assertions
+   into proof.
+3. **Assess or design.** Existing systems produce candidate findings for
+   independent verification. Greenfield work uses the approved Brief to compare
+   open or constraint-compliant targets without manufacturing Findings.
+4. **Decide.** Record the selected target, rejected alternatives, trade-offs,
+   complete architecture model, source bindings, and proposed status.
+5. **Authorize.** A named decision maker accepts, rejects, or supersedes the
+   Decision; Hengmu's router and Advisor cannot perform this transition.
+6. **Plan.** Turn an accepted remediation or Greenfield target into ordered
+   implementation slices, protections, rollback, stop conditions, and
+   acceptance evidence.
 7. **Gate.** Apply deterministic contract, finding, change, or release policy
    to provenance-bound artifacts.
 
@@ -228,7 +280,10 @@ Instead, it carries only the context that makes its decisions different:
 - `profile.yaml` — project type, critical qualities, and required reviews;
 - `constraints.md` — real technical, product, regulatory, and team limits;
 - `critical-flows.md` — business and runtime paths that must not regress;
-- `reviews/` — candidate, verified, decision, plan, and evidence history.
+- `architecture-design-brief.yaml` — target intent, quality scenarios,
+  boundaries, and typed constraints;
+- `reviews/` — candidate and verified Reviews, Decisions, Plans, and evidence
+  history.
 
 <p align="center">
   <img
@@ -247,17 +302,15 @@ The installable plugin exposes one stable entry point and eight focused
 workflow Skills. Use `$hengmu` for normal work; direct focused invocation
 remains available for automation and compatibility.
 
-| What you type | Outcome |
-| --- | --- |
-| `$hengmu` | Show the full menu and recommend likely actions from declared repository context. |
-| `$hengmu audit …` | Audit one repository. |
-| `$hengmu ai …` | Audit an AI-agent system. |
-| `$hengmu mobile …` | Audit a mobile system. |
-| `$hengmu portfolio …` | Audit multiple registered projects. |
-| `$hengmu verify …` | Independently verify candidate findings. |
-| `$hengmu decide …` | Compare architecture, technology, and keep-current options. |
-| `$hengmu plan …` | Plan an accepted decision as safe migration slices. |
-| `$hengmu gate …` | Run deterministic policy. |
+| What you type | Required input | Output |
+| --- | --- | --- |
+| `$hengmu` | Declared repository context, when present | Menu and read-only next-step guidance |
+| `$hengmu audit/ai/mobile/portfolio …` | Repository or portfolio facts and Profile | Candidate Review in the selected scope |
+| `$hengmu verify …` | Candidate Review and resolvable evidence | Provenance-bound verified Review |
+| `$hengmu decide …` | Verified Review or approved Design Brief | Proposed Architecture Decision |
+| `$hengmu design/specify/constrain …` | Approved Brief 1.1, facts, constraints, and selected Knowledge | Proposed Decision 1.4 with an open or constrained target architecture |
+| `$hengmu plan …` | Accepted remediation or Greenfield Decision | Ordered remediation Plan 1.2 or Greenfield Plan 1.3 |
+| `$hengmu gate …` | Schema-valid, provenance-bound artifacts | Deterministic policy result and stable exit code |
 
 Commands are optional. Natural language such as
 `$hengmu help me compare these two technical approaches` routes to the same
@@ -272,8 +325,8 @@ focused workflow.
 | Audit | `mobile-architecture-audit` | Local state, sync, migrations, background work, notifications, privacy, caching, and lifecycle behavior. |
 | Audit | `portfolio-architecture-audit` | Duplication, stack sprawl, shared capabilities, dependencies, data flow, ownership, and hidden coupling across projects. |
 | Verify | `architecture-finding-verifier` | Challenge candidates, resolve evidence, assign V0–V5 verification, and produce a provenance-bound trusted Review. |
-| Decide | `architecture-solution-advisor` | Compare keep-current and structural options against qualities, constraints, team capability, risk, cost, and lock-in. |
-| Change | `architecture-remediation-planner` | Convert an accepted decision into migration slices, protections, stop conditions, rollback, and acceptance criteria. |
+| Decide | `architecture-solution-advisor` | Compare or specify open/constrained targets; assess required conflicts, preferred trade-offs, prohibited eliminations, and target units, flows, boundaries, operations, and Knowledge. |
+| Plan | `architecture-remediation-planner` | Convert an accepted remediation or Greenfield target into ordered implementation slices, migration controls where applicable, protections, stop conditions, rollback, and acceptance criteria without inventing Findings. |
 | Enforce | `architecture-quality-gate` | Apply deterministic contract, finding, change, and release policy to trusted artifacts. |
 
 `$hengmu` may also explain the read-only lifecycle state and the next valid
@@ -295,7 +348,8 @@ or adds a dependency implicitly. If installation would materially improve the
 review, it first names the exact tool, scope, version strategy, command, affected
 files, and consequence, then asks for user authorization.
 
-A Provider pass proves only the captured command, executable, configuration,
+A Provider pass proves only the captured command, executable, declared project
+dependency closure, isolated cache mode, configuration,
 commit, and output bytes. It becomes architecture evidence only after it is bound
 to an applicable invariant and independently reviewed.
 
@@ -410,7 +464,7 @@ invoked gate always evaluates its policy.
 | [Evaluation guide](docs/evaluation.md) | Behavior benchmarks, ablation, scoring, and interpretation limits. |
 | [Knowledge authoring](docs/knowledge-authoring.md) | Source quality, freshness, frontmatter, and curation rules. |
 | [Compatibility](docs/compatibility.md) | Supported Python, schemas, artifacts, and version boundaries. |
-| [0.4.2 migration](docs/migrating-to-0.4.2.md) | Context precision, historical artifacts, and current-runtime requirements. |
+| [1.0 migration](docs/migrating-to-1.0.md) | Open/constrained Brief/Decision/Plan artifacts, coexistence, and rollback. |
 | [Release verification](docs/releasing.md) | Deterministic ZIPs, checksums, SBOMs, and attestations. |
 | [Implementation matrix](docs/comprehensive-review-implementation.md) | How review recommendations map to executable capability and evidence. |
 | [Dogfood review history](.architecture/reviews/README.md) | How Hengmu governs its own repository. |
@@ -444,8 +498,8 @@ Build and verify the deterministic plugin archive:
 python3 scripts/package_plugin.py --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/hengmu-0.4.2.zip \
-  --output dist/hengmu-0.4.2.spdx.json
+  --archive dist/hengmu-1.0.0.zip \
+  --output dist/hengmu-1.0.0.spdx.json
 ```
 
 CI runs the supported Python boundary on Linux, macOS, and Windows. Tagged

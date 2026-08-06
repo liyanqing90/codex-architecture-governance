@@ -110,7 +110,7 @@ def migrate_review(
                 "and candidate hash binding are required."
             ),
         }
-        migrated["status"] = "open"
+        migrated["status"] = finding["status"]
         migrated["evidence_level"] = (
             "E4"
             if any(item["type"] == "runtime" for item in migrated["evidence"])
@@ -155,6 +155,12 @@ def migrate_review(
     for rule_id in sorted(rules):
         if rule_id in source_coverage:
             item = dict(source_coverage[rule_id])
+            if item["status"] == "assessed":
+                item["status"] = "not_assessed"
+                item["reason"] = (
+                    "Legacy coverage had no independently resolvable per-rule "
+                    "evidence binding."
+                )
         else:
             item = {
                 "rule_id": rule_id,
@@ -254,6 +260,7 @@ def migrate_review(
             rule_pack_ids=pack_ids,
             strict_trust=True,
             repository_root=root,
+            allow_unverifiable_historical=True,
         )
     finally:
         validation_path.unlink(missing_ok=True)

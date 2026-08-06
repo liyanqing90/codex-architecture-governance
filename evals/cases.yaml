@@ -35,7 +35,6 @@ cases:
     expected:
       activates: true
       outcome: "Routes to remediation planning while preserving its requirement for verified findings and an accepted decision."
-
   - id: project-direct
     skill: project-architecture-audit
     kind: direct
@@ -291,10 +290,10 @@ cases:
   - id: solution-direct
     skill: architecture-solution-advisor
     kind: direct
-    prompt: "Compare architecture options for these confirmed findings and create a decision."
+    prompt: "Design a target architecture for these confirmed findings, compare the open options, and create a decision with runtime/deployment units, data ownership, interfaces, trust boundaries, critical flows, operations, and Knowledge."
     expected:
       activates: true
-      outcome: "Compares keep-current and viable alternatives against qualities and constraints."
+      outcome: "Compares keep-current and viable alternatives against qualities and constraints, then records a target architecture and bound Knowledge."
   - id: solution-indirect
     skill: architecture-solution-advisor
     kind: indirect
@@ -308,7 +307,7 @@ cases:
     prompt: "Choose our target architecture, but no findings, quality targets, or constraints exist."
     expected:
       activates: true
-      outcome: "Stops before technology selection and requests decision-driving evidence."
+      outcome: "Stops before design selection and requests an approved Brief, measurable scenarios, and authoritative constraints rather than inventing them."
   - id: solution-negative
     skill: architecture-solution-advisor
     kind: negative
@@ -319,7 +318,7 @@ cases:
   - id: solution-edge
     skill: architecture-solution-advisor
     kind: edge
-    prompt: "We use one agent today; prove whether a multi-agent framework adds real value."
+    prompt: "请约束新系统的方案：必须兼容现有接口，最好使用新版本框架，禁止跨服务共享数据库；不要凭记忆填写版本号。"
     expected:
       activates: true
-      outcome: "Includes keep-current and rejects multi-agent complexity without evidence."
+      outcome: "Routes Chinese design/constraint intent to architecture-solution-advisor, challenges the required constraint, lets the preference lose, eliminates the prohibited option, and requires current evidence for any version claim."

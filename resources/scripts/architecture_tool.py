@@ -63,7 +63,7 @@ VERIFICATION_LEVEL_ORDER = {
     "V4": 4,
     "V5": 5,
 }
-TOOL_VERSION = "0.4.2"
+TOOL_VERSION = "1.0.0"
 TRUSTED_POLICY_VERSIONS = {"1.1", "1.2"}
 BENCHMARK_TREATMENT_CONDITIONS = ("base", "full", "compressed")
 REVIEW_KIND_CORE_PACK = {
@@ -1001,7 +1001,17 @@ def validate_provider_command_safety(command: list[str], source: Path) -> None:
         "dnf": {"install"},
         "gem": {"install"},
         "go": {"install"},
-        "npm": {"add", "exec", "i", "install"},
+        "npm": {
+            "add",
+            "ci",
+            "clean-install",
+            "exec",
+            "i",
+            "ic",
+            "install",
+            "install-ci-test",
+            "install-test",
+        },
         "pip": {"install"},
         "pip3": {"install"},
         "pnpm": {"add", "dlx", "exec", "i", "install"},
@@ -1041,6 +1051,7 @@ def validate_evidence_provider_config(
     path: Path,
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     data = validate_file(path, "evidence-provider-config.schema.json")
+    _, bundled = load_evidence_provider_catalog()
     configured: dict[str, dict[str, Any]] = {}
     for provider in data["providers"]:
         provider_id = provider["id"]
@@ -1048,12 +1059,25 @@ def validate_evidence_provider_config(
             raise ArchitectureError(f"{path} has duplicate provider ID {provider_id}")
         validate_provider_command_safety(provider["command"], path)
         configured[provider_id] = provider
-    _, bundled = load_evidence_provider_catalog()
     unknown = sorted(set(configured) - set(bundled))
     if unknown:
         raise ArchitectureError(
             f"{path} configures unknown providers: " + ", ".join(unknown)
         )
+    for provider_id, config in configured.items():
+        if (
+            config["enabled"]
+            and bundled[provider_id]["trust"] == "deterministic"
+            and (
+                not config.get("dependency_inputs")
+                or config.get("cache_mode") != "isolated"
+            )
+        ):
+            raise ArchitectureError(
+                f"{path} enabled deterministic evidence provider {provider_id} "
+                "requires a non-empty dependency_inputs closure and cache_mode "
+                "isolated"
+            )
     return data, configured
 
 
@@ -1224,6 +1248,57 @@ def resolve_provider_executable(root: Path, command: str) -> Path:
     return resolved
 
 
+def provider_dependency_inputs(
+    root: Path,
+    configured_inputs: list[str],
+) -> list[dict[str, Any]]:
+    """Resolve and hash a declared, project-contained provider dependency closure."""
+    resolved: dict[str, Path] = {}
+    for configured in configured_inputs:
+        pattern = Path(configured)
+        if (
+            pattern.is_absolute()
+            or ".." in pattern.parts
+            or "\\" in configured
+            or pattern.as_posix() != configured
+        ):
+            raise ArchitectureError(
+                f"Evidence provider dependency input escapes the project: {configured}"
+            )
+        matches = sorted(root.glob(configured))
+        if not matches:
+            raise ArchitectureError(
+                f"Evidence provider dependency input matches nothing: {configured}"
+            )
+        for match in matches:
+            contained = require_within_root(
+                root,
+                match,
+                "evidence provider dependency input",
+            )
+            candidates = (
+                sorted(path for path in contained.rglob("*") if path.is_file())
+                if contained.is_dir()
+                else [contained]
+            )
+            for candidate in candidates:
+                if candidate.is_symlink():
+                    raise ArchitectureError(
+                        "Evidence provider dependency closures cannot contain "
+                        f"symbolic links: {candidate}"
+                    )
+                relative = candidate.relative_to(root).as_posix()
+                resolved[relative] = candidate
+    return [
+        {
+            "path": relative,
+            "sha256": file_sha256(candidate),
+            "bytes": candidate.stat().st_size,
+        }
+        for relative, candidate in sorted(resolved.items())
+    ]
+
+
 def run_evidence_provider(
     project_root: Path,
     provider_id: str,
@@ -1252,6 +1327,16 @@ def run_evidence_provider(
             f"Evidence provider {provider_id} is disabled in project configuration"
         )
     provider = providers[provider_id]
+    configured_inputs = config.get("dependency_inputs", [])
+    cache_mode = config.get("cache_mode", "unbound")
+    if provider["trust"] == "deterministic" and (
+        not configured_inputs or cache_mode != "isolated"
+    ):
+        raise ArchitectureError(
+            f"Deterministic evidence provider {provider_id} requires a non-empty "
+            "dependency_inputs closure and cache_mode isolated"
+        )
+    dependency_inputs_before = provider_dependency_inputs(root, configured_inputs)
     matches = provider_detect_matches(root, provider)
     if not matches and not config["allow_without_detection"]:
         raise ArchitectureError(
@@ -1310,37 +1395,66 @@ def run_evidence_provider(
         "TMPDIR",
         *config["environment_allowlist"],
     }
+    if config.get("cache_mode") == "isolated":
+        safe_environment_names.update(
+            {
+                "HOME",
+                "XDG_CACHE_HOME",
+                "PIP_CACHE_DIR",
+                "npm_config_cache",
+                "YARN_CACHE_FOLDER",
+                "CARGO_HOME",
+                "GOMODCACHE",
+                "GRADLE_USER_HOME",
+            }
+        )
     allowed_environment = {
         name: os.environ[name] for name in safe_environment_names if name in os.environ
     }
     started_at = datetime.now(UTC)
     exit_code: int | None
-    try:
-        process = subprocess.run(
-            actual_command,
-            cwd=root,
-            env=allowed_environment,
-            capture_output=True,
-            check=False,
-            timeout=config["timeout_seconds"],
-        )
-        stdout = process.stdout
-        stderr = process.stderr
-        exit_code = process.returncode
-        status = "passed" if exit_code in config["success_exit_codes"] else "failed"
-    except subprocess.TimeoutExpired as exc:
-        stdout = (
-            exc.stdout
-            if isinstance(exc.stdout, bytes)
-            else (exc.stdout or "").encode("utf-8")
-        )
-        stderr = (
-            exc.stderr
-            if isinstance(exc.stderr, bytes)
-            else (exc.stderr or "").encode("utf-8")
-        )
-        exit_code = None
-        status = "timed-out"
+    with tempfile.TemporaryDirectory(prefix="hengmu-provider-cache-") as cache_dir:
+        if cache_mode == "isolated":
+            cache_root = Path(cache_dir)
+            isolated_cache_environment = {
+                "HOME": cache_root / "home",
+                "XDG_CACHE_HOME": cache_root / "xdg",
+                "PIP_CACHE_DIR": cache_root / "pip",
+                "npm_config_cache": cache_root / "npm",
+                "YARN_CACHE_FOLDER": cache_root / "yarn",
+                "CARGO_HOME": cache_root / "cargo",
+                "GOMODCACHE": cache_root / "go-mod",
+                "GRADLE_USER_HOME": cache_root / "gradle",
+            }
+            for name, cache_path in isolated_cache_environment.items():
+                cache_path.mkdir(parents=True, exist_ok=True)
+                allowed_environment[name] = str(cache_path)
+        try:
+            process = subprocess.run(
+                actual_command,
+                cwd=root,
+                env=allowed_environment,
+                capture_output=True,
+                check=False,
+                timeout=config["timeout_seconds"],
+            )
+            stdout = process.stdout
+            stderr = process.stderr
+            exit_code = process.returncode
+            status = "passed" if exit_code in config["success_exit_codes"] else "failed"
+        except subprocess.TimeoutExpired as exc:
+            stdout = (
+                exc.stdout
+                if isinstance(exc.stdout, bytes)
+                else (exc.stdout or "").encode("utf-8")
+            )
+            stderr = (
+                exc.stderr
+                if isinstance(exc.stderr, bytes)
+                else (exc.stderr or "").encode("utf-8")
+            )
+            exit_code = None
+            status = "timed-out"
     completed_at = datetime.now(UTC)
     stdout_record = output_record(root, stdout_path, stdout)
     stderr_record = output_record(root, stderr_path, stderr)
@@ -1369,8 +1483,12 @@ def run_evidence_provider(
     }
     completed_commit = current_git_commit(root)
     dirty_tree_after = bool(git_worktree_paths(root) - generated_paths)
+    dependency_inputs_after = provider_dependency_inputs(
+        root,
+        configured_inputs,
+    )
     artifact = {
-        "schema_version": "1.1",
+        "schema_version": "1.2",
         "run": {
             "id": run_id,
             "provider_id": provider_id,
@@ -1395,6 +1513,9 @@ def run_evidence_provider(
             "timeout_seconds": config["timeout_seconds"],
             "success_exit_codes": config["success_exit_codes"],
             "environment_names": sorted(allowed_environment),
+            "dependency_inputs_before": dependency_inputs_before,
+            "dependency_inputs_after": dependency_inputs_after,
+            "cache_mode": cache_mode,
         },
         "result": {
             "status": status,
@@ -1468,6 +1589,17 @@ def validate_evidence_run(
         )
     if data["run"]["trust"] != provider["trust"]:
         raise ArchitectureError(f"{artifact_path} trust does not match provider")
+    if data["schema_version"] == "1.2":
+        expected_dependencies = provider_dependency_inputs(
+            root,
+            config.get("dependency_inputs", []),
+        )
+        if data["run"]["dependency_inputs_after"] != expected_dependencies:
+            raise ArchitectureError(
+                f"{artifact_path} dependency input closure is stale"
+            )
+        if data["run"]["cache_mode"] != config.get("cache_mode", "unbound"):
+            raise ArchitectureError(f"{artifact_path} cache mode does not match config")
     if data["run"]["output_source"] != config["output_source"]:
         raise ArchitectureError(f"{artifact_path} output source does not match config")
     if data["run"]["timeout_seconds"] != config["timeout_seconds"]:
@@ -1496,6 +1628,19 @@ def validate_evidence_run(
         "TMPDIR",
         *config["environment_allowlist"],
     }
+    if data["run"].get("cache_mode") == "isolated":
+        safe_environment_names.update(
+            {
+                "HOME",
+                "XDG_CACHE_HOME",
+                "PIP_CACHE_DIR",
+                "npm_config_cache",
+                "YARN_CACHE_FOLDER",
+                "CARGO_HOME",
+                "GOMODCACHE",
+                "GRADLE_USER_HOME",
+            }
+        )
     unexpected_environment = sorted(
         set(data["run"]["environment_names"]) - safe_environment_names
     )
@@ -1620,9 +1765,10 @@ def validate_evidence_run(
             f"{artifact_path} was produced from a dirty working tree and cannot "
             "enter trusted Review or Gate evidence"
         )
-    if require_passed and data["schema_version"] != "1.1":
+    if require_passed and data["schema_version"] != "1.2":
         raise ArchitectureError(
-            f"{artifact_path} legacy provider run lacks post-run repository state"
+            f"{artifact_path} legacy provider run lacks post-run repository state "
+            "and dependency closure"
         )
     if require_passed and data["run"]["completed_commit"] != data["run"]["commit"]:
         raise ArchitectureError(
@@ -1632,11 +1778,51 @@ def validate_evidence_run(
         raise ArchitectureError(
             f"{artifact_path} provider changed the working tree during execution"
         )
+    if require_passed and (
+        data["run"]["trust"] == "deterministic"
+        and (
+            not data["run"]["dependency_inputs_before"]
+            or data["run"]["cache_mode"] != "isolated"
+            or data["run"]["dependency_inputs_before"]
+            != data["run"]["dependency_inputs_after"]
+        )
+    ):
+        raise ArchitectureError(
+            f"{artifact_path} deterministic provider lacks a stable dependency "
+            "closure and isolated cache"
+        )
     if require_passed and data["result"]["status"] != "passed":
         raise ArchitectureError(
             f"{artifact_path} provider result is {data['result']['status']}"
         )
     return data
+
+
+def validate_coverage_evidence_binding(
+    item: dict[str, Any],
+    root: Path,
+    expected_commit: str,
+    label: str,
+) -> None:
+    relative = Path(item["path"])
+    if relative.is_absolute() or ".." in relative.parts or "\\" in item["path"]:
+        raise ArchitectureError(f"{label} path escapes the repository")
+    expected = git_output(root, "rev-parse", f"{expected_commit}^{{commit}}")
+    observed = git_output(root, "rev-parse", f"{item['commit']}^{{commit}}")
+    if observed != expected:
+        raise ArchitectureError(f"{label} is not bound to the reviewed commit")
+    object_name = f"{observed}:{relative.as_posix()}"
+    git_output(root, "cat-file", "-e", object_name)
+    blob_sha = git_output(root, "rev-parse", object_name)
+    if blob_sha != item["blob_sha"]:
+        raise ArchitectureError(f"{label} blob SHA does not match")
+    if "line_start" in item:
+        content = git_raw_output(root, "show", object_name)
+        lines = content.splitlines()
+        line_start = item["line_start"]
+        line_end = item.get("line_end", line_start)
+        if line_end < line_start or line_end > len(lines):
+            raise ArchitectureError(f"{label} line range is invalid")
 
 
 def validate_review(
@@ -1756,6 +1942,15 @@ def validate_review(
         if missing_review_fields:
             raise ArchitectureError(
                 f"{path} trusted review is missing: " + ", ".join(missing_review_fields)
+            )
+        if (
+            data["schema_version"] == "1.2"
+            and data["review"]["kind"] != "portfolio"
+            and not allow_unverifiable_historical
+            and not data["review"].get("commit")
+        ):
+            raise ArchitectureError(
+                f"{path} current trusted project Review requires review.commit"
             )
         for scoped_path in data["review"]["scope_manifest"]:
             scoped = Path(scoped_path)
@@ -1878,6 +2073,16 @@ def validate_review(
             raise ArchitectureError(
                 f"{path} coverage {coverage['rule_id']} requires a reason for "
                 f"{coverage['status']}"
+            )
+        if (
+            strict_trust
+            and data["schema_version"] == "1.2"
+            and not allow_unverifiable_historical
+            and coverage["status"] == "assessed"
+            and not coverage.get("evidence")
+        ):
+            raise ArchitectureError(
+                f"{path} assessed coverage {coverage['rule_id']} has no evidence"
             )
         for finding_id in coverage["finding_ids"]:
             finding_coverage.setdefault(finding_id, []).append(coverage["rule_id"])
@@ -2138,6 +2343,36 @@ def validate_review(
                         f"{path} verified review leaves critical flow "
                         f"{flow_id} not assessed"
                     )
+                if (
+                    not allow_unverifiable_historical
+                    and item["status"] == "assessed"
+                    and not item.get("evidence")
+                ):
+                    raise ArchitectureError(
+                        f"{path} assessed critical flow {flow_id} has no evidence"
+                    )
+            if not allow_unverifiable_historical:
+                review_commit = data["review"].get("commit")
+                if review_commit is None:
+                    raise ArchitectureError(
+                        f"{path} current coverage evidence requires review.commit"
+                    )
+                for coverage in data["coverage"]:
+                    for index, item in enumerate(coverage.get("evidence", [])):
+                        validate_coverage_evidence_binding(
+                            item,
+                            root,
+                            review_commit,
+                            f"{path} coverage {coverage['rule_id']} evidence {index}",
+                        )
+                for flow_id, coverage in flow_coverage.items():
+                    for index, item in enumerate(coverage.get("evidence", [])):
+                        validate_coverage_evidence_binding(
+                            item,
+                            root,
+                            review_commit,
+                            f"{path} critical flow {flow_id} evidence {index}",
+                        )
         reviewed_commit = data["review"].get("commit")
         provider_runs: dict[Path, dict[str, Any]] = {}
         for reference in data.get("tool_evidence", []):
@@ -2226,6 +2461,27 @@ def validate_review(
                 raise ArchitectureError(
                     f"{path} source candidate is not a candidate review"
                 )
+            verified_snapshot = _declared_review_snapshot(data["review"])
+            candidate_snapshot = _declared_review_snapshot(candidate["review"])
+            source_snapshot = _declared_source_snapshot(source)
+            if (
+                data["schema_version"] == "1.2"
+                and not allow_unverifiable_historical
+                and not source_snapshot
+            ):
+                raise ArchitectureError(
+                    f"{path} source candidate has no explicit repository snapshot"
+                )
+            if source_snapshot and source_snapshot != verified_snapshot:
+                raise ArchitectureError(
+                    f"{path} source candidate repository snapshot does not match "
+                    "the verified Review"
+                )
+            if candidate_snapshot != verified_snapshot:
+                raise ArchitectureError(
+                    f"{path} source candidate Review commits do not match the "
+                    "verified Review"
+                )
             if candidate["review"]["id"] != source["review_id"]:
                 raise ArchitectureError(
                     f"{path} source candidate review ID does not match"
@@ -2301,7 +2557,533 @@ def decision_knowledge_snapshot() -> list[dict[str, str]]:
     return sorted(result, key=lambda item: item["kind"])
 
 
-def validate_design_brief(path: Path) -> dict[str, Any]:
+def _declared_review_snapshot(value: dict[str, Any]) -> dict[str, Any]:
+    """Return only the reviewed repository identity declared by an artifact."""
+    snapshot: dict[str, Any] = {}
+    if "commits" in value:
+        commits = value["commits"]
+        if isinstance(commits, dict):
+            snapshot["commits"] = tuple(sorted(commits.items()))
+        elif isinstance(commits, list):
+            snapshot["commits"] = tuple(sorted(commits))
+        else:
+            snapshot["commits"] = commits
+    elif "commit" in value:
+        snapshot["commits"] = (value["commit"],)
+    for key in ("repository_snapshot", "snapshot"):
+        if key in value:
+            snapshot["repository_snapshot"] = value[key]
+    return snapshot
+
+
+def _declared_source_snapshot(source: dict[str, Any]) -> dict[str, Any]:
+    return _declared_review_snapshot(source)
+
+
+def _brief_constraint_entries(data: dict[str, Any]) -> list[Any]:
+    if isinstance(data.get("architecture_constraints"), list):
+        return data["architecture_constraints"]
+    context = data.get("context", {})
+    if isinstance(context, dict) and isinstance(context.get("constraints"), list):
+        return context["constraints"]
+    constraints = data.get("constraints", [])
+    return constraints if isinstance(constraints, list) else []
+
+
+def _constraint_id(value: Any) -> str | None:
+    if isinstance(value, str):
+        return value
+    if not isinstance(value, dict):
+        return None
+    for key in ("id", "constraint_id"):
+        candidate = value.get(key)
+        if isinstance(candidate, str):
+            return candidate
+    return None
+
+
+def _constraint_semantics(value: Any) -> str:
+    if not isinstance(value, dict):
+        return "unknown"
+    disposition = value.get("disposition")
+    if isinstance(disposition, str):
+        if disposition in {"required", "preferred", "prohibited"}:
+            return disposition
+        return "unknown"
+    for key in (
+        "semantics",
+        "semantic",
+        "kind",
+        "type",
+        "requirement",
+        "polarity",
+    ):
+        raw = value.get(key)
+        if not isinstance(raw, str):
+            continue
+        normalized = raw.lower().replace("_", "-").replace(" ", "-")
+        if any(token in normalized for token in ("prohibit", "forbid", "must-not")):
+            return "prohibited"
+        if any(token in normalized for token in ("require", "must", "mandatory")):
+            return "required"
+        if normalized in {"optional", "allowed", "preferred"}:
+            return "optional"
+        if normalized in {"unknown", "unresolved", "undetermined"}:
+            return "unknown"
+    return "unknown"
+
+
+def _constraint_outcome(value: Any) -> str:
+    if not isinstance(value, dict):
+        return "unknown"
+    for key in (
+        "status",
+        "result",
+        "disposition",
+        "effect",
+        "satisfaction",
+        "compliance",
+    ):
+        raw = value.get(key)
+        if not isinstance(raw, str):
+            continue
+        normalized = raw.lower().replace("_", "-").replace(" ", "-")
+        if any(token in normalized for token in ("violat", "forbid", "fail", "reject")):
+            return "violated"
+        if any(
+            token in normalized
+            for token in ("satisf", "comply", "compliant", "met", "allowed", "pass")
+        ):
+            return "satisfied"
+        if normalized in {"unknown", "unresolved", "undetermined"}:
+            return "unknown"
+    return "unknown"
+
+
+def _option_constraint_entries(option: dict[str, Any]) -> list[Any] | None:
+    for key in (
+        "constraint_coverage",
+        "constraint_evaluations",
+        "constraint_assessments",
+        "constraint_bindings",
+        "constraints",
+    ):
+        value = option.get(key)
+        if isinstance(value, list):
+            return value
+    return None
+
+
+def _target_list(target: dict[str, Any], *keys: str) -> list[Any]:
+    values: list[Any] = []
+    for key in keys:
+        value = target.get(key)
+        if isinstance(value, list):
+            values.extend(value)
+    return values
+
+
+def _structured_ids(
+    path: Path,
+    entries: list[Any],
+    label: str,
+    *,
+    fields: tuple[str, ...] = ("id",),
+    allow_strings: bool = False,
+) -> set[str]:
+    """Collect IDs from one schema-defined collection and reject duplicates."""
+    result: set[str] = set()
+    for index, entry in enumerate(entries):
+        item_id: str | None = (
+            entry if allow_strings and isinstance(entry, str) else None
+        )
+        if isinstance(entry, dict):
+            for field in fields:
+                candidate = entry.get(field)
+                if isinstance(candidate, str):
+                    item_id = candidate
+                    break
+        if item_id is None:
+            continue
+        if item_id in result:
+            raise ArchitectureError(
+                f"{path} {label} repeats ID {item_id} at index {index}"
+            )
+        result.add(item_id)
+    return result
+
+
+def _register_target_ids(
+    path: Path,
+    registry: dict[str, str],
+    entries: list[Any],
+    label: str,
+    *,
+    fields: tuple[str, ...] = ("id",),
+    allow_strings: bool = False,
+) -> set[str]:
+    ids = _structured_ids(
+        path,
+        entries,
+        label,
+        fields=fields,
+        allow_strings=allow_strings,
+    )
+    for item_id in ids:
+        previous = registry.get(item_id)
+        if previous is not None:
+            raise ArchitectureError(
+                f"{path} target ID {item_id} is used by both {previous} and {label}"
+            )
+        registry[item_id] = label
+    return ids
+
+
+def _reference_values(entries: list[Any], fields: tuple[str, ...]) -> list[str]:
+    values: list[str] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        for field in fields:
+            value = entry.get(field)
+            if isinstance(value, str):
+                values.append(value)
+            elif isinstance(value, list):
+                values.extend(item for item in value if isinstance(item, str))
+    return values
+
+
+def _validate_greenfield_target_architecture(
+    path: Path,
+    data: dict[str, Any],
+    brief: dict[str, Any],
+) -> None:
+    constraints = _brief_constraint_entries(brief)
+    constraint_by_id = {
+        item_id: item
+        for item in constraints
+        if (item_id := _constraint_id(item)) is not None
+    }
+    options = data["options"]
+    option_outcomes: dict[str, dict[str, str]] = {}
+    option_assessments: dict[str, dict[str, dict[str, Any]]] = {}
+    for option in options:
+        entries = _option_constraint_entries(option)
+        if entries is None:
+            if constraint_by_id:
+                raise ArchitectureError(
+                    f"{path} option {option['id']} has no exact constraint coverage"
+                )
+            continue
+        ids = [_constraint_id(entry) for entry in entries]
+        if any(item_id is None for item_id in ids):
+            raise ArchitectureError(
+                f"{path} option {option['id']} has a constraint coverage entry "
+                "without an ID"
+            )
+        if len(ids) != len(set(ids)) or set(ids) != set(constraint_by_id):
+            missing = sorted(set(constraint_by_id) - set(ids))
+            unknown = sorted(set(ids) - set(constraint_by_id))
+            details = []
+            if missing:
+                details.append("missing " + ", ".join(missing))
+            if unknown:
+                details.append("unknown " + ", ".join(unknown))
+            if len(ids) != len(set(ids)):
+                details.append("duplicate IDs")
+            raise ArchitectureError(
+                f"{path} option {option['id']} constraint coverage is not exact: "
+                + "; ".join(details)
+            )
+        option_outcomes[option["id"]] = {
+            item_id: _constraint_outcome(entry)
+            for item_id, entry in zip(ids, entries, strict=True)
+            if item_id is not None
+        }
+        option_assessments[option["id"]] = {
+            item_id: entry
+            for item_id, entry in zip(ids, entries, strict=True)
+            if item_id is not None and isinstance(entry, dict)
+        }
+        for item_id, entry in option_assessments[option["id"]].items():
+            expected_knowledge = constraint_by_id[item_id].get("knowledge_id")
+            if entry.get("knowledge_id") != expected_knowledge:
+                raise ArchitectureError(
+                    f"{path} option {option['id']} constraint {item_id} knowledge "
+                    "binding does not match the Design Brief"
+                )
+
+    selected_option = data["selected_option"]
+    selected_outcomes = option_outcomes.get(selected_option, {})
+    hard_eliminations = {
+        item["option_id"] for item in data.get("hard_eliminations", [])
+    }
+    for constraint_id, constraint in constraint_by_id.items():
+        outcome = selected_outcomes.get(constraint_id, "unknown")
+        semantics = _constraint_semantics(constraint)
+        if semantics == "required" and outcome in {"violated", "not-applicable"}:
+            raise ArchitectureError(
+                f"{path} selected option {selected_option} violates required "
+                f"constraint {constraint_id}"
+            )
+        if semantics == "prohibited" and outcome != "satisfied":
+            raise ArchitectureError(
+                f"{path} selected option {selected_option} adopts prohibited target "
+                f"for constraint {constraint_id} (assessment is {outcome})"
+            )
+        if (
+            data["decision"]["status"] == "accepted"
+            and semantics in {"required", "preferred"}
+            and outcome == "unknown"
+        ):
+            raise ArchitectureError(
+                f"{path} accepted decision leaves {semantics} constraint "
+                f"{constraint_id} unknown"
+            )
+    for option_id, outcomes in option_outcomes.items():
+        if option_id == selected_option:
+            continue
+        for constraint_id, constraint in constraint_by_id.items():
+            if (
+                _constraint_semantics(constraint) == "prohibited"
+                and outcomes.get(constraint_id, "unknown") != "satisfied"
+                and option_id not in hard_eliminations
+            ):
+                raise ArchitectureError(
+                    f"{path} option {option_id} does not satisfy prohibited "
+                    f"constraint {constraint_id} and must be hard-eliminated"
+                )
+
+    target = data.get("target_architecture")
+    if not isinstance(target, dict):
+        raise ArchitectureError(f"{path} schema 1.4 requires target_architecture")
+    if target.get("option_id") != selected_option:
+        raise ArchitectureError(
+            f"{path} target_architecture.option_id does not match selected_option"
+        )
+
+    id_registry: dict[str, str] = {}
+    runtime_entries = _target_list(target, "runtime_units", "runtime_components")
+    runtime = target.get("runtime")
+    if isinstance(runtime, dict):
+        runtime_entries.extend(
+            _target_list(runtime, "runtime_units", "units", "components")
+        )
+    runtime_ids = _register_target_ids(
+        path, id_registry, runtime_entries, "runtime_units"
+    )
+    runtime_id_set = set(runtime_ids)
+
+    deployment_entries = _target_list(target, "deployment_units")
+    deployment_ids = _register_target_ids(
+        path, id_registry, deployment_entries, "deployment_units"
+    )
+    external_entries = _target_list(target, "external_systems")
+    external_ids = _register_target_ids(
+        path, id_registry, external_entries, "external_systems"
+    )
+    trust_entries = _target_list(target, "trust_boundaries")
+    trust_ids = _register_target_ids(
+        path,
+        id_registry,
+        trust_entries,
+        "trust_boundaries",
+    )
+    data_entries = _target_list(target, "data_ownership")
+    _register_target_ids(
+        path,
+        id_registry,
+        data_entries,
+        "data_ownership",
+        fields=("data_id", "id"),
+    )
+    interface_entries = _target_list(target, "interfaces", "interface_bindings")
+    _register_target_ids(path, id_registry, interface_entries, "interfaces")
+    flow_entries = _target_list(
+        target,
+        "critical_flow_bindings",
+        "flows",
+        "critical_flows",
+        "flow_bindings",
+    )
+    _register_target_ids(
+        path,
+        id_registry,
+        flow_entries,
+        "critical_flow_bindings",
+        fields=("flow_id", "id"),
+    )
+    deployment_refs = _reference_values(
+        runtime_entries, ("deployment_unit", "deployment_unit_id")
+    )
+    unknown_deployments = sorted(set(deployment_refs) - deployment_ids)
+    if unknown_deployments:
+        raise ArchitectureError(
+            f"{path} runtime units reference unknown deployment units: "
+            + ", ".join(unknown_deployments)
+        )
+    owner_refs = _reference_values(data_entries, ("owner", "owner_id"))
+    unknown_owners = sorted(set(owner_refs) - runtime_id_set)
+    if unknown_owners:
+        raise ArchitectureError(
+            f"{path} target_architecture data owners do not reference runtime units: "
+            + ", ".join(unknown_owners)
+        )
+
+    endpoint_refs = _reference_values(
+        interface_entries, ("from", "to", "from_id", "to_id")
+    )
+    endpoint_ids = runtime_id_set | external_ids
+    unknown_endpoints = sorted(set(endpoint_refs) - endpoint_ids)
+    if unknown_endpoints:
+        raise ArchitectureError(
+            f"{path} target_architecture interface endpoints reference unknown "
+            "runtime IDs or external IDs: " + ", ".join(unknown_endpoints)
+        )
+    trust_refs = _reference_values(
+        external_entries, ("trust_boundary", "trust_boundary_id")
+    )
+    unknown_trust = sorted(set(trust_refs) - trust_ids)
+    if unknown_trust:
+        raise ArchitectureError(
+            f"{path} external systems reference unknown trust boundaries: "
+            + ", ".join(unknown_trust)
+        )
+    boundary_runtime_refs = _reference_values(trust_entries, ("runtime_units",))
+    unknown_boundary_units = sorted(set(boundary_runtime_refs) - runtime_id_set)
+    if unknown_boundary_units:
+        raise ArchitectureError(
+            f"{path} trust boundaries reference unknown runtime units: "
+            + ", ".join(unknown_boundary_units)
+        )
+    flow_runtime_refs = _reference_values(flow_entries, ("runtime_units",))
+    unknown_flow_units = sorted(set(flow_runtime_refs) - runtime_id_set)
+    if unknown_flow_units:
+        raise ArchitectureError(
+            f"{path} critical-flow bindings reference unknown runtime units: "
+            + ", ".join(unknown_flow_units)
+        )
+
+    brief_flow_ids = {
+        item["id"] for item in brief.get("critical_flows", []) if isinstance(item, dict)
+    }
+    bound_flow_ids: list[str] = []
+    for entry in flow_entries:
+        if not isinstance(entry, dict):
+            continue
+        for key in ("brief_flow_id", "design_brief_flow_id", "flow_id", "id"):
+            if isinstance(entry.get(key), str):
+                bound_flow_ids.append(entry[key])
+                break
+    if set(bound_flow_ids) != brief_flow_ids or len(bound_flow_ids) != len(
+        set(bound_flow_ids)
+    ):
+        missing = sorted(brief_flow_ids - set(bound_flow_ids))
+        duplicates = sorted(
+            {item_id for item_id in bound_flow_ids if bound_flow_ids.count(item_id) > 1}
+        )
+        details = []
+        if missing:
+            details.append("missing " + ", ".join(missing))
+        if duplicates:
+            details.append("duplicate " + ", ".join(duplicates))
+        raise ArchitectureError(
+            f"{path} target_architecture critical-flow bindings are not exact: "
+            + "; ".join(details)
+        )
+
+    selected = next(option for option in options if option["id"] == selected_option)
+    selected_technology_ids = {
+        technology
+        for technology in selected.get("technologies", [])
+        if isinstance(technology, str)
+        and re.fullmatch(r"technology\.[a-z0-9][a-z0-9._-]*", technology)
+    }
+    target_technologies = {
+        technology
+        for runtime_unit in runtime_entries
+        if isinstance(runtime_unit, dict)
+        for technology in runtime_unit.get("technologies", [])
+        if isinstance(technology, str)
+        and re.fullmatch(r"technology\.[a-z0-9][a-z0-9._-]*", technology)
+    }
+    outside = sorted(target_technologies - selected_technology_ids)
+    if outside:
+        raise ArchitectureError(
+            f"{path} target_architecture uses technologies absent from "
+            "selected option: " + ", ".join(outside)
+        )
+
+    selected_assessments = option_assessments.get(selected_option, {})
+    target_ids = set(id_registry)
+    selected_reference_fields = {
+        "architecture-style": set(selected.get("architecture_styles", [])),
+        "pattern": set(selected.get("patterns", [])),
+        "technology": selected_technology_ids,
+    }
+    selected_knowledge_ids = set().union(*selected_reference_fields.values())
+    runtime_technologies = {
+        unit["id"]: set(unit.get("technologies", []))
+        for unit in runtime_entries
+        if isinstance(unit, dict) and isinstance(unit.get("id"), str)
+    }
+    for constraint_id, constraint in constraint_by_id.items():
+        assessment = selected_assessments.get(constraint_id, {})
+        references = set(assessment.get("target_refs", []))
+        unknown_references = sorted(references - target_ids)
+        if unknown_references:
+            raise ArchitectureError(
+                f"{path} selected constraint {constraint_id} references unknown "
+                "target IDs: " + ", ".join(unknown_references)
+            )
+        if assessment.get("status") != "satisfied":
+            continue
+        disposition = _constraint_semantics(constraint)
+        kind = constraint.get("kind")
+        knowledge_id = constraint.get("knowledge_id")
+        if disposition == "prohibited":
+            if knowledge_id and (
+                knowledge_id in selected_knowledge_ids
+                or knowledge_id in target_technologies
+            ):
+                raise ArchitectureError(
+                    f"{path} selected option contains prohibited knowledge "
+                    f"{knowledge_id} for constraint {constraint_id}"
+                )
+            continue
+        if knowledge_id and knowledge_id not in selected_knowledge_ids:
+            raise ArchitectureError(
+                f"{path} selected option marks constraint {constraint_id} "
+                f"satisfied but omits {knowledge_id}"
+            )
+        if kind == "technology" and knowledge_id:
+            implementing_units = {
+                unit_id
+                for unit_id, technologies in runtime_technologies.items()
+                if knowledge_id in technologies
+            }
+            if not implementing_units:
+                raise ArchitectureError(
+                    f"{path} target architecture marks constraint {constraint_id} "
+                    f"satisfied but no runtime unit uses {knowledge_id}"
+                )
+            if not references or not references.issubset(implementing_units):
+                raise ArchitectureError(
+                    f"{path} constraint {constraint_id} target_refs must identify "
+                    f"runtime units that use {knowledge_id}"
+                )
+        elif kind not in {"architecture-style", "pattern"} and not references:
+            raise ArchitectureError(
+                f"{path} satisfied constraint {constraint_id} has no target_refs"
+            )
+
+
+def validate_design_brief(
+    path: Path,
+    *,
+    repository_root: Path | None = None,
+    allow_unverifiable_historical: bool = False,
+) -> dict[str, Any]:
     data = validate_file(path, "architecture-design-brief.schema.json")
     scenario_ids = [item["id"] for item in data["quality_scenarios"]]
     if len(scenario_ids) != len(set(scenario_ids)):
@@ -2312,6 +3094,82 @@ def validate_design_brief(path: Path) -> dict[str, Any]:
     question_ids = [item["id"] for item in data["decision_questions"]]
     if len(question_ids) != len(set(question_ids)):
         raise ArchitectureError(f"{path} repeats a decision question ID")
+    if data["schema_version"] == "1.1":
+        constraints = _brief_constraint_entries(data)
+        constraint_ids = [_constraint_id(item) for item in constraints]
+        if any(item_id is None for item_id in constraint_ids):
+            raise ArchitectureError(f"{path} 1.1 constraint is missing an ID")
+        if len(constraint_ids) != len(set(constraint_ids)):
+            raise ArchitectureError(f"{path} repeats a constraint ID")
+        design_mode = data.get("design_mode")
+        if design_mode == "constrained" and not constraints:
+            raise ArchitectureError(
+                f"{path} constrained design briefs require at least one constraint"
+            )
+        if design_mode == "open" and constraints:
+            raise ArchitectureError(
+                f"{path} open design briefs cannot declare architecture constraints"
+            )
+        if data["brief"]["status"] == "approved" and not allow_unverifiable_historical:
+            approval = data["brief"].get("approval")
+            if approval is None:
+                raise ArchitectureError(f"{path} approved Design Brief has no approval")
+            if repository_root is None:
+                raise ArchitectureError(
+                    f"{path} approved Design Brief requires a repository root to "
+                    "verify approval authority and evidence"
+                )
+            root = repository_root.resolve()
+            policy = validate_file(
+                root / ".architecture" / "gate-policy.yaml",
+                "gate-policy.schema.json",
+            )
+            unauthorized = sorted(
+                set(approval["approved_by"]) - set(policy["roles"]["decision_makers"])
+            )
+            if unauthorized:
+                raise ArchitectureError(
+                    f"{path} Design Brief approval includes unauthorized identities: "
+                    + ", ".join(unauthorized)
+                )
+            signature_identities = [
+                signature["identity"] for signature in approval["signatures"]
+            ]
+            if set(signature_identities) != set(approval["approved_by"]) or len(
+                signature_identities
+            ) != len(set(signature_identities)):
+                raise ArchitectureError(
+                    f"{path} Design Brief signatures must exactly match approved_by"
+                )
+            signature_policy = policy.get("artifact_signatures")
+            if signature_policy is None:
+                raise ArchitectureError(
+                    f"{path} approved Design Brief requires artifact_signatures policy"
+                )
+            for evidence in approval["evidence"]:
+                evidence_path = require_within_root(
+                    root,
+                    root / evidence["path"],
+                    "Design Brief approval evidence",
+                )
+                if not evidence_path.is_file():
+                    raise ArchitectureError(
+                        f"{path} Design Brief approval evidence is missing: "
+                        f"{evidence_path}"
+                    )
+            for signature in approval["signatures"]:
+                verify_ssh_artifact_signature(
+                    path,
+                    signature,
+                    root,
+                    signature_policy,
+                    "Design Brief",
+                )
+                if file_sha256(evidence_path) != evidence["sha256"]:
+                    raise ArchitectureError(
+                        f"{path} Design Brief approval evidence hash does not match "
+                        f"{evidence_path}"
+                    )
     return data
 
 
@@ -2468,6 +3326,25 @@ def validate_decision(
 ) -> dict[str, Any]:
     data = validate_file(path, "architecture-decision.schema.json")
     decision_kind = data["decision"].get("decision_kind", "remediation")
+    if data["schema_version"] == "1.4":
+        if decision_kind != "greenfield":
+            raise ArchitectureError(
+                f"{path} Decision 1.4 must declare decision_kind greenfield"
+            )
+        if data["decision"].get("architecture_intent") != "target-architecture":
+            raise ArchitectureError(
+                f"{path} Decision 1.4 must declare target-architecture intent"
+            )
+        if not data["decision"].get("source_context") or not data["decision"].get(
+            "source_context_sha256"
+        ):
+            raise ArchitectureError(
+                f"{path} Decision 1.4 requires a Design Brief source_context and hash"
+            )
+        if data["problem"].get("finding_ids"):
+            raise ArchitectureError(
+                f"{path} Greenfield Decision 1.4 cannot contain Finding IDs"
+            )
     if decision_kind == "greenfield" and review_path is not None:
         raise ArchitectureError(
             f"{path} greenfield decision cannot bind a source review"
@@ -2642,7 +3519,7 @@ def validate_decision(
                     f"{path} decision uses quality attributes absent from the "
                     "project Profile: " + ", ".join(unknown_quality)
                 )
-        if data["schema_version"] in {"1.2", "1.3"}:
+        if data["schema_version"] in {"1.2", "1.3", "1.4"}:
             selection_path = require_within_root(
                 root,
                 root / data["decision"]["knowledge_selection_path"],
@@ -2719,7 +3596,23 @@ def validate_decision(
                 raise ArchitectureError(
                     f"{path} source_context does not match {design_brief_path}"
                 )
-        brief = validate_design_brief(design_brief_path)
+        brief = validate_design_brief(
+            design_brief_path,
+            repository_root=root,
+            allow_unverifiable_historical=allow_unverifiable_historical,
+        )
+        if data["schema_version"] == "1.4" and brief["schema_version"] != "1.1":
+            raise ArchitectureError(
+                f"{path} Decision 1.4 requires a schema 1.1 Design Brief"
+            )
+        if brief["schema_version"] == "1.1" and data["schema_version"] != "1.4":
+            raise ArchitectureError(
+                f"{path} schema 1.1 Design Brief requires a Decision 1.4 target"
+            )
+        if brief["brief"]["status"] != "approved":
+            raise ArchitectureError(
+                f"{path} Greenfield decisions require an approved Design Brief"
+            )
         if data["decision"]["source_context_sha256"] != file_sha256(design_brief_path):
             raise ArchitectureError(
                 f"{path} source_context_sha256 does not match {design_brief_path}"
@@ -2731,6 +3624,14 @@ def validate_decision(
                 f"{path} quality attributes are absent from the design brief: "
                 + ", ".join(missing_scenarios)
             )
+        if (
+            data["schema_version"] == "1.4"
+            and data["decision"].get("architecture_intent") == "target-architecture"
+        ) or (
+            data["schema_version"] == "1.3"
+            and isinstance(data.get("target_architecture"), dict)
+        ):
+            _validate_greenfield_target_architecture(path, data, brief)
     if review_path is not None:
         review_path = review_path.resolve()
         review = (
@@ -2752,7 +3653,7 @@ def validate_decision(
                 f"{path} requires a trusted 1.1 or 1.2 source review"
             )
         if (
-            data["schema_version"] in {"1.2", "1.3"}
+            data["schema_version"] in {"1.2", "1.3", "1.4"}
             and review["schema_version"] != "1.2"
         ):
             raise ArchitectureError(
@@ -2782,16 +3683,141 @@ def validate_decision(
     return data
 
 
+def _validate_greenfield_plan_bindings(
+    path: Path,
+    data: dict[str, Any],
+    decision: dict[str, Any],
+    brief: dict[str, Any],
+) -> None:
+    target = decision.get("target_architecture")
+    if not isinstance(target, dict):
+        raise ArchitectureError(f"{path} Greenfield plan has no target architecture")
+    runtime_entries = _target_list(target, "runtime_units", "runtime_components")
+    runtime = target.get("runtime")
+    if isinstance(runtime, dict):
+        runtime_entries.extend(
+            _target_list(
+                runtime,
+                "runtime_units",
+                "units",
+                "components",
+            )
+        )
+    runtime_ids = _structured_ids(path, runtime_entries, "runtime_units")
+    deployment_ids = _structured_ids(
+        path, _target_list(target, "deployment_units"), "deployment_units"
+    )
+    data_ids = _structured_ids(
+        path,
+        _target_list(target, "data_ownership"),
+        "data_ownership",
+    )
+    interface_ids = _structured_ids(
+        path,
+        _target_list(target, "interfaces", "interface_bindings"),
+        "interfaces",
+    )
+    trust_ids = _structured_ids(
+        path,
+        _target_list(target, "trust_boundaries"),
+        "trust_boundaries",
+    )
+    flow_entries = _target_list(
+        target,
+        "critical_flow_bindings",
+        "flows",
+        "critical_flows",
+        "flow_bindings",
+    )
+    flow_ids = _structured_ids(
+        path,
+        flow_entries,
+        "critical_flow_bindings",
+        fields=("flow_id", "id"),
+    )
+    constraint_ids = {
+        item_id
+        for item in _brief_constraint_entries(brief)
+        if (item_id := _constraint_id(item)) is not None
+    }
+    target_technology_ids = {
+        technology
+        for runtime_unit in runtime_entries
+        if isinstance(runtime_unit, dict)
+        for technology in runtime_unit.get("technologies", [])
+        if isinstance(technology, str)
+        and re.fullmatch(r"technology\.[a-z0-9][a-z0-9._-]*", technology)
+    }
+    binding_fields: dict[str, set[str]] = {
+        "runtime_units": runtime_ids,
+        "critical_flows": flow_ids,
+        "constraints": constraint_ids,
+        "deployment_units": deployment_ids,
+        "data_owners": data_ids,
+        "interfaces": interface_ids,
+        "trust_boundaries": trust_ids,
+        "technologies": target_technology_ids,
+    }
+
+    observed_bindings = {field: set() for field in binding_fields}
+
+    def check_bindings(bindings: Any, field: str) -> None:
+        if not isinstance(bindings, dict):
+            return
+        for binding_field, allowed in binding_fields.items():
+            value = bindings.get(binding_field)
+            if value is None:
+                continue
+            values = [value] if isinstance(value, str) else value
+            if not isinstance(values, list):
+                continue
+            observed = {item for item in values if isinstance(item, str)}
+            observed_bindings[binding_field].update(observed)
+            unknown = sorted(observed - allowed)
+            if unknown:
+                raise ArchitectureError(
+                    f"{path} {field}.{binding_field} references unknown target IDs: "
+                    + ", ".join(unknown)
+                )
+
+    bindings_found = False
+    for index, item in enumerate(data["items"]):
+        bindings = item.get("target_bindings")
+        if bindings is None:
+            continue
+        bindings_found = True
+        check_bindings(bindings, f"items[{index}].target_bindings")
+    if not bindings_found:
+        raise ArchitectureError(f"{path} Greenfield plan has no target_bindings")
+    for binding_field, expected in binding_fields.items():
+        missing = sorted(expected - observed_bindings[binding_field])
+        if missing:
+            raise ArchitectureError(
+                f"{path} Greenfield plan does not cover target {binding_field}: "
+                + ", ".join(missing)
+            )
+
+
 def validate_plan(
     path: Path,
     *,
     review_path: Path | None = None,
     decision_path: Path | None = None,
+    design_brief_path: Path | None = None,
     repository_root: Path | None = None,
     allow_unverifiable_historical: bool = False,
     require_current_selection: bool = False,
 ) -> dict[str, Any]:
     data = validate_file(path, "remediation-plan.schema.json")
+    plan_kind = data["plan"].get("plan_kind", "remediation")
+    greenfield_plan = (
+        data["schema_version"] == "1.3" and plan_kind == "greenfield-implementation"
+    )
+    legacy_plan = not greenfield_plan and data["schema_version"] in {
+        "1.1",
+        "1.2",
+        "1.3",
+    }
     item_ids: set[str] = set()
     planned_findings: set[str] = set()
     for item in data["items"]:
@@ -2799,13 +3825,14 @@ def validate_plan(
         if item_id in item_ids:
             raise ArchitectureError(f"{path} has duplicate plan item ID {item_id}")
         item_ids.add(item_id)
-        duplicates = sorted(set(item["finding_ids"]) & planned_findings)
+        finding_ids = item.get("finding_ids", [])
+        duplicates = sorted(set(finding_ids) & planned_findings)
         if duplicates:
             raise ArchitectureError(
                 f"{path} plans finding IDs more than once: " + ", ".join(duplicates)
             )
-        planned_findings.update(item["finding_ids"])
-        if data["schema_version"] in {"1.1", "1.2"}:
+        planned_findings.update(finding_ids)
+        if legacy_plan:
             required_item_fields = (
                 "migration_type",
                 "data_compatibility",
@@ -2820,43 +3847,75 @@ def validate_plan(
                 raise ArchitectureError(
                     f"{path} item {item_id} is missing: " + ", ".join(missing)
                 )
-            if data["plan"]["status"] == "complete":
-                completion_evidence = item["completion_evidence"]
-                if not completion_evidence:
-                    raise ArchitectureError(
-                        f"{path} complete item {item_id} has no completion evidence"
-                    )
-                observed_types = {entry["type"] for entry in completion_evidence}
-                missing_types = sorted(
-                    set(item["acceptance_evidence_types"]) - observed_types
+        if data["plan"].get("status") == "complete" and data["schema_version"] != "1.0":
+            completion_evidence = item.get("completion_evidence", [])
+            if not completion_evidence:
+                raise ArchitectureError(
+                    f"{path} complete item {item_id} has no completion evidence"
                 )
-                if missing_types:
+            observed_types = {entry["type"] for entry in completion_evidence}
+            missing_types = sorted(
+                set(item.get("acceptance_evidence_types", [])) - observed_types
+            )
+            if missing_types:
+                raise ArchitectureError(
+                    f"{path} complete item {item_id} is missing acceptance "
+                    "evidence types: " + ", ".join(missing_types)
+                )
+            if repository_root is None:
+                raise ArchitectureError(
+                    f"{path} complete plan requires a repository root to "
+                    "resolve completion evidence"
+                )
+            root = repository_root.resolve()
+            for entry in completion_evidence:
+                completion_path = require_within_root(
+                    root,
+                    root / entry["location"],
+                    f"{path}:{item_id}.completion_evidence",
+                )
+                if not completion_path.is_file():
                     raise ArchitectureError(
-                        f"{path} complete item {item_id} is missing acceptance "
-                        "evidence types: " + ", ".join(missing_types)
+                        f"{path} completion evidence is missing: {completion_path}"
                     )
-                if repository_root is None:
+                if file_sha256(completion_path) != entry["sha256"]:
                     raise ArchitectureError(
-                        f"{path} complete plan requires a repository root to "
-                        "resolve completion evidence"
+                        f"{path} completion evidence hash does not match "
+                        f"{completion_path}"
                     )
-                root = repository_root.resolve()
-                for entry in completion_evidence:
-                    evidence_path = require_within_root(
+                provider_fields = {
+                    field for field in ("provider_id", "run_id") if entry.get(field)
+                }
+                if provider_fields and provider_fields != {"provider_id", "run_id"}:
+                    raise ArchitectureError(
+                        f"{path} completion evidence must bind provider_id and "
+                        "run_id together"
+                    )
+                if provider_fields:
+                    run_path = (
+                        root / ".architecture" / "evidence" / f"{entry['run_id']}.yaml"
+                    )
+                    evidence_run = validate_evidence_run(
+                        run_path,
                         root,
-                        root / entry["location"],
-                        f"{path}:{item_id}.completion_evidence",
+                        require_passed=True,
                     )
-                    if not evidence_path.is_file():
+                    if evidence_run["run"]["provider_id"] != entry["provider_id"]:
                         raise ArchitectureError(
-                            f"{path} completion evidence is missing: {evidence_path}"
+                            f"{path} completion evidence provider does not match "
+                            f"run {entry['run_id']}"
                         )
-                    if file_sha256(evidence_path) != entry["sha256"]:
+                    bound_outputs = {
+                        (record["path"], record["sha256"])
+                        for field in ("stdout", "stderr", "structured_output")
+                        if (record := evidence_run["result"].get(field)) is not None
+                    }
+                    if (entry["location"], entry["sha256"]) not in bound_outputs:
                         raise ArchitectureError(
-                            f"{path} completion evidence hash does not match "
-                            f"{evidence_path}"
+                            f"{path} completion evidence does not bind an output "
+                            f"of provider run {entry['run_id']}"
                         )
-        if data["schema_version"] == "1.2":
+        if data["schema_version"] in {"1.2", "1.3"} and not greenfield_plan:
             bindings = {binding["id"]: binding for binding in item["finding_bindings"]}
             if len(bindings) != len(item["finding_bindings"]):
                 raise ArchitectureError(
@@ -2881,7 +3940,7 @@ def validate_plan(
             raise ArchitectureError(
                 f"{path} requires a trusted 1.1 or 1.2 source review"
             )
-        if data["plan"]["source_review"] != review["review"]["id"]:
+        if data["plan"].get("source_review") != review["review"]["id"]:
             raise ArchitectureError(
                 f"{path} source_review does not match {review_path}"
             )
@@ -2903,7 +3962,7 @@ def validate_plan(
                 f"{path} plans non-confirmed or resolved findings: "
                 + ", ".join(unknown)
             )
-        if data["schema_version"] == "1.2":
+        if data["schema_version"] in {"1.2", "1.3"}:
             if review["schema_version"] != "1.2":
                 raise ArchitectureError(
                     f"{path} schema 1.2 requires a trusted 1.2 source review"
@@ -2918,7 +3977,7 @@ def validate_plan(
                             f"for {binding['id']}"
                         )
 
-    if data["schema_version"] in {"1.1", "1.2"}:
+    if legacy_plan:
         if review_path is None:
             raise ArchitectureError(
                 f"{path} schema {data['schema_version']} requires --review "
@@ -2951,7 +4010,7 @@ def validate_plan(
             raise ArchitectureError(
                 f"{path} plans findings absent from the accepted decision"
             )
-        if data["schema_version"] == "1.2":
+        if data["schema_version"] in {"1.2", "1.3"}:
             if decision["schema_version"] != "1.2":
                 raise ArchitectureError(
                     f"{path} schema 1.2 requires an accepted 1.2 decision"
@@ -2966,6 +4025,100 @@ def validate_plan(
                         f"{path} item {item['id']} references knowledge absent "
                         "from the accepted decision: " + ", ".join(unknown_knowledge)
                     )
+    if greenfield_plan:
+        if review_path is not None:
+            raise ArchitectureError(
+                f"{path} Greenfield implementation plans cannot bind a source Review"
+            )
+        if design_brief_path is None or decision_path is None:
+            raise ArchitectureError(
+                f"{path} schema 1.3 requires --design-brief and --decision"
+            )
+        design_brief_path = design_brief_path.resolve()
+        brief = validate_design_brief(
+            design_brief_path,
+            repository_root=repository_root,
+            allow_unverifiable_historical=allow_unverifiable_historical,
+        )
+        if brief["brief"]["status"] != "approved":
+            raise ArchitectureError(
+                f"{path} Greenfield implementation requires an approved Design Brief"
+            )
+        decision_path = decision_path.resolve()
+        decision = validate_decision(
+            decision_path,
+            design_brief_path=design_brief_path,
+            require_accepted=True,
+            repository_root=repository_root,
+            allow_unverifiable_historical=allow_unverifiable_historical,
+            require_current_selection=require_current_selection,
+        )
+        if decision["decision"].get("decision_kind", "remediation") != "greenfield":
+            raise ArchitectureError(
+                f"{path} schema 1.3 requires an accepted Greenfield Decision"
+            )
+        if not isinstance(decision.get("target_architecture"), dict):
+            raise ArchitectureError(
+                f"{path} schema 1.3 Greenfield plans require a Decision "
+                "target_architecture"
+            )
+        if data["plan"].get("source_decision") != decision["decision"]["id"]:
+            raise ArchitectureError(
+                f"{path} source_decision does not match {decision_path}"
+            )
+        if data["plan"].get("source_decision_sha256") != file_sha256(decision_path):
+            raise ArchitectureError(
+                f"{path} source_decision_sha256 does not match {decision_path}"
+            )
+        brief_path_value = next(
+            (
+                data["plan"].get(field)
+                for field in ("source_design_brief", "source_context", "design_brief")
+                if data["plan"].get(field) is not None
+            ),
+        )
+        brief_hash_value = next(
+            (
+                data["plan"].get(field)
+                for field in (
+                    "source_design_brief_sha256",
+                    "source_context_sha256",
+                    "design_brief_sha256",
+                )
+                if data["plan"].get(field) is not None
+            ),
+        )
+        if repository_root is not None:
+            root = repository_root.resolve()
+            expected_brief_path = require_within_root(
+                root,
+                design_brief_path,
+                "plan source design brief",
+            )
+            expected_brief_value = expected_brief_path.relative_to(root).as_posix()
+            if brief_path_value != expected_brief_value:
+                raise ArchitectureError(
+                    f"{path} source Design Brief path does not match "
+                    f"{design_brief_path}"
+                )
+        elif brief_path_value not in {None, str(design_brief_path)}:
+            raise ArchitectureError(
+                f"{path} source Design Brief path does not match {design_brief_path}"
+            )
+        if brief_hash_value != file_sha256(design_brief_path):
+            raise ArchitectureError(
+                f"{path} source Design Brief hash does not match {design_brief_path}"
+            )
+        if any(item.get("finding_ids") for item in data["items"]):
+            raise ArchitectureError(
+                f"{path} Greenfield implementation plans cannot contain Finding IDs"
+            )
+        if any(item.get("finding_bindings") for item in data["items"]):
+            raise ArchitectureError(
+                f"{path} Greenfield implementation plans cannot contain "
+                "Finding bindings"
+            )
+        _validate_greenfield_plan_bindings(path, data, decision, brief)
     return data
 
 
@@ -3266,38 +4419,78 @@ def validate_project(root: Path) -> list[Path]:
             )
         validated.append(artifact)
     for artifact, decision in decision_records.values():
-        source_review = review_records.get(decision["decision"]["source_review"])
-        if source_review is None:
-            raise ArchitectureError(
-                f"{artifact} references a missing source review "
-                f"{decision['decision']['source_review']}"
+        if decision["decision"].get("decision_kind", "remediation") == "greenfield":
+            brief_path = require_within_root(
+                root,
+                root / decision["decision"]["source_context"],
+                "decision source design brief",
             )
-        validate_decision(
-            artifact,
-            review_path=source_review,
-            repository_root=root,
-            allow_unverifiable_historical=True,
-        )
+            validate_decision(
+                artifact,
+                design_brief_path=brief_path,
+                repository_root=root,
+                allow_unverifiable_historical=True,
+            )
+        else:
+            source_review = review_records.get(decision["decision"]["source_review"])
+            if source_review is None:
+                raise ArchitectureError(
+                    f"{artifact} references a missing source review "
+                    f"{decision['decision']['source_review']}"
+                )
+            validate_decision(
+                artifact,
+                review_path=source_review,
+                repository_root=root,
+                allow_unverifiable_historical=True,
+            )
     for artifact, payload in plan_artifacts:
-        source_review = review_records.get(payload["plan"]["source_review"])
-        if source_review is None:
-            raise ArchitectureError(
-                f"{artifact} references a missing source review "
-                f"{payload['plan']['source_review']}"
-            )
         source_decision_record = decision_records.get(
             payload["plan"].get("source_decision", "")
         )
         source_decision = (
             source_decision_record[0] if source_decision_record is not None else None
         )
-        validate_plan(
-            artifact,
-            review_path=source_review,
-            decision_path=source_decision,
-            repository_root=root,
-            allow_unverifiable_historical=True,
-        )
+        if (
+            payload.get("schema_version") == "1.3"
+            and payload["plan"].get("plan_kind") == "greenfield-implementation"
+        ):
+            if (
+                source_decision_record is None
+                or source_decision_record[1]["decision"].get(
+                    "decision_kind", "remediation"
+                )
+                != "greenfield"
+            ):
+                raise ArchitectureError(
+                    f"{artifact} references a missing Greenfield source decision"
+                )
+            brief_path = require_within_root(
+                root,
+                root / source_decision_record[1]["decision"]["source_context"],
+                "plan source design brief",
+            )
+            validate_plan(
+                artifact,
+                decision_path=source_decision,
+                design_brief_path=brief_path,
+                repository_root=root,
+                allow_unverifiable_historical=True,
+            )
+        else:
+            source_review = review_records.get(payload["plan"]["source_review"])
+            if source_review is None:
+                raise ArchitectureError(
+                    f"{artifact} references a missing source review "
+                    f"{payload['plan']['source_review']}"
+                )
+            validate_plan(
+                artifact,
+                review_path=source_review,
+                decision_path=source_decision,
+                repository_root=root,
+                allow_unverifiable_historical=True,
+            )
     return validated
 
 
@@ -3403,33 +4596,67 @@ def validate_portfolio(root: Path) -> list[Path]:
             )
         validated.append(artifact)
     for artifact, decision in decision_records.values():
-        source_review = review_records.get(decision["decision"]["source_review"])
-        if source_review is None:
-            raise ArchitectureError(
-                f"{artifact} references a missing source review "
-                f"{decision['decision']['source_review']}"
+        if decision["decision"].get("decision_kind", "remediation") == "greenfield":
+            brief_path = require_within_root(
+                root,
+                root / decision["decision"]["source_context"],
+                "decision source design brief",
             )
-        validate_decision(artifact, review_path=source_review)
+            validate_decision(artifact, design_brief_path=brief_path)
+        else:
+            source_review = review_records.get(decision["decision"]["source_review"])
+            if source_review is None:
+                raise ArchitectureError(
+                    f"{artifact} references a missing source review "
+                    f"{decision['decision']['source_review']}"
+                )
+            validate_decision(artifact, review_path=source_review)
     for artifact, payload in plan_artifacts:
-        source_review = review_records.get(payload["plan"]["source_review"])
-        if source_review is None:
-            raise ArchitectureError(
-                f"{artifact} references a missing source review "
-                f"{payload['plan']['source_review']}"
-            )
         source_decision_record = decision_records.get(
             payload["plan"].get("source_decision", "")
         )
-        validate_plan(
-            artifact,
-            review_path=source_review,
-            decision_path=(
-                source_decision_record[0]
-                if source_decision_record is not None
-                else None
-            ),
-            repository_root=root,
-        )
+        if (
+            payload.get("schema_version") == "1.3"
+            and payload["plan"].get("plan_kind") == "greenfield-implementation"
+        ):
+            if (
+                source_decision_record is None
+                or source_decision_record[1]["decision"].get(
+                    "decision_kind", "remediation"
+                )
+                != "greenfield"
+            ):
+                raise ArchitectureError(
+                    f"{artifact} references a missing Greenfield source decision"
+                )
+            brief_path = require_within_root(
+                root,
+                root / source_decision_record[1]["decision"]["source_context"],
+                "plan source design brief",
+            )
+            validate_plan(
+                artifact,
+                decision_path=source_decision_record[0],
+                design_brief_path=brief_path,
+                repository_root=root,
+            )
+        else:
+            source_review = review_records.get(payload["plan"]["source_review"])
+            if source_review is None:
+                raise ArchitectureError(
+                    f"{artifact} references a missing source review "
+                    f"{payload['plan']['source_review']}"
+                )
+            validate_plan(
+                artifact,
+                review_path=source_review,
+                decision_path=(
+                    source_decision_record[0]
+                    if source_decision_record is not None
+                    else None
+                ),
+                repository_root=root,
+            )
     return validated
 
 
@@ -3722,9 +4949,20 @@ def verify_review_evidence(
         "repository_identity",
         review["review"]["subject"]["id"],
     )
+    reviewed_commit = (
+        review["review"].get("commit")
+        if review.get("schema_version") == "1.2"
+        else None
+    )
+    resolved_reviewed_commit = (
+        git_output(root, "rev-parse", f"{reviewed_commit}^{{commit}}")
+        if reviewed_commit
+        else None
+    )
     for finding in review["findings"]:
         if finding["verification"]["status"] != "confirmed":
             continue
+        current_evidence = False
         for index, item in enumerate(finding["evidence"]):
             if item["type"] == "tool":
                 run_path = require_within_root(
@@ -3747,6 +4985,7 @@ def verify_review_evidence(
                         f"Finding {finding['id']} evidence {index} provider "
                         "does not match run"
                     )
+                current_evidence = True
                 results.append(
                     {
                         "finding_id": finding["id"],
@@ -3793,6 +5032,26 @@ def verify_review_evidence(
                     f"Finding {finding['id']} evidence {index} path escapes repository"
                 )
             object_name = f"{commit}:{relative.as_posix()}"
+            resolved_evidence_commit = git_output(
+                root,
+                "rev-parse",
+                f"{commit}^{{commit}}",
+            )
+            if (
+                resolved_reviewed_commit is not None
+                and resolved_evidence_commit != resolved_reviewed_commit
+                and not item.get("historical", False)
+            ):
+                raise ArchitectureError(
+                    f"Finding {finding['id']} evidence {index} is from another "
+                    "snapshot and is not classified historical"
+                )
+            if (
+                resolved_reviewed_commit is not None
+                and resolved_evidence_commit == resolved_reviewed_commit
+                and not item.get("historical", False)
+            ):
+                current_evidence = True
             process = git_process(root, "cat-file", "-e", object_name)
             if process.returncode != 0:
                 raise ArchitectureError(
@@ -3845,6 +5104,11 @@ def verify_review_evidence(
                     "status": "resolved",
                     "blob_sha": blob_sha,
                 }
+            )
+        if review.get("schema_version") == "1.2" and not current_evidence:
+            raise ArchitectureError(
+                f"Finding {finding['id']} has no evidence bound to the reviewed "
+                "repository snapshot"
             )
     return results
 
@@ -3899,6 +5163,23 @@ def validate_history_anchors(
                 f"{name} anchor {commit} is not an ancestor of HEAD {head}; "
                 "preserve history and merge with a merge commit"
             )
+    try:
+        anchored_manifest = json.loads(
+            git_raw_output(
+                root,
+                "show",
+                f"{selector_source['commit']}:.codex-plugin/plugin.json",
+            )
+        )
+    except json.JSONDecodeError as exc:
+        raise ArchitectureError(
+            "Selector source anchor contains a malformed plugin manifest"
+        ) from exc
+    if anchored_manifest.get("version") != selector_source["plugin_version"]:
+        raise ArchitectureError(
+            "Selector source anchor plugin version does not match "
+            "resources/selector-source.json"
+        )
     return {
         "head": head,
         "selector_source": {
@@ -3912,23 +5193,21 @@ def validate_history_anchors(
     }
 
 
-def verify_review_signature(
-    review_path: Path,
-    review: dict[str, Any],
+def verify_ssh_artifact_signature(
+    artifact_path: Path,
+    signature: dict[str, Any],
     root: Path,
     signature_policy: dict[str, Any],
+    artifact_label: str,
 ) -> None:
-    signature = review["review"].get("signature")
-    if signature is None:
-        raise ArchitectureError(f"{review_path} has no detached review signature")
     if signature["namespace"] != signature_policy["namespace"]:
         raise ArchitectureError(
-            f"{review_path} signature namespace does not match policy"
+            f"{artifact_path} signature namespace does not match policy"
         )
     signature_path = require_within_root(
         root,
         root / signature["path"],
-        "review.signature.path",
+        f"{artifact_label}.signature.path",
     )
     allowed_signers = require_within_root(
         root,
@@ -3936,12 +5215,14 @@ def verify_review_signature(
         "artifact_signatures.allowed_signers_file",
     )
     if not signature_path.is_file():
-        raise ArchitectureError(f"Missing review signature: {signature_path}")
+        raise ArchitectureError(f"Missing {artifact_label} signature: {signature_path}")
     if not allowed_signers.is_file():
         raise ArchitectureError(f"Missing allowed signers file: {allowed_signers}")
     ssh_keygen = shutil.which("ssh-keygen")
     if ssh_keygen is None:
-        raise ArchitectureError("ssh-keygen is required for V5 signature verification")
+        raise ArchitectureError(
+            f"ssh-keygen is required for {artifact_label} signature verification"
+        )
     process = subprocess.run(
         [
             ssh_keygen,
@@ -3956,7 +5237,7 @@ def verify_review_signature(
             "-s",
             str(signature_path),
         ],
-        input=review_path.read_bytes(),
+        input=artifact_path.read_bytes(),
         capture_output=True,
         check=False,
     )
@@ -3966,7 +5247,25 @@ def verify_review_signature(
             or process.stdout.decode("utf-8", errors="replace").strip()
             or "signature verification failed"
         )
-        raise ArchitectureError(f"{review_path} SSH signature is invalid: {detail}")
+        raise ArchitectureError(f"{artifact_path} SSH signature is invalid: {detail}")
+
+
+def verify_review_signature(
+    review_path: Path,
+    review: dict[str, Any],
+    root: Path,
+    signature_policy: dict[str, Any],
+) -> None:
+    signature = review["review"].get("signature")
+    if signature is None:
+        raise ArchitectureError(f"{review_path} has no detached review signature")
+    verify_ssh_artifact_signature(
+        review_path,
+        signature,
+        root,
+        signature_policy,
+        "review",
+    )
 
 
 def ensure_unique_entries(
@@ -4004,15 +5303,19 @@ def related_governance_artifacts(
     for artifact in sorted((config_root / "reviews").glob("*.yaml")):
         payload = load_yaml(artifact)
         if "decision" in payload:
-            decision = validate_decision(artifact)
-            decision_id = decision["decision"]["id"]
+            validate_data(payload, "architecture-decision.schema.json", artifact)
+            decision_id = payload["decision"]["id"]
             if decision_id in decision_paths:
                 raise ArchitectureError(
                     f"Duplicate architecture decision ID {decision_id} in "
                     f"{decision_paths[decision_id]} and {artifact}"
                 )
             decision_paths[decision_id] = artifact
-            if decision["decision"]["source_review"] == review["review"]["id"]:
+            decision_kind = payload["decision"].get("decision_kind", "remediation")
+            if (
+                decision_kind != "greenfield"
+                and payload["decision"]["source_review"] == review["review"]["id"]
+            ):
                 decisions.append(
                     (
                         artifact,
@@ -4029,24 +5332,55 @@ def related_governance_artifacts(
                 )
         elif (
             "plan" in payload
-            and payload["plan"]["source_review"] == review["review"]["id"]
+            and payload["plan"].get("plan_kind") != "greenfield-implementation"
+            and payload["plan"].get("source_review") == review["review"]["id"]
         ):
             plan_candidates.append(artifact)
     plans: list[tuple[Path, dict[str, Any]]] = []
     for artifact in plan_candidates:
         payload = load_yaml(artifact)
         decision_path = decision_paths.get(payload["plan"].get("source_decision", ""))
-        plans.append(
-            (
-                artifact,
-                validate_plan(
-                    artifact,
-                    review_path=review_path,
-                    decision_path=decision_path,
-                    repository_root=config_root.parent,
-                ),
+        if (
+            payload.get("schema_version") == "1.3"
+            and payload["plan"].get("plan_kind") == "greenfield-implementation"
+        ):
+            if decision_path is None:
+                raise ArchitectureError(
+                    f"{artifact} references a missing Greenfield source decision"
+                )
+            decision_payload = load_yaml(decision_path)
+            if decision_payload["decision"].get("decision_kind") != "greenfield":
+                raise ArchitectureError(
+                    f"{artifact} schema 1.3 requires a Greenfield source decision"
+                )
+            brief_path = require_within_root(
+                config_root.parent,
+                config_root.parent / decision_payload["decision"]["source_context"],
+                "plan source design brief",
             )
-        )
+            plans.append(
+                (
+                    artifact,
+                    validate_plan(
+                        artifact,
+                        decision_path=decision_path,
+                        design_brief_path=brief_path,
+                        repository_root=config_root.parent,
+                    ),
+                )
+            )
+        else:
+            plans.append(
+                (
+                    artifact,
+                    validate_plan(
+                        artifact,
+                        review_path=review_path,
+                        decision_path=decision_path,
+                        repository_root=config_root.parent,
+                    ),
+                )
+            )
     return decisions, plans
 
 
@@ -4836,7 +6170,11 @@ def gate_from_config(
                 )
         if requirements.get("require_completed_plans"):
             for _, decision in accepted_decisions:
-                if decision["selected_option"] == "keep-current":
+                if (
+                    decision["selected_option"] == "keep-current"
+                    and decision["decision"].get("decision_kind", "remediation")
+                    != "greenfield"
+                ):
                     continue
                 matching = [
                     plan
@@ -4844,6 +6182,20 @@ def gate_from_config(
                     if plan["plan"].get("source_decision") == decision["decision"]["id"]
                     and plan["plan"]["status"] == "complete"
                 ]
+                if (
+                    decision["decision"].get("decision_kind", "remediation")
+                    == "greenfield"
+                ):
+                    matching = [
+                        plan for plan in matching if plan.get("schema_version") == "1.3"
+                    ]
+                    if not matching:
+                        policy_failures.append(
+                            "Accepted Greenfield decision "
+                            f"{decision['decision']['id']} "
+                            "requires a complete greenfield implementation plan"
+                        )
+                    continue
                 covered = {
                     finding_id
                     for plan in matching
@@ -4911,6 +6263,381 @@ def gate_project(
     )
 
 
+def gate_greenfield(
+    project_root: Path,
+    decision_path: Path,
+    *,
+    today: date | None = None,
+    mode: str = "all",
+    base_commit: str | None = None,
+) -> dict[str, Any]:
+    """Gate one Brief -> Greenfield Decision -> implementation Plan chain."""
+    root = project_root.resolve()
+    config_root = root / ".architecture"
+    policy_path = config_root / "gate-policy.yaml"
+    policy = validate_file(policy_path, "gate-policy.schema.json")
+    validate_baseline(config_root / "baseline.yaml")
+    if policy["schema_version"] not in TRUSTED_POLICY_VERSIONS:
+        raise ArchitectureError(f"{policy_path} uses a legacy Gate policy")
+    required_policy_fields = (
+        "risk_acceptances_file",
+        "roles",
+        "role_separation",
+        "stages",
+        "release_requirements",
+        "change_requirements",
+    )
+    missing_policy = [field for field in required_policy_fields if field not in policy]
+    if missing_policy:
+        raise ArchitectureError(
+            f"{policy_path} trusted policy is missing: " + ", ".join(missing_policy)
+        )
+    if "accepted-risk" not in policy["block"]["statuses"]:
+        raise ArchitectureError(
+            f"{policy_path} must include accepted-risk in block.statuses"
+        )
+    validate_risk_acceptances(resolve_from_root(root, policy["risk_acceptances_file"]))
+    ensure_unique_entries(policy["waivers"], "finding_id", policy_path)
+    profile_path = config_root / "profile.yaml"
+    profile = validate_file(profile_path, "project-profile.schema.json")
+    validate_profile_review_requirements(profile, profile_path)
+    for separation in policy["role_separation"]["separate"]:
+        left = separation["left"]
+        right = separation["right"]
+        if left == right:
+            raise ArchitectureError(
+                f"{policy_path} role separation cannot compare {left} with itself"
+            )
+        overlap = sorted(set(policy["roles"][left]) & set(policy["roles"][right]))
+        if overlap:
+            raise ArchitectureError(
+                f"{policy_path} requires separate {left} and {right} identities, "
+                "but overlaps: " + ", ".join(overlap)
+            )
+    stage_order = ("contract", "finding", "change", "release")
+    stages = policy["stages"]
+    if mode == "all":
+        selected_stages = {stage for stage in stage_order if stages.get(stage, False)}
+    else:
+        if not stages.get(mode, False):
+            raise ArchitectureError(
+                f"{policy_path} has disabled requested gate stage {mode}"
+            )
+        selected_stages = set(stage_order[: stage_order.index(mode) + 1])
+        disabled = sorted(
+            stage for stage in selected_stages if not stages.get(stage, False)
+        )
+        if disabled:
+            raise ArchitectureError(
+                f"{policy_path} disables prerequisite stages: " + ", ".join(disabled)
+            )
+
+    candidate = decision_path if decision_path.is_absolute() else root / decision_path
+    selected_decision_path = require_within_root(root, candidate, "gate decision")
+    payload = validate_file(
+        selected_decision_path,
+        "architecture-decision.schema.json",
+    )
+    if payload["decision"].get("decision_kind") != "greenfield":
+        raise ArchitectureError("--decision Gate requires a Greenfield Decision")
+    brief_path = require_within_root(
+        root,
+        root / payload["decision"]["source_context"],
+        "gate Design Brief",
+    )
+    require_accepted = bool({"change", "release"} & selected_stages)
+    decision = validate_decision(
+        selected_decision_path,
+        design_brief_path=brief_path,
+        require_accepted=require_accepted,
+        repository_root=root,
+        require_current_selection=True,
+    )
+    validate_design_brief(brief_path, repository_root=root)
+
+    policy_failures: list[str] = []
+    warnings: list[str] = []
+    if decision["decision"]["status"] == "accepted":
+        unauthorized = sorted(
+            set(decision["decision"]["decision_makers"])
+            - set(policy["roles"]["decision_makers"])
+        )
+        if unauthorized:
+            policy_failures.append(
+                "Accepted Greenfield decision includes unauthorized decision "
+                "makers: " + ", ".join(unauthorized)
+            )
+
+    plans: list[tuple[Path, dict[str, Any]]] = []
+    for artifact in sorted((config_root / "reviews").glob("*.yaml")):
+        plan_payload = load_yaml(artifact)
+        if "plan" not in plan_payload:
+            continue
+        if (
+            plan_payload["plan"].get("plan_kind") != "greenfield-implementation"
+            or plan_payload["plan"].get("source_decision") != decision["decision"]["id"]
+        ):
+            continue
+        plans.append(
+            (
+                artifact,
+                validate_plan(
+                    artifact,
+                    decision_path=selected_decision_path,
+                    design_brief_path=brief_path,
+                    repository_root=root,
+                    require_current_selection=True,
+                ),
+            )
+        )
+    active_plans = [
+        plan
+        for _, plan in plans
+        if plan["plan"]["status"] in {"accepted", "in-progress", "complete"}
+    ]
+    if "change" in selected_stages and not active_plans:
+        policy_failures.append(
+            "Accepted Greenfield decision requires an accepted, in-progress, or "
+            "complete implementation plan"
+        )
+    evaluation_date = today or datetime.now(UTC).date()
+    changed_paths: set[str] = set()
+    base_changed_paths: set[str] = set()
+    change_impacts: dict[str, list[str]] = {
+        "critical": [],
+        "public_contract": [],
+        "migration": [],
+        "security": [],
+    }
+    completed_reviews: dict[str, str] = {}
+
+    if "change" in selected_stages:
+        block = policy["block"]
+        if block.get("require_clean_tree"):
+            try:
+                if not git_is_clean(root):
+                    policy_failures.append(
+                        "Current repository working tree is not clean"
+                    )
+            except ArchitectureError as exc:
+                policy_failures.append(str(exc))
+        selection_path = require_within_root(
+            root,
+            root / decision["decision"]["knowledge_selection_path"],
+            "Greenfield Gate knowledge selection",
+        )
+        selection = validate_file(selection_path, "knowledge-selection.schema.json")
+        source_commit = base_commit or selection["inputs"].get(
+            "project_commit",
+            selection["inputs"].get("source_commit"),
+        )
+        if source_commit and source_commit != "unknown":
+            try:
+                head = current_git_commit(root)
+                git_output(root, "cat-file", "-e", f"{source_commit}^{{commit}}")
+                if not git_is_ancestor(root, source_commit, head):
+                    policy_failures.append(
+                        f"Greenfield source commit {source_commit} is not an "
+                        f"ancestor of HEAD {head}"
+                    )
+                else:
+                    changed_paths = git_changed_paths(root, source_commit, head)
+                    if base_commit is not None:
+                        base_changed_paths = set(changed_paths)
+            except ArchitectureError as exc:
+                policy_failures.append(str(exc))
+        elif base_commit is not None:
+            policy_failures.append("--base-commit does not identify a Git commit")
+        else:
+            warnings.append(
+                "Greenfield change classification has no Git source commit; "
+                "pass --base-commit for path-sensitive policy"
+            )
+
+        change_policy = policy["change_requirements"]
+        change_impacts = {
+            "critical": matching_paths(
+                changed_paths,
+                change_policy["critical_paths"],
+            ),
+            "public_contract": matching_paths(
+                changed_paths,
+                change_policy["public_contract_paths"],
+            ),
+            "migration": matching_paths(
+                changed_paths,
+                change_policy["migration_paths"],
+            ),
+            "security": matching_paths(
+                changed_paths,
+                change_policy["security_paths"],
+            ),
+        }
+        freshness_sensitive = sorted(
+            set(change_impacts["critical"]) | set(change_impacts["security"])
+        )
+        if (
+            freshness_sensitive
+            and change_policy["require_fresh_review_on_critical_change"]
+        ):
+            try:
+                head = current_git_commit(root)
+                completed_reviews = completed_required_reviews(
+                    root,
+                    config_root,
+                    profile,
+                    head=head,
+                    freshness_strategy=block.get(
+                        "freshness_strategy",
+                        "exact-commit",
+                    ),
+                    evaluation_date=evaluation_date,
+                    max_review_age_days=block["max_review_age_days"],
+                )
+                stale_sensitive: set[str] = set()
+                for review_artifact in completed_reviews.values():
+                    current_review = validate_review(Path(review_artifact))
+                    review_commit = current_review["review"].get("commit")
+                    if review_commit:
+                        stale_sensitive.update(
+                            set(freshness_sensitive)
+                            & git_changed_paths(root, review_commit, head)
+                        )
+                if stale_sensitive:
+                    policy_failures.append(
+                        "Critical or security-sensitive paths changed after "
+                        "required reviews: " + ", ".join(sorted(stale_sensitive))
+                    )
+            except ArchitectureError as exc:
+                policy_failures.append(str(exc))
+        if (
+            change_impacts["public_contract"]
+            and change_policy["require_decision_on_public_contract_change"]
+            and decision["decision"]["status"] != "accepted"
+        ):
+            policy_failures.append(
+                "Public contract changes require this Greenfield Decision to be "
+                "accepted"
+            )
+        if (
+            change_impacts["migration"]
+            and change_policy["require_plan_on_migration_change"]
+            and not active_plans
+        ):
+            policy_failures.append(
+                "Migration changes require an active Greenfield implementation plan"
+            )
+
+    complete_plans = [plan for _, plan in plans if plan["plan"]["status"] == "complete"]
+    if "release" in selected_stages:
+        requirements = policy["release_requirements"]
+        if requirements.get("require_completed_plans") and not complete_plans:
+            policy_failures.append(
+                "Accepted Greenfield decision requires a complete implementation "
+                "plan with hashed completion evidence"
+            )
+        if requirements.get("require_no_dirty_tree"):
+            try:
+                if not git_is_clean(root):
+                    policy_failures.append("Release gate requires a clean working tree")
+            except ArchitectureError as exc:
+                policy_failures.append(str(exc))
+
+        required_kinds = set(requirements.get("required_review_kinds", []))
+        if required_kinds and not completed_reviews:
+            try:
+                completed_reviews = completed_required_reviews(
+                    root,
+                    config_root,
+                    profile,
+                    head=current_git_commit(root),
+                    freshness_strategy=policy["block"].get(
+                        "freshness_strategy",
+                        "exact-commit",
+                    ),
+                    evaluation_date=evaluation_date,
+                    max_review_age_days=policy["block"]["max_review_age_days"],
+                )
+            except ArchitectureError as exc:
+                policy_failures.append(str(exc))
+        completed_kinds = {
+            requirement["kind"]
+            for requirement in profile["project"]["review_requirements"]
+            if requirement["id"] in completed_reviews
+        }
+        missing_kinds = sorted(required_kinds - completed_kinds)
+        if missing_kinds:
+            policy_failures.append(
+                "Release gate is missing trusted review kinds: "
+                + ", ".join(missing_kinds)
+            )
+
+        completion_evidence = [
+            evidence
+            for plan in complete_plans
+            for item in plan["items"]
+            for evidence in item.get("completion_evidence", [])
+        ]
+        observed_types = {"source"} | {
+            evidence["type"] for evidence in completion_evidence
+        }
+        missing_types = sorted(
+            set(requirements.get("required_evidence_types", [])) - observed_types
+        )
+        if missing_types:
+            policy_failures.append(
+                "Release gate is missing evidence types: " + ", ".join(missing_types)
+            )
+        observed_providers = {
+            evidence["provider_id"]
+            for evidence in completion_evidence
+            if evidence.get("provider_id")
+        }
+        missing_providers = sorted(
+            set(requirements.get("required_provider_ids", [])) - observed_providers
+        )
+        if missing_providers:
+            policy_failures.append(
+                "Release gate is missing passed provider runs: "
+                + ", ".join(missing_providers)
+            )
+        if (
+            requirements.get("require_accepted_decisions")
+            and decision["decision"]["status"] != "accepted"
+        ):
+            policy_failures.append("Release gate requires an accepted decision")
+
+    passed = not policy_failures
+    return {
+        "status": "pass" if passed else "fail",
+        "review": str(selected_decision_path),
+        "review_id": decision["decision"]["id"],
+        "subject_kind": "greenfield-decision",
+        "decision": str(selected_decision_path),
+        "design_brief": str(brief_path),
+        "plans": [str(path) for path, _ in plans],
+        "evaluated_on": evaluation_date.isoformat(),
+        "blocking": [],
+        "policy_failures": policy_failures,
+        "baselined": [],
+        "waived": [],
+        "accepted_risks": [],
+        "unverified": [],
+        "expired_baseline": [],
+        "pending_baseline": [],
+        "expired_waivers": [],
+        "expired_acceptances": [],
+        "pending_acceptances": [],
+        "evidence_resolution": [],
+        "changed_paths": sorted(changed_paths),
+        "base_changed_paths": sorted(base_changed_paths),
+        "change_impacts": change_impacts,
+        "required_reviews": completed_reviews,
+        "stages": sorted(selected_stages),
+        "warnings": warnings,
+    }
+
+
 def gate_portfolio(
     portfolio_root: Path,
     review_path: Path | None,
@@ -4931,7 +6658,12 @@ def gate_portfolio(
 
 def print_gate_result(result: dict[str, Any]) -> None:
     print(f"Architecture gate: {result['status'].upper()}")
-    print(f"Review: {result['review_id']} ({result['review']})")
+    label = (
+        "Greenfield decision"
+        if result.get("subject_kind") == "greenfield-decision"
+        else "Review"
+    )
+    print(f"{label}: {result['review_id']} ({result['review']})")
     for failure in result["policy_failures"]:
         print(f"POLICY: {failure}")
     for finding in result["blocking"]:
@@ -6695,7 +8427,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate one remediation plan.",
     )
     validate_plan_parser.add_argument("path")
-    validate_plan_parser.add_argument("--review")
+    plan_source = validate_plan_parser.add_mutually_exclusive_group()
+    plan_source.add_argument("--review")
+    plan_source.add_argument("--design-brief")
     validate_plan_parser.add_argument("--decision")
     validate_plan_parser.add_argument(
         "--project",
@@ -6708,6 +8442,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate one Greenfield architecture design brief.",
     )
     validate_design_brief_parser.add_argument("path")
+    validate_design_brief_parser.add_argument(
+        "--project",
+        help="Repository root used to verify approval authority and evidence.",
+    )
+    validate_design_brief_parser.add_argument("--historical", action="store_true")
 
     validate_decision_parser = subparsers.add_parser(
         "validate-decision",
@@ -6861,7 +8600,12 @@ def build_parser() -> argparse.ArgumentParser:
     gate_target = gate.add_mutually_exclusive_group()
     gate_target.add_argument("--project")
     gate_target.add_argument("--portfolio")
-    gate.add_argument("--review")
+    gate_source = gate.add_mutually_exclusive_group()
+    gate_source.add_argument("--review")
+    gate_source.add_argument(
+        "--decision",
+        help="Gate a Greenfield Design Brief -> Decision -> Plan chain.",
+    )
     gate.add_argument(
         "--base-commit",
         help="Classify the change from this ancestor to HEAD.",
@@ -7107,28 +8851,57 @@ def run(args: argparse.Namespace) -> int:
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
     if args.command == "validate-plan":
+        plan_path = Path(args.path).resolve()
+        if args.project is None and not args.historical:
+            plan_payload = load_yaml(plan_path)
+            if (
+                plan_payload.get("schema_version") == "1.3"
+                and plan_payload.get("plan", {}).get("plan_kind")
+                == "greenfield-implementation"
+            ):
+                raise ArchitectureError(
+                    "Current Greenfield Plan 1.3 validation requires --project "
+                    "to verify project-relative source and Knowledge bindings"
+                )
         validate_plan(
-            Path(args.path).resolve(),
+            plan_path,
             review_path=Path(args.review).resolve() if args.review else None,
             decision_path=Path(args.decision).resolve() if args.decision else None,
+            design_brief_path=(
+                Path(args.design_brief).resolve() if args.design_brief else None
+            ),
             repository_root=(Path(args.project).resolve() if args.project else None),
+            allow_unverifiable_historical=args.historical,
             require_current_selection=not args.historical,
         )
         print("Architecture remediation plan is valid.")
         return 0
     if args.command == "validate-design-brief":
-        validate_design_brief(Path(args.path).resolve())
+        validate_design_brief(
+            Path(args.path).resolve(),
+            repository_root=(Path(args.project).resolve() if args.project else None),
+            allow_unverifiable_historical=args.historical,
+        )
         print("Architecture design brief is valid.")
         return 0
     if args.command == "validate-decision":
+        decision_path = Path(args.path).resolve()
+        if args.project is None and not args.historical:
+            decision_payload = load_yaml(decision_path)
+            if decision_payload.get("schema_version") == "1.4":
+                raise ArchitectureError(
+                    "Current Decision 1.4 validation requires --project to verify "
+                    "project-relative Design Brief and Knowledge bindings"
+                )
         validate_decision(
-            Path(args.path).resolve(),
+            decision_path,
             review_path=Path(args.review).resolve() if args.review else None,
             design_brief_path=(
                 Path(args.design_brief).resolve() if args.design_brief else None
             ),
             require_accepted=args.require_accepted,
             repository_root=(Path(args.project).resolve() if args.project else None),
+            allow_unverifiable_historical=args.historical,
             require_current_selection=not args.historical,
         )
         print("Architecture decision is valid.")
@@ -7277,7 +9050,14 @@ def run(args: argparse.Namespace) -> int:
                 design_brief_path,
                 "decision source design brief",
             )
-            validate_design_brief(design_brief_path)
+            brief = validate_design_brief(
+                design_brief_path,
+                repository_root=project_root,
+            )
+            if brief["brief"]["status"] != "approved":
+                raise ArchitectureError(
+                    "Greenfield decision bindings require an approved Design Brief"
+                )
         if args.knowledge_selection:
             selection_path: Path | None = Path(args.knowledge_selection)
         elif review is not None and review["schema_version"] == "1.2":
@@ -7313,7 +9093,14 @@ def run(args: argparse.Namespace) -> int:
                 require_current_runtime=True,
             )
             binding_result = {
-                "schema_version": ("1.3" if design_brief_path is not None else "1.2"),
+                "schema_version": (
+                    "1.4"
+                    if design_brief_path is not None
+                    and brief["schema_version"] == "1.1"
+                    else "1.3"
+                    if design_brief_path is not None
+                    else "1.2"
+                ),
                 "knowledge_selection_path": selection_path.relative_to(
                     project_root
                 ).as_posix(),
@@ -7331,6 +9118,11 @@ def run(args: argparse.Namespace) -> int:
                 binding_result.update(
                     {
                         "decision_kind": "greenfield",
+                        **(
+                            {"architecture_intent": "target-architecture"}
+                            if brief["schema_version"] == "1.1"
+                            else {}
+                        ),
                         "source_context": design_brief_path.relative_to(
                             project_root
                         ).as_posix(),
@@ -7378,10 +9170,19 @@ def run(args: argparse.Namespace) -> int:
         return 0
     if args.command == "gate":
         review_path = Path(args.review) if args.review else None
+        if args.decision and args.portfolio:
+            raise ArchitectureError("--decision cannot be combined with --portfolio")
         if args.portfolio:
             result = gate_portfolio(
                 Path(args.portfolio),
                 review_path,
+                mode=args.stage,
+                base_commit=args.base_commit,
+            )
+        elif args.decision:
+            result = gate_greenfield(
+                Path(args.project or "."),
+                Path(args.decision),
                 mode=args.stage,
                 base_commit=args.base_commit,
             )

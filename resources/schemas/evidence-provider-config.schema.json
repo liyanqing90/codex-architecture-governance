@@ -59,6 +59,14 @@
           "result_path": {
             "type": "string",
             "minLength": 1
+          },
+          "dependency_inputs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "cache_mode": {
+            "enum": ["isolated", "unbound"]
           }
         },
         "allOf": [

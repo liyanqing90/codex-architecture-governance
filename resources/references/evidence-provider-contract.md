@@ -25,6 +25,14 @@ For every provider:
   package runners such as `npx` or `uvx`, or package-manager installation
   subcommands; the runtime rejects these entry points and shell shebangs;
 - pin the project tool dependency or wrapper where the ecosystem permits;
+- declare every project-relative lock, toolchain, configuration, plugin, or
+  dependency-tree input in `dependency_inputs`; patterns must resolve inside
+  the project and directories are hashed recursively;
+- Evidence Run 1.2 records that resolved closure before and after execution;
+  trusted deterministic evidence requires identical snapshots and a current
+  post-run closure;
+- set `cache_mode: isolated` for deterministic providers; the runner replaces
+  common user-level cache locations with an empty run-scoped cache;
 - use a project-owned executable or no-install package invocation; never use
   a provider command that downloads or installs a tool as a side effect;
 - use the smallest environment allowlist needed by the command;
@@ -50,12 +58,12 @@ The runner:
 1. validates the project, catalog, and configuration;
 2. requires explicit enablement and project marker detection;
 3. resolves an executable file and verifies execute permission;
-4. hashes the catalog, provider definition, full configuration, and actual
-   executable;
+4. hashes the catalog, provider definition, full configuration, actual
+   executable, and every declared dependency-closure file;
 5. records repository identity, start/end commits, and dirty-tree state before
    and after execution;
 6. invokes the command directly without a shell, with only allowlisted
-   environment variables;
+   environment variables and isolated caches for deterministic providers;
 7. enforces the configured timeout;
 8. captures stdout, stderr, and optional structured output under
    `.architecture/evidence/`;
@@ -75,6 +83,7 @@ python3 resources/scripts/architecture_tool.py validate-evidence-run \
 ```
 
 Revalidation checks the current provider catalog/configuration, executable,
+declared dependency closure, cache mode,
 command expansion, Git commit existence, output paths, byte counts, SHA-256
 values, timing, and structured content again.
 
@@ -99,9 +108,10 @@ dependency resolution requires an explicit user decision outside the runner.
 
 ## Trust limits
 
-- A validated run proves which configured command and executable produced the
-  captured bytes under the recorded environment; it does not prove the tool is
-  correct.
+- A validated deterministic run proves which configured command, executable,
+  declared dependency closure, and isolated cache produced the captured bytes;
+  it does not prove the closure declaration is semantically complete or that
+  the tool is correct.
 - `runtime-observation` is bound to its observation window and cannot establish
   all future behavior.
 - A dirty-tree run remains readable as informational local evidence but cannot

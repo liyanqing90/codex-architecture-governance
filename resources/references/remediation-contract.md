@@ -1,73 +1,100 @@
 # Remediation planning contract
 
-Plan only from `verification.status: confirmed` risks covered by an accepted
-architecture decision. Use `../schemas/remediation-plan.schema.json`.
+Use `../schemas/remediation-plan.schema.json`. A Plan is execution guidance,
+not architecture selection or implementation authority. Existing Plan artifacts
+through 1.2 remain readable. New Greenfield target plans use Plan 1.3 in the
+1.0 product release.
+
+## Planning modes and source bindings
+
+### Remediation
+
+Plan only from `verification.status: confirmed` Findings covered by an accepted
+Decision. Bind the trusted Review and Decision IDs and SHA-256 values, every
+Finding ID and semantic fingerprint, and only Knowledge IDs present in the
+Decision selection. Exclude candidate, rejected, needs-evidence, and resolved
+Findings. Recheck a Finding when its evidence commit, fingerprint, contract, or
+owning boundary materially changed.
+
+### Greenfield target
+
+Plan from an accepted open or constrained Greenfield Decision. Bind the exact
+Design Brief and Decision bytes and the selected target architecture. Do not
+invent a Review, Finding, or remediation risk: `finding_ids` and
+`finding_bindings` remain empty. For every item bind the Brief decision question,
+target runtime/deployment unit, data owner, interface, trust boundary, critical
+flow, operational concern, and relevant required/preferred/prohibited constraint
+assessment.
+
+Stop when the Decision is proposed, stale, rejected, superseded, or lacks the
+source bindings required by its mode.
 
 ## Planning unit
 
-Group findings when they share the same owning boundary or one change resolves the same invariant. Keep them separate when they require different authority, migration, or rollback.
+Group items when they share an owning boundary, target unit, critical flow, or
+invariant. Keep them separate when authority, migration, rollback, or ownership
+differs. Each item records:
 
-Each item must contain:
+- source Decision and, where applicable, Review and Finding bindings;
+- desired invariant or target outcome and accountable owner;
+- affected unit, flow, interface, data owner, trust boundary, operation, and
+  constraint assessment;
+- recommended option and alternatives with real trade-offs;
+- do-nothing consequence for remediation or the unbuilt-target consequence for
+  Greenfield;
+- effort size, uncertainty, assumptions, dependencies, change risk, and
+  governed/high-risk flag;
+- ordered slices, compatibility and data strategy, deployment strategy,
+  observability, rollback/containment, and stop conditions;
+- measurable acceptance criteria covering the primary path, owning invariant,
+  and an adjacent failure or alternate path; and
+- accepted evidence types and, only after completion, repository-relative
+  evidence with exact SHA-256, result, observation time, and optional provider
+  run binding.
 
-- linked finding IDs;
-- source Review and accepted Decision IDs and SHA-256 bindings;
-- desired invariant and owner;
-- recommended option;
-- alternatives with real tradeoffs;
-- do-nothing consequence;
-- effort size and uncertainty;
-- change risk and governed-change flag;
-- prerequisites and dependent items;
-- ordered slices;
-- test/observability protection;
-- rollback or containment;
-- migration type, data compatibility, deployment strategy, observability
-  changes, and stop conditions;
-- measurable acceptance criteria.
-- accepted evidence types for every plan item;
-- for completed items, repository-relative completion evidence with exact
-  SHA-256, result, observation time, and optional Evidence Provider run
-  binding.
+## Sequencing and safety
 
-## Effort scale
+Prefer evidence and safety nets; compatible seams; reversible internal changes;
+justified data or contract migration; consumer rollout; and old-path removal
+only after measured acceptance. Order by risk reduction, dependency, and
+reversibility rather than severity alone. Identify work that should be reverified
+after an earlier slice.
+
+Do not recommend a shared service because code looks similar. Require stable
+shared semantics, aligned lifecycle, accountable ownership, and acceptable
+coupling. Mark persisted data, public contracts, authorization, production
+infrastructure, deployment, and destructive effects as governed/high-risk.
+Planning does not authorize execution.
+
+## Effort and acceptance
 
 - `xs`: hours, one local boundary;
 - `s`: roughly one to three focused days;
 - `m`: several days across a bounded subsystem;
 - `l`: multi-week or cross-team work;
-- `xl`: program-level change, migration, or portfolio coordination.
+- `xl`: program-level, migration, or portfolio coordination.
 
-State assumptions. Effort is a range indicator, not a promise.
+Effort is a range indicator, not a promise. “Refactor complete”, “clean
+architecture”, or a file-size target is not acceptance evidence. Leave
+`completion_evidence` empty until evidence exists. Every declared evidence type
+must be covered before an item or Plan claims completion.
 
-## Sequencing rules
-
-Prefer:
-
-1. evidence and safety nets;
-2. compatibility seams;
-3. reversible internal changes;
-4. data or contract migration with dual-read/write only when justified;
-5. consumer migration;
-6. old-path removal after measured acceptance.
-
-Do not recommend parallel structural edits that touch the same boundary. Identify findings that will likely collapse after an earlier fix and re-verify them later.
-
-## Acceptance
-
-Acceptance criteria must be observable. Include the primary path, the owning-boundary invariant, and an adjacent failure or alternate path. “Refactor complete,” “clean architecture,” or a file-size target is not acceptance evidence.
-
-A plan may be proposed without completion evidence. Once the plan or an item
-claims completion, every declared `acceptance_evidence_types` value must be
-covered by a `completion_evidence` record whose file hash resolves inside the
-repository. A provider-backed record also names the provider and validated run.
-Status is never accepted as proof by itself.
-
-Flag plans involving persisted data, public contracts, authorization, production infrastructure, deployment, or destructive effects as governed/high-risk. Planning does not authorize execution.
-
-Validate the full chain:
+Validate a remediation plan with:
 
 ```bash
 python3 ../scripts/architecture_tool.py validate-plan \
-  <plan.yaml> --review <verified-review.yaml> \
-  --decision <accepted-decision.yaml> --project <repository-root>
+  <plan.yaml> --decision <accepted-decision.yaml> --project <repository-root> \
+  --review <verified-review.yaml>
 ```
+
+Validate a Greenfield implementation plan with:
+
+```bash
+python3 ../scripts/architecture_tool.py validate-plan \
+  <plan.yaml> --decision <accepted-decision.yaml> --project <repository-root> \
+  --design-brief <architecture-design-brief.yaml>
+```
+
+The validator must reject fake Greenfield Findings, missing Brief/Decision
+bindings, stale constraint assessments, and completion claims without hashed
+evidence.

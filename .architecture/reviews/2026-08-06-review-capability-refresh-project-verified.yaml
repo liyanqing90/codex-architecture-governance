@@ -1,0 +1,580 @@
+schema_version: "1.2"
+review:
+  id: hengmu-20260806-review-capability-refresh-project-verified
+  kind: project
+  workflow: project-architecture
+  subject:
+    id: hengmu
+    name: Hengmu
+    repository: .
+  performed_at: "2026-08-06T12:44:00+00:00"
+  commit: 130000d59fd119647ec8cbde149ab3e3a7cd5ab3
+  scope:
+    - .
+  verification_state: verified
+  reviewers:
+    - architecture-verifier
+  verification_run:
+    id: hengmu-architecture-verifier-20260806-capability-refresh-v2-124200z
+    model: gpt-5.6-luna
+    surface: codex-desktop
+    started_at: "2026-08-06T12:30:00Z"
+    completed_at: "2026-08-06T12:44:00Z"
+  source_candidate:
+    path: .architecture/reviews/2026-08-06-review-capability-refresh-project-candidates.yaml
+    review_id: hengmu-20260806-review-capability-refresh-candidates
+    sha256: 8abc088c1f68f280be70201d150a1382c0d03f74c6bd809f3d99b61b6872e1f3
+  profile: .architecture/reviews/inputs/2026-08-06-review-capability-refresh-profile.yaml
+  repository_identity: hengmu
+  profile_sha256: 9db21b5d3ec574d06cdc1626a7cf50e57c9ef648558155b233795b4b1377b8fd
+  dirty_tree: false
+  rule_packs:
+    - id: project-core
+      version: "1.0.0"
+      sha256: b211d548ad5fe367b9dab8416051c43f3a206da81bd2a8e7596cd788ed3f100c
+    - id: plugin-platform
+      version: "1.0.0"
+      sha256: 7ae17488df7a78ce1b857d3f842bd51b87de4ec30576fbe250cfa991472b3700
+    - id: test-automation-platform
+      version: "1.0.0"
+      sha256: 23efb3c02cd9e4e2ec2cb83d1505b30dd780aff2a9ac7157506b361cb783c5aa
+  scope_manifest:
+    - .
+summary:
+  architecture: Hengmu remains a local, distributable architecture-governance plugin. Public Skills own distinct audit, verification, decision, planning, and Gate authorities; shared Python tooling validates versioned YAML/JSON contracts, selects source-bound Knowledge, executes explicitly configured Evidence Providers without a shell, and evaluates verified artifacts deterministically. The current change deepens AI-agent review guidance, adds compact context projection and content-bound caches, introduces cross-language optional quality providers and technology-evolution decisions, and derives repeat-review impact from Git and policy. The plugin intentionally does not become a hosted agent runtime, universal scanner, package manager, or autonomous upgrader.
+  raw_findings: 5
+  confirmed: 4
+  rejected: 0
+  needs_evidence: 1
+coverage:
+  - {rule_id: PROJECT.BOUNDARY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DEPENDENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.COHESION.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.FRONTEND.001, status: not_applicable, finding_ids: [], reason: "Hengmu has no client/server authority split; the website is static documentation."}
+  - {rule_id: PROJECT.DATA.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OWNERSHIP.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONTRACT.001, status: assessed, finding_ids: [HGM-TRACE-001]}
+  - {rule_id: PROJECT.TRANSACTION.001, status: not_applicable, finding_ids: [], reason: "Runtime operations are local validation and atomic file creation, not cross-system business transactions."}
+  - {rule_id: PROJECT.IDEMPOTENCY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.RELIABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.STATE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.SECURITY.001, status: assessed, finding_ids: [HGM-PROVIDER-001]}
+  - {rule_id: PROJECT.PRIVACY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.OBSERVABILITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.CONFIG.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.PERFORMANCE.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.TEST.001, status: assessed, finding_ids: [HGM-COVERAGE-001]}
+  - {rule_id: PROJECT.DEPLOY.001, status: assessed, finding_ids: [HGM-PROVIDER-002]}
+  - {rule_id: PROJECT.CHANGE.001, status: assessed, finding_ids: [HGM-EVOLUTION-001]}
+  - {rule_id: PROJECT.DEBT.001, status: assessed, finding_ids: []}
+  - {rule_id: PROJECT.DESIGN.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.MANIFEST.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.AUTHORITY.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.ISOLATION.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.LIFECYCLE.001, status: assessed, finding_ids: []}
+  - {rule_id: PLUGIN.SUPPLYCHAIN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.RUN.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.ISOLATION.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.EVIDENCE.001, status: assessed, finding_ids: []}
+  - {rule_id: TESTPLATFORM.SCHEDULE.001, status: not_applicable, finding_ids: [], reason: "Hengmu executes local bounded commands and has no worker scheduler, lease, or shared capacity service."}
+  - {rule_id: TESTPLATFORM.FLAKE.001, status: assessed, finding_ids: []}
+findings:
+  - id: HGM-TRACE-001
+    fingerprint: f9fbbb8bda90cb665b25b8d3815c020e5cfa51d55942e2ee81dfa8e42722f6c1
+    kind: risk
+    rule_id: PROJECT.CONTRACT.001
+    title: Trusted Review paths do not enforce one reviewed source snapshot
+    invariant: A verified Review, its source candidate, and current-source evidence must be bound to the same reviewed repository snapshot unless evidence is explicitly classified as historical.
+    severity: high
+    confidence: 0.94
+    verification:
+      status: confirmed
+      rationale: >-
+        在固定提交直接重读 Review 校验与证据解析边界：verified Review 只校验 source_candidate 的路径、ID、文件哈希和 Finding 语义；source evidence 解析只接受证据自带的 Git commit。
+        最强反假设是诚实 verifier 会重新阅读当前源码，且候选/证据本次确实都指向固定提交；这不能替代 validator 对 verified review.commit 与 candidate.review.commit 的一致性约束，因此该信任边界缺口成立。
+      verified_by: architecture-verifier
+      verified_at: "2026-08-06T12:43:00Z"
+      level: V2
+      verifier:
+        type: agent
+        identity: architecture-verifier
+        run_id: hengmu-architecture-verifier-20260806-capability-refresh-v2-124200z
+      source_candidate:
+        review_id: hengmu-20260806-review-capability-refresh-candidates
+        sha256: 8abc088c1f68f280be70201d150a1382c0d03f74c6bd809f3d99b61b6872e1f3
+    status: open
+    evidence:
+      - type: source
+        location: resources/scripts/architecture_tool.py:2207
+        repository: hengmu
+        commit: 130000d59fd119647ec8cbde149ab3e3a7cd5ab3
+        path: resources/scripts/architecture_tool.py
+        line_start: 2207
+        line_end: 2249
+        blob_sha: bda9259f0124b85ea922a56016f7ac4627afc138
+        symbol: source_candidate
+        observation: Verified Review validation checks the source candidate path, ID, file hash, Finding IDs, and Finding semantics but does not require candidate.review.commit to equal verified.review.commit.
+      - type: source
+        location: resources/scripts/architecture_tool.py:3771
+        repository: hengmu
+        commit: 130000d59fd119647ec8cbde149ab3e3a7cd5ab3
+        path: resources/scripts/architecture_tool.py
+        line_start: 3771
+        line_end: 3807
+        blob_sha: bda9259f0124b85ea922a56016f7ac4627afc138
+        symbol: verify_review_evidence
+        observation: Source evidence is resolved against the commit declared by each evidence item, but the function does not require current-source evidence to use the Review commit.
+    impact:
+      affected_components:
+        - Review validation
+        - evidence resolution
+        - deterministic Gate
+      failure_mode: A verified artifact can claim the current commit while retaining a candidate or source evidence from an older commit, so a diff-aware Gate sees no post-Review source change and may enforce a stale conclusion.
+      blast_radius: Any project using a trusted 1.2 Review with source findings and a Gate freshness strategy other than an independently enforced exact candidate/evidence snapshot.
+    counter_evidence:
+      - Candidate bytes, IDs, Finding semantics, Git objects, blob hashes, and excerpts are validated; intentional history evidence is a legitimate use case.
+      - The verifier workflow instructs a fresh pass to reread current code, reducing risk when the workflow is followed honestly.
+    first_seen: "2026-08-06"
+    last_seen: "2026-08-06"
+    found_by:
+      - architecture-auditor
+    related_findings: []
+    quality_attribute_impacts:
+      - traceability
+      - deterministic-enforcement
+      - safety
+    evidence_level: E3
+    evidence_fingerprint: 1183f2823a49f4de617000df08f1fde6a8bce6a29aa8c1a3b14b4b418a6f3c47
+    fact_inference_boundary:
+      facts:
+        - Candidate validation has no comparison between candidate.review.commit and verified.review.commit.
+        - Source evidence resolution accepts any existing Git commit declared by the evidence item.
+      inferences:
+        - A stale candidate or source snapshot can be represented as current without violating the present schema and validator checks.
+      unknowns:
+        - No repository artifact was found that deliberately exercises this mismatch as an accepted historical-evidence case.
+    applicability:
+      profile_conditions:
+        - Traceability and deterministic enforcement are critical qualities, and new trusted Reviews use schema 1.2.
+    source_candidate_ids:
+      - hengmu-20260806-review-capability-refresh-candidates
+    rule_pack_version: "1.0.0"
+    staleness_state: current
+    decision_references: []
+    tags:
+      - review-trust
+      - source-binding
+
+  - id: HGM-PROVIDER-001
+    fingerprint: 794906a71657372ac0fa2a55d0b918362cfd3aa51da5f97ced4d6b65c594438b
+    kind: risk
+    rule_id: PROJECT.SECURITY.001
+    title: No-install Provider validation omits installation and resolution commands
+    invariant: Evidence Provider commands must not install, download, or resolve executable dependencies as a side effect of validation or evidence capture.
+    severity: medium
+    confidence: 0.94
+    verification:
+      status: confirmed
+      rationale: >-
+        固定提交的 validate_provider_command_safety 对 npm 仅拒绝 add、exec、i、install；直接探针确认 [npm, ci] 被接受，而 Evidence Provider 契约明确禁止安装或解析依赖的副作用。
+        最强反假设是 Provider 默认禁用且必须显式启用；该控制降低默认暴露面，却没有消除显式启用命令绕过 no-install 契约的可达路径。
+      verified_by: architecture-verifier
+      verified_at: "2026-08-06T12:43:00Z"
+      level: V2
+      verifier:
+        type: agent
+        identity: architecture-verifier
+        run_id: hengmu-architecture-verifier-20260806-capability-refresh-v2-124200z
+      source_candidate:
+        review_id: hengmu-20260806-review-capability-refresh-candidates
+        sha256: 8abc088c1f68f280be70201d150a1382c0d03f74c6bd809f3d99b61b6872e1f3
+    status: open
+    evidence:
+      - type: source
+        location: resources/scripts/architecture_tool.py:970
+        repository: hengmu
+        commit: 130000d59fd119647ec8cbde149ab3e3a7cd5ab3
+        path: resources/scripts/architecture_tool.py
+        line_start: 970
+        line_end: 1027
+        blob_sha: bda9259f0124b85ea922a56016f7ac4627afc138
+        symbol: validate_provider_command_safety
+        observation: The no-install validator rejects named wrappers and selected package actions, but npm ci and other dependency-resolution actions are not in the rejected action sets.
+      - type: document
+        location: resources/references/evidence-provider-contract.md:20
+        repository: hengmu
+        commit: 130000d59fd119647ec8cbde149ab3e3a7cd5ab3
+        path: resources/references/evidence-provider-contract.md
+        line_start: 20
+        line_end: 29
+        blob_sha: 3e9a24597d05d67c417709de9b6fafaa4d004047
+        observation: The public contract forbids package-manager installation subcommands and commands that download or install tools as a side effect.
+    impact:
+      affected_components:
+        - Evidence Provider configuration validation
+        - local evidence execution
+      failure_mode: An explicitly enabled command such as npm ci passes configuration safety checks, mutates dependencies, may run lifecycle scripts or use network access, and can still produce a passed Evidence Run.
+      blast_radius: Projects that configure an enabled Provider with an omitted package-manager action; disabled catalog entries and projects without such commands are unaffected.
+    counter_evidence:
+      - Providers are disabled by default, project-owned, and require explicit enablement.
+      - Shells, package runners, common install actions, and non-offline Cargo, Maven, and Gradle commands are already rejected.
+    first_seen: "2026-08-06"
+    last_seen: "2026-08-06"
+    found_by:
+      - architecture-auditor
+    related_findings: []
+    quality_attribute_impacts:
+      - security
+      - safety
+      - reproducibility
+    evidence_level: E3
+    evidence_fingerprint: 32cd4ee240eeb6acee225415997527841db10d914e67267ee178ca7aa47e4f3b
+    fact_inference_boundary:
+      facts:
+        - npm ci is absent from the package action denylist.
+        - The Provider contract prohibits installation or dependency resolution side effects.
+      inferences:
+        - An enabled omitted command can expand network, supply-chain, and project-mutation authority beyond the declared no-install boundary.
+      unknowns:
+        - The catalog does not currently ship an enabled Provider using an omitted action.
+    applicability:
+      profile_conditions:
+        - Safety, offline operation, and no implicit network or dependency installation are repository constraints.
+    source_candidate_ids:
+      - hengmu-20260806-review-capability-refresh-candidates
+    rule_pack_version: "1.0.0"
+    staleness_state: current
+    decision_references: []
+    tags:
+      - evidence-provider
+      - command-safety
+
+  - id: HGM-PROVIDER-002
+    fingerprint: 2ec3d1355c26b96de6fd59378e300e13caac02e8436359d451daecab481a3139
+    kind: risk
+    rule_id: PROJECT.DEPLOY.001
+    title: Deterministic Provider trust does not bind dependency and cache inputs
+    invariant: Evidence classified as deterministic must bind the tool executable, dependency closure, configuration, and environment inputs that can change its result.
+    severity: medium
+    confidence: 0.84
+    verification:
+      status: confirmed
+      rationale: >-
+        固定提交的 runner 记录并校验 catalog、provider definition、configuration、resolved executable、输出和 Git 状态，但 Evidence Run schema 只记录 allowlisted environment names，不绑定依赖闭包或外部缓存内容。
+        最强反假设是项目可通过 lockfile、offline 和 project-owned executable 管理依赖，且每次输出仍可审计；这些措施不能让相同提交与配置在不同缓存/工具链输入下具备可验证的结果一致性。
+      verified_by: architecture-verifier
+      verified_at: "2026-08-06T12:43:00Z"
+      level: V2
+      verifier:
+        type: agent
+        identity: architecture-verifier
+        run_id: hengmu-architecture-verifier-20260806-capability-refresh-v2-124200z
+      source_candidate:
+        review_id: hengmu-20260806-review-capability-refresh-candidates
+        sha256: 8abc088c1f68f280be70201d150a1382c0d03f74c6bd809f3d99b61b6872e1f3
+    status: open
+    evidence:
+      - type: source
+        location: resources/scripts/architecture_tool.py:1186
+        repository: hengmu
+        commit: 130000d59fd119647ec8cbde149ab3e3a7cd5ab3
+        path: resources/scripts/architecture_tool.py
+        line_start: 1186
+        line_end: 1224
+        blob_sha: bda9259f0124b85ea922a56016f7ac4627afc138
+        symbol: resolve_provider_executable
+        observation: A bare command is resolved through PATH and only the resulting executable file is treated as the executable identity.
+      - type: schema
+        location: resources/schemas/evidence-run.schema.json:57
+        repository: hengmu
+        commit: 130000d59fd119647ec8cbde149ab3e3a7cd5ab3
+        path: resources/schemas/evidence-run.schema.json
+        line_start: 57
+        line_end: 99
+        blob_sha: c17bc515ed28ee2e34f0cabe978251af1b034721
+        observation: The run binds executable, command, configuration, and allowlisted environment names, but has no dependency-lock or external cache content binding.
+    impact:
+      affected_components:
+        - deterministic Evidence Providers
+        - cross-machine Review evidence
+        - release evidence resolution
+      failure_mode: The same commit and Provider configuration can use different globally resolved tools or Maven, Cargo, or Gradle cache contents and produce different evidence while each run remains individually hash-valid and classified deterministic.
+      blast_radius: Deterministic Providers whose behavior depends on global PATH resolution, language toolchains, plugins, or dependency caches outside the repository.
+    counter_evidence:
+      - Every actual executable and captured output is hashed, so each individual run remains auditable.
+      - The contract tells projects to pin tools, and offline flags prevent network resolution during the run for Cargo, Maven, and Gradle.
+    first_seen: "2026-08-06"
+    last_seen: "2026-08-06"
+    found_by:
+      - architecture-auditor
+    related_findings: []
+    quality_attribute_impacts:
+      - reproducibility
+      - traceability
+      - deterministic-enforcement
+    evidence_level: E3
+    evidence_fingerprint: e1daa6315a30a060e34d91fb04f3e226b4fb52441f3bd416dbad8fc073e06b7f
+    fact_inference_boundary:
+      facts:
+        - Bare Provider executables resolve through the caller PATH.
+        - Evidence Run schema has no binding for dependency closure or external cache contents.
+      inferences:
+        - Environment drift can change deterministic Provider results without invalidating the run's present trust bindings.
+      unknowns:
+        - The degree of result variance depends on each configured tool and its project lock behavior.
+    applicability:
+      profile_conditions:
+        - Reproducibility and deterministic enforcement are critical qualities, and the repository offers deterministic cross-language Providers.
+    source_candidate_ids:
+      - hengmu-20260806-review-capability-refresh-candidates
+    rule_pack_version: "1.0.0"
+    staleness_state: current
+    decision_references: []
+    tags:
+      - evidence-provider
+      - reproducibility
+
+  - id: HGM-EVOLUTION-001
+    fingerprint: 95377f673d88f5a19126062bffc4dafb0365e45a5e34ea77a8eb17093b3bce38
+    kind: risk
+    rule_id: PROJECT.CHANGE.001
+    title: Adoption validation does not bind pilot results to the declared value threshold
+    invariant: A technology upgrade or replacement may be marked adopt only when its observed pilot measures are explicitly evaluated against the declared gap target and acceptance threshold.
+    severity: medium
+    confidence: 0.68
+    verification:
+      status: needs-evidence
+      rationale: >-
+        固定提交确实只校验 adoption 的 current volatile claims、completed pilot 和非空 observed_measures；gap.threshold、success_criteria 与 observed_measures 之间没有结构化结果字段或比较绑定。
+        但当前契约同时把 acceptance 保留给 accountable human，并允许 companion Markdown 与 decision rationale 承担语义评估；未发现一个实际的、已接受且观测值违背阈值却仍被当作有效 adoption 的 Decision，因此当前证据不足以排除这是有意的人工语义边界。
+      verified_by: architecture-verifier
+      verified_at: "2026-08-06T12:43:00Z"
+      level: V2
+      verifier:
+        type: agent
+        identity: architecture-verifier
+        run_id: hengmu-architecture-verifier-20260806-capability-refresh-v2-124200z
+      source_candidate:
+        review_id: hengmu-20260806-review-capability-refresh-candidates
+        sha256: 8abc088c1f68f280be70201d150a1382c0d03f74c6bd809f3d99b61b6872e1f3
+    status: open
+    evidence:
+      - type: source
+        location: resources/scripts/architecture_tool.py:2348
+        repository: hengmu
+        commit: 130000d59fd119647ec8cbde149ab3e3a7cd5ab3
+        path: resources/scripts/architecture_tool.py
+        line_start: 2348
+        line_end: 2407
+        blob_sha: bda9259f0124b85ea922a56016f7ac4627afc138
+        symbol: validate_evolution_assessment_binding
+        observation: Adoption validation checks disposition, claim freshness, pilot status, observed-measure presence, and evidence file hashes but does not evaluate observed measures against gap target or threshold.
+      - type: schema
+        location: resources/schemas/architecture-decision.schema.json:423
+        repository: hengmu
+        commit: 130000d59fd119647ec8cbde149ab3e3a7cd5ab3
+        path: resources/schemas/architecture-decision.schema.json
+        line_start: 423
+        line_end: 443
+        blob_sha: 21d06e25204a7505d11f56853f022ef72c98836e
+        observation: Gap target and threshold are free-form strings and have no identifier or comparison binding to pilot observed measures.
+    impact:
+      affected_components:
+        - Architecture Solution Advisor
+        - technology-evolution Decision validation
+        - accepted Decision Gate input
+      failure_mode: A structurally complete adoption Decision can cite a completed pilot whose measured result does not satisfy the stated threshold, yet validation cannot distinguish it from demonstrated upgrade or replacement value.
+      blast_radius: Technology-evolution Decisions selecting upgrade or replacement; keep-current and evidence-only outcomes are unaffected.
+    counter_evidence:
+      - Adoption already requires current official claims, local baseline and gap evidence, compatibility, operations, rollback, a completed pilot, and hash-bound observed evidence.
+      - A named human decision maker remains responsible for semantic judgment; arbitrary measurements may not be safely comparable by a generic validator.
+    first_seen: "2026-08-06"
+    last_seen: "2026-08-06"
+    found_by:
+      - architecture-auditor
+    related_findings: []
+    quality_attribute_impacts:
+      - compatibility
+      - safety
+      - traceability
+    evidence_level: E3
+    evidence_fingerprint: c2d9a3562dc18dfe2b0c6dd8bf5eafcce6312af2d76a68f1b52a6344c62612a1
+    fact_inference_boundary:
+      facts:
+        - The Decision records a free-form target and threshold and separate pilot observed measures.
+        - The validator checks presence and hashes but does not record or validate a threshold outcome.
+      inferences:
+        - Formal completeness alone can authorize an adoption packet whose evidence does not demonstrate the stated value.
+      unknowns:
+        - The intended boundary between deterministic validation and accountable human semantic acceptance is not encoded as an explicit threshold verdict field.
+    applicability:
+      profile_conditions:
+        - Public Decision schemas and compatibility are critical contracts, and the repository now supports technology-evolution adoption.
+    source_candidate_ids:
+      - hengmu-20260806-review-capability-refresh-candidates
+    rule_pack_version: "1.0.0"
+    staleness_state: current
+    decision_references:
+      - HGM-EFFICIENT-REVIEW-EXECUTION-20260806
+    tags:
+      - technology-evolution
+      - decision-trust
+
+  - id: HGM-COVERAGE-001
+    fingerprint: 50f9927408036da859b5e2fb29de868faaf639b182b541c669817322edf80fa5
+    kind: risk
+    rule_id: PROJECT.TEST.001
+    title: Assessed Rule coverage has no evidence binding when no Finding exists
+    invariant: Every Rule and critical-flow assessment that enters a trusted Gate must bind the inspected evidence or an explicit not-assessed reason, including assessments that produce no Finding.
+    severity: medium
+    confidence: 0.82
+    verification:
+      status: confirmed
+      rationale: >-
+        固定提交的 coverage schema 只要求 rule_id、status、finding_ids；validate-coverage 与 Gate 的 evidence resolution 仅枚举 Rule/flow 覆盖并解析 Finding evidence，不为 assessed 且无 Finding 的行绑定 inspected source。
+        最强反假设是无 Finding 本身无法由单一证据证明，且 verifier 流程和 report 仍要求记录限制；这不能提供机器可解析的 inspected-evidence 追踪，因此空 Finding Review 仍可声明完整 assessed 覆盖并进入 Gate。
+      verified_by: architecture-verifier
+      verified_at: "2026-08-06T12:43:00Z"
+      level: V2
+      verifier:
+        type: agent
+        identity: architecture-verifier
+        run_id: hengmu-architecture-verifier-20260806-capability-refresh-v2-124200z
+      source_candidate:
+        review_id: hengmu-20260806-review-capability-refresh-candidates
+        sha256: 8abc088c1f68f280be70201d150a1382c0d03f74c6bd809f3d99b61b6872e1f3
+    status: open
+    evidence:
+      - type: schema
+        location: resources/schemas/review.schema.json:222
+        repository: hengmu
+        commit: 130000d59fd119647ec8cbde149ab3e3a7cd5ab3
+        path: resources/schemas/review.schema.json
+        line_start: 222
+        line_end: 249
+        blob_sha: 046fcb850d993d958777de7101b5abb56fa76907
+        observation: A coverage item requires only rule_id, status, and finding_ids; it has no inspected-evidence binding and reason is optional for assessed status.
+      - type: source
+        location: resources/scripts/architecture_tool.py:4438
+        repository: hengmu
+        commit: 130000d59fd119647ec8cbde149ab3e3a7cd5ab3
+        path: resources/scripts/architecture_tool.py
+        line_start: 4438
+        line_end: 4447
+        blob_sha: bda9259f0124b85ea922a56016f7ac4627afc138
+        symbol: verify_review_evidence
+        observation: Gate evidence resolution validates Finding evidence but coverage without Findings supplies no path-level evidence for this step to resolve.
+    impact:
+      affected_components:
+        - Review coverage contract
+        - independent verification handoff
+        - deterministic Gate
+      failure_mode: A verified Review with zero Findings can mark every Rule and critical flow assessed, set coverage_complete true, and pass structural coverage checks without binding what was inspected for the no-Finding conclusions.
+      blast_radius: Trusted Reviews whose assessed Rules or critical flows produce no Finding, especially broad scope manifests such as the repository root.
+    counter_evidence:
+      - Role separation, source-candidate hashing, complete Rule enumeration, critical-flow reasons, human reports, and verifier procedure all provide process controls.
+      - A no-Finding assessment cannot always cite one decisive source, and deterministic tooling cannot prove that a model actually read evidence.
+    first_seen: "2026-08-06"
+    last_seen: "2026-08-06"
+    found_by:
+      - architecture-auditor
+    related_findings: []
+    quality_attribute_impacts:
+      - traceability
+      - deterministic-enforcement
+      - maintainability
+    evidence_level: E3
+    evidence_fingerprint: bbcbb4306bc4552b72ec082c583894a009a0081eca9f90b9b96865e4b35134d5
+    fact_inference_boundary:
+      facts:
+        - Assessed coverage records have no evidence field.
+        - Gate evidence resolution only resolves evidence attached to Findings.
+      inferences:
+        - Coverage completeness proves enumeration and declared status, not the evidence basis of no-Finding assessments.
+      unknowns:
+        - The minimum practical evidence granularity for every Rule and critical flow is not defined by the current contract.
+    applicability:
+      profile_conditions:
+        - Deterministic enforcement and traceability are critical qualities, and verified Reviews with complete coverage are Gate inputs.
+    source_candidate_ids:
+      - hengmu-20260806-review-capability-refresh-candidates
+    rule_pack_version: "1.0.0"
+    staleness_state: current
+    decision_references: []
+    tags:
+      - review-coverage
+      - evidence-binding
+evidence_sources:
+  - .codex-plugin/plugin.json
+  - skills/hengmu/SKILL.md
+  - skills/project-architecture-audit/SKILL.md
+  - skills/ai-agent-architecture-audit/SKILL.md
+  - skills/architecture-finding-verifier/SKILL.md
+  - skills/architecture-solution-advisor/SKILL.md
+  - skills/architecture-quality-gate/SKILL.md
+  - resources/scripts/architecture_tool.py
+  - resources/scripts/inspect_repository.py
+  - resources/scripts/knowledge_model.py
+  - resources/scripts/select_knowledge.py
+  - resources/evidence-providers/catalog.yaml
+  - resources/schemas/review.schema.json
+  - resources/schemas/evidence-run.schema.json
+  - resources/schemas/architecture-decision.schema.json
+  - resources/rules/project-core.yaml
+  - resources/rules/plugin-platform.yaml
+  - resources/rules/test-automation-platform.yaml
+  - resources/rules/ai-agent-core.yaml
+  - tests/test_ai_agent_depth.py
+  - tests/test_context_execution.py
+  - tests/test_evidence_provider_catalog.py
+  - tests/test_evolution_navigation.py
+  - tests/test_review_execution.py
+  - tests/test_architecture_tool.py
+  - docs/decisions/2026-08-06-adopt-efficient-extensible-review-execution.md
+limitations:
+  - Hengmu defines how an AI-agent system must be audited but is not itself a model host or agent runtime; real prompt assembly, token usage, provider cache hits, privacy flow, and model behavior require target-system or model-surface evidence.
+  - The compact Knowledge Context proves ordered, source-bound disclosure metadata; it does not claim observed token savings or prompt-cache improvement without Full versus Compressed benchmark evidence from the active model surface.
+  - Optional cross-language Providers remain disabled until a project reviews and enables an exact command; this audit did not run every external ecosystem tool.
+coverage_complete: true
+repository_facts:
+  path: .architecture/reviews/inputs/2026-08-06-review-capability-refresh-repository-facts.yaml
+  sha256: 64adbc94820c71f176960014f757be2e5c9379172f1e7e5f53ae8ae87009ecb2
+knowledge_selection:
+  path: .architecture/reviews/inputs/2026-08-06-review-capability-refresh-knowledge-selection.yaml
+  sha256: 1283d59c32b856535abc82c3997fa9fcb00031c2d76c7de2fb8fa4ab8db5af9d
+selected_knowledge:
+  - {id: foundation.data-ownership, version: "1.0.0", sha256: 260f240ec9782f5a42a68481652912532cfcd6a0b07fdc5366d44388cc3d0204}
+  - {id: foundation.evidence-reasoning, version: "1.0.0", sha256: e3c370e04b8a9be5e64ea0d107281043652b1cdba3393fb61b57efd77262650f}
+  - {id: foundation.proportional-design, version: "1.0.0", sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df}
+  - {id: foundation.quality-attributes, version: "1.0.0", sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680}
+  - {id: foundation.system-boundaries, version: "1.0.0", sha256: a326964ec74303e0f08f3e7207e4836a0ff04c93c7f8516e6190b47925ec06db}
+  - {id: domain.plugin-platform, version: "1.0.0", sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c}
+  - {id: domain.test-automation-platform, version: "1.0.0", sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016}
+  - {id: decision.agent-orchestration-selection, version: "1.0.0", sha256: 7bb4341f473aab91178ea33a70ccf9a80d60bc25a6170cbd9494f54c92fbcad2}
+  - {id: decision.workflow-vs-agent, version: "2.0.0", sha256: f8fc79dfd6cbe7824c9bafe120e116dd1e7c681dd84f27806dbed4bf5bf9b36d}
+  - {id: domain.ai-agent, version: "1.1.0", sha256: c9d283d3d804f06b66eb80520a6f09c5e0ddf95900958625b2e4101f975ad4dd}
+  - {id: technology.microsoft-agent-framework, version: "1.0.0", sha256: f24166f6e8166cf3534191a6cc3b8ae2c620d519a73a9107852202f810672cb4}
+  - {id: decision.single-agent-vs-multi-agent, version: "2.0.0", sha256: c45be66e4d490f31c66e912f96d9b36f284cf6e91336ea462110beeabe4cefec}
+  - {id: style.durable-workflow, version: "2.0.0", sha256: ecf4dc9fb8529f4ab7950c6bca6043a16bbbc0af8937a08b33abdfb870e6be9d}
+critical_flow_coverage:
+  - id: plugin-discovery-and-skill-execution
+    status: assessed
+    reason: The thin hengmu router preserves focused Skill authority, and repository validation plus routing cases protect direct and indirect activation without adding runtime authority.
+  - id: finding-verification-and-policy-enforcement
+    status: assessed
+    reason: Candidate, verifier, evidence, policy, and Gate paths were traced; HGM-TRACE-001, HGM-PROVIDER-001, HGM-PROVIDER-002, and HGM-COVERAGE-001 record the surviving trust-boundary candidates.
+  - id: architecture-knowledge-and-behavior-evaluation
+    status: assessed
+    reason: Selection, compact context, cache invalidation, AI-agent rules, evaluation contracts, and 129 tests were inspected; runtime model telemetry remains an explicit target-system limitation.
+  - id: greenfield-architecture-decision
+    status: assessed
+    reason: Design Brief authority remains separate, while HGM-EVOLUTION-001 records the unresolved relationship between adoption thresholds and pilot observations.
+  - id: safe-project-initialization
+    status: assessed
+    reason: Existing-state validation and overwrite refusal remain unchanged; generated per-run audit inputs use non-overwriting paths.
+  - id: deterministic-release-packaging
+    status: assessed
+    reason: Runtime allowlisting, dependency and license checks, deterministic archives, checksums, and SBOM paths were inspected; Provider reproducibility remains separately captured in HGM-PROVIDER-002.
+unknowns:
+  - Current Codex model surfaces do not expose stable per-stage token and prompt-cache telemetry to this local plugin, so observed savings and cache hit rates remain unmeasured.
+  - External quality-provider dependency closure varies by ecosystem and project configuration; this audit did not assert one universal pinning mechanism.

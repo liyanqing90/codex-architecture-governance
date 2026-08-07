@@ -1,6 +1,6 @@
 schema_version: '1.2'
 run:
-  id: test-results-20260807t032043175332z-ad9f2877597f
+  id: test-results-20260807t033505823787z-913a23532108
   provider_id: test-results
   provider_catalog_sha256: 10c2539964a7ba2ded48c735df6134e0bad6dadef090fa8345bf71533cab21b7
   provider_definition_sha256: ddfb1bc97b92d57ee3b420420987581089bb5cf04f6264c40bb48dc18f3f4f8d
@@ -9,15 +9,15 @@ run:
   trust: deterministic
   project_id: hengmu
   repository_identity: hengmu
-  commit: ad9f2877597f94eccaeb5da829e034698526e058
+  commit: 913a23532108a7ca8a6f1b06067da49653a78a38
   dirty_tree: false
-  completed_commit: ad9f2877597f94eccaeb5da829e034698526e058
+  completed_commit: 913a23532108a7ca8a6f1b06067da49653a78a38
   dirty_tree_after: false
-  started_at: '2026-08-07T03:20:43.175868+00:00'
-  completed_at: '2026-08-07T03:22:18.779727+00:00'
+  started_at: '2026-08-07T03:35:05.824833+00:00'
+  completed_at: '2026-08-07T03:36:20.687240+00:00'
   command:
   - scripts/run_test_evidence.py
-  - --junitxml=/Volumes/SUNSANG 1/Codex/hengmu/.architecture/evidence/test-results-20260807t032043175332z-ad9f2877597f.result
+  - --junitxml=.architecture/evidence/test-results-20260807t033505823787z-913a23532108.result
   executable: scripts/run_test_evidence.py
   executable_sha256: d40ce9ced7647aebc5f76545ca259a29a4f15b8b4746ec65f7b7cb765b2c2b3c
   detect_matches:
@@ -869,8 +869,8 @@ run:
     sha256: b3f28c0e6eb560ec4e54c30fc21991e63049a2301d3aec428cb2d83704e5751a
     bytes: 1634
   - path: resources/scripts/architecture_tool.py
-    sha256: 5b9d7d8cc73f077a9b3ba7d66202ff628534277016742991b861a0d742c6150d
-    bytes: 371408
+    sha256: f7f022fec44f1f222ced0bb1800cf6a743e19c1e4e598fe50ed40fceba6733f2
+    bytes: 372002
   - path: resources/scripts/build_project_profile.py
     sha256: 08722272bcc5be14c13881752e5354fdac92dde825571667bab6f09c73027aa1
     bytes: 15150
@@ -1878,8 +1878,8 @@ run:
     sha256: b3f28c0e6eb560ec4e54c30fc21991e63049a2301d3aec428cb2d83704e5751a
     bytes: 1634
   - path: resources/scripts/architecture_tool.py
-    sha256: 5b9d7d8cc73f077a9b3ba7d66202ff628534277016742991b861a0d742c6150d
-    bytes: 371408
+    sha256: f7f022fec44f1f222ced0bb1800cf6a743e19c1e4e598fe50ed40fceba6733f2
+    bytes: 372002
   - path: resources/scripts/build_project_profile.py
     sha256: 08722272bcc5be14c13881752e5354fdac92dde825571667bab6f09c73027aa1
     bytes: 15150
@@ -2064,14 +2064,14 @@ result:
   output_format: junit
   content_validation: valid
   stdout:
-    path: .architecture/evidence/test-results-20260807t032043175332z-ad9f2877597f.stdout
-    sha256: b2a576e743bd7f501633aabcccb5fe774aaadfc98e6f29d330a5f639cd669793
+    path: .architecture/evidence/test-results-20260807t033505823787z-913a23532108.stdout
+    sha256: 200f09b250cb7b078ee5d55428e9143f1d0ce8b8eaa9cfa5cbd310cefb5dd903
     bytes: 406
   stderr:
-    path: .architecture/evidence/test-results-20260807t032043175332z-ad9f2877597f.stderr
+    path: .architecture/evidence/test-results-20260807t033505823787z-913a23532108.stderr
     sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
     bytes: 0
   structured_output:
-    path: .architecture/evidence/test-results-20260807t032043175332z-ad9f2877597f.result
-    sha256: 038b26549e060088f707ad00b7649d921444468cc9db4eb745a155e1f6bc6e62
+    path: .architecture/evidence/test-results-20260807t033505823787z-913a23532108.result
+    sha256: 342389bbea43b1d652bd8544cd3d8d9de9a831526910490316847994b53c677d
     bytes: 23472

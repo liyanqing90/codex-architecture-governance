@@ -30,14 +30,16 @@
   <a href="#工作原理">工作原理</a> ·
   <a href="#工作流">工作流</a> ·
   <a href="#信任模型">信任模型</a> ·
+  <a href="#packages-and-ide-compatibility">兼容性</a> ·
+  <a href="#feedback-and-compatibility-reports">反馈</a> ·
   <a href="#文档">文档</a>
 </p>
 
 ---
 
-衡木是一个本地优先、受证据约束的架构设计、决策与治理系统。它把仓库事实、
-已批准的设计意图和明确约束，转化为受证据约束的现状审查、开放式或受约束的
-目标架构、可追溯决策、可执行计划和确定性策略结果。
+衡木是一个面向 Codex 和兼容 Agent Plugins 的本地优先、受证据约束的架构审查
+与目标设计工具。它把仓库事实、已批准的设计意图和明确约束，转化为受证据约束
+的现状审查、开放式或受约束的目标架构、可追溯决策、可执行计划和确定性策略结果。
 
 现状审查与目标设计是两条同等重要的入口。既有系统可以从候选问题出发，经过
 独立核实形成改造决策；新系统或重大重构可以从已批准的 Design Brief 出发，
@@ -48,6 +50,10 @@
 可观测性、测试、部署、技术债、设计比例性、技术选型与运行现实。专项视角还
 覆盖 AI Agent 的 Context 与经济性、Memory、工具权限、隐私、行为证据、
 技术演进、移动系统和多项目组合。
+
+如果你正在寻找仓库本地架构审查、AI Agent 架构审计、目标架构设计、架构决策治理、
+改造规划或确定性质量门禁，衡木就是为这类工作流构建的。它不是托管式架构服务，
+也不是通用代码 Linter。
 
 它同时覆盖两个层级：
 
@@ -61,6 +67,26 @@
 | 目标架构设计 | 围绕运行与部署单元、数据所有权、接口、信任边界、关键链路、运维和技术选择，设计开放式或受约束目标。 |
 | 决策与计划 | 比较可行方案、记录未选方案为何落选，再把已授权决策转成有顺序的改造或 Greenfield 实施切片。 |
 | 证据治理 | 把事实、Knowledge、来源、权限、接受状态和确定性策略绑定为一条可审计链路。 |
+
+## Packages and IDE compatibility
+
+衡木从同一份源码发布两种压缩包。两种压缩包的宿主 Manifest 和 UI 元数据不同，
+但底层 Skill 和本地架构运行时不分叉。
+
+| 压缩包 | Manifest 与内容 | 目标宿主 | 本仓库已验证的内容 |
+| --- | --- | --- | --- |
+| Codex 压缩包 | `.codex-plugin/plugin.json` 加 Codex `agents/openai.yaml` 元数据 | Codex | 原生 Manifest、Skill 契约、确定性压缩包及 CI/发布流程 |
+| Agent Plugins 压缩包 | 根目录 `plugin.json` 加标准 `skills/` 目录 | 支持 Agent Plugins 的客户端，包括 Cursor 的 Agent Plugin 加载器 | 标准 Manifest/目录投影、确定性压缩包，以及排除 Codex 专用 UI 元数据 |
+
+可移植压缩包只包含 Agent Skills，不包含 `mcp.json`，也不包含 Cursor 专用的
+`.cursor-plugin` 扩展。[Cursor 插件文档](https://cursor.com/docs/plugins.md)
+说明符合规范的 Agent Plugin 可以不经修改加载；但本仓库目前还没有记录 Hengmu
+在 Cursor 或其他外部 IDE 中安装后的专项冒烟测试。
+因此，格式兼容不等同于命令、权限、UI 或市场行为完全一致。
+
+当前证据边界请见[兼容性矩阵](docs/compatibility.md)。对于其他 IDE，请先确认宿主
+文档明确支持 Agent Plugins 或 Agent Skills，再带上客户端版本和压缩包格式报告实际
+结果。
 
 ## 为什么选择衡木
 
@@ -139,6 +165,10 @@ python3 "$HENGMU_ROOT/resources/scripts/architecture_tool.py" \
 ```
 
 ### 3. 在 Codex 中选择目标
+
+下面的示例使用 Codex 的 `$hengmu` 调用语法。在其他 Agent Plugins 宿主中，请安装
+可移植压缩包，并按照宿主文档规定的 UI 或命令语法调用同一个 Skill；`$hengmu`
+不是可移植的调用契约。
 
 对于既有系统，从现状审查开始：
 
@@ -424,6 +454,7 @@ python3 resources/scripts/architecture_tool.py validate-knowledge-context \
 | [评估指南](docs/evaluation.md) | 行为 Benchmark、消融、评分和解释边界。 |
 | [Knowledge 编写](docs/knowledge-authoring.md) | 来源质量、新鲜度、Frontmatter 和策展规则。 |
 | [兼容性](docs/compatibility.md) | 支持的 Python、Schema、产物和版本边界。 |
+| [支持与反馈](SUPPORT.md) | 可复现缺陷、文档缺口和宿主兼容性报告。 |
 | [迁移到 1.0](docs/migrating-to-1.0.md) | 开放/受约束 Brief/Decision/Plan 产物、共存和回滚。 |
 | [发布验证](docs/releasing.md) | 确定性 ZIP、校验和、SBOM 和 Attestation。 |
 | [实施矩阵](docs/comprehensive-review-implementation.md) | 审核建议如何映射为可执行能力与证据。 |
@@ -469,6 +500,18 @@ Codex 压缩包是 `hengmu-<version>.zip`；可移植的 Agent Plugins 压缩包
 CI 会在 Linux、macOS 和 Windows 上验证支持的 Python 边界。带 Tag 的发布
 会同时提供两种确定性 ZIP、对应的 SHA-256 校验和、SPDX SBOM，以及 GitHub
 来源和 SBOM Attestation。
+
+## Feedback and compatibility reports
+
+欢迎真实用户反馈，包括同一个 Skill 在 Codex、Cursor 或其他 Agent Plugins 宿主中
+表现不同的情况。可用[缺陷报告](https://github.com/qingye-lab/hengmu/issues/new?template=bug_report.yml)
+提交可复现问题，或用[功能建议](https://github.com/qingye-lab/hengmu/issues/new?template=feature_request.yml)
+提出聚焦改进；提交前请先阅读 [SUPPORT.md](SUPPORT.md)。
+
+报告 IDE 或宿主结果时，请写明压缩包格式、Hengmu 版本或 Commit、客户端名称与版本、
+操作系统、安装路径、Skill 或 Prompt、预期结果、实际结果和脱敏日志。不要包含凭据、
+私有仓库内容或个人数据。我们只根据有证据的、带时间边界的结果记录客户端支持：
+未测试的客户端不会被写成已验证支持。
 
 ## 非目标
 

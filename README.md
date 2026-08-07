@@ -30,16 +30,18 @@
   <a href="#how-it-works">How it works</a> ·
   <a href="#workflows">Workflows</a> ·
   <a href="#trust-model">Trust model</a> ·
+  <a href="#packages-and-ide-compatibility">Compatibility</a> ·
+  <a href="#feedback-and-compatibility-reports">Feedback</a> ·
   <a href="#documentation">Documentation</a>
 </p>
 
 ---
 
-Hengmu is a local-first, evidence-bound architecture design, decision, and
-governance system. It turns repository facts, approved design intent, and
-explicit constraints into evidence-bound current-state assessments, open or
-constrained target architectures, traceable decisions, executable plans, and
-deterministic policy results.
+Hengmu is a local-first, evidence-bound architecture review and target-design
+tool for Codex and compatible Agent Plugins. It turns repository facts,
+approved design intent, and explicit constraints into evidence-bound
+current-state assessments, open or constrained target architectures, traceable
+decisions, executable plans, and deterministic policy results.
 
 Current-state assessment and target design are equal entry paths. Existing
 systems can move from candidate findings through independent verification to a
@@ -55,6 +57,12 @@ operating reality. Dedicated lenses cover AI-agent context and economics,
 Memory, tool authority, privacy, behavior evidence, technology evolution,
 mobile systems, and multi-project portfolios.
 
+If you are looking for a repository-local architecture review, AI-agent
+architecture audit, target architecture design, architecture decision
+governance, remediation planning, or a deterministic quality gate, Hengmu is
+built for that workflow. It is not a hosted architecture service or a generic
+code linter.
+
 It works at two levels:
 
 - one repository, using a project-specific Profile, constraints, critical
@@ -68,6 +76,29 @@ It works at two levels:
 | Target architecture design | Designs open or constrained targets across runtime and deployment units, data ownership, interfaces, trust boundaries, critical flows, operations, and technology choices. |
 | Decisions and plans | Compares viable options, records why alternatives lose, and turns an authorized decision into ordered remediation or Greenfield implementation slices. |
 | Evidence governance | Binds facts, Knowledge, provenance, authority, acceptance, and deterministic policy into one auditable chain. |
+
+## Packages and IDE compatibility
+
+Hengmu publishes two packages from the same source. The package choice changes
+the host manifest and UI metadata; it does not fork the underlying Skills or
+local architecture runtime.
+
+| Package | Manifest and contents | Intended host | What this repository verifies |
+| --- | --- | --- | --- |
+| Codex package | `.codex-plugin/plugin.json` plus Codex `agents/openai.yaml` metadata | Codex | Native manifest, Skill contracts, deterministic archive, and CI/release packaging |
+| Agent Plugins package | Root `plugin.json` plus standard `skills/` directories | Clients that support Agent Plugins, including Cursor's Agent Plugin loader | Standard manifest/layout projection, deterministic archive, and exclusion of Codex-only UI metadata |
+
+The portable package contains Agent Skills and does not include `mcp.json` or a
+Cursor-specific `.cursor-plugin` extension. [Cursor's plugin documentation](https://cursor.com/docs/plugins.md)
+states that spec-conformant Agent Plugins load without changes; this repository
+has not yet recorded a Hengmu-specific installed smoke test in Cursor or another
+external IDE. For that reason, format compatibility is not presented as a
+guarantee of identical commands, permissions, UI, or marketplace behavior.
+
+Use the [compatibility matrix](docs/compatibility.md) for the current evidence
+boundary. For another IDE, first confirm that the host documents support for
+Agent Plugins or Agent Skills, then report the actual result with the client
+version and package format.
 
 ## Why Hengmu
 
@@ -147,6 +178,11 @@ missing, or validates and reuses the existing one without overwriting it:
 ```
 
 ### 3. Choose the outcome in Codex
+
+The examples below use Codex's `$hengmu` invocation syntax. In another Agent
+Plugins host, install the portable archive and invoke the same Skill through
+that host's documented UI or command syntax; `$hengmu` is not a portable
+invocation contract.
 
 For an existing system, start with current-state assessment:
 
@@ -464,6 +500,7 @@ invoked gate always evaluates its policy.
 | [Evaluation guide](docs/evaluation.md) | Behavior benchmarks, ablation, scoring, and interpretation limits. |
 | [Knowledge authoring](docs/knowledge-authoring.md) | Source quality, freshness, frontmatter, and curation rules. |
 | [Compatibility](docs/compatibility.md) | Supported Python, schemas, artifacts, and version boundaries. |
+| [Support and feedback](SUPPORT.md) | Reproducible defects, documentation gaps, and host compatibility reports. |
 | [1.0 migration](docs/migrating-to-1.0.md) | Open/constrained Brief/Decision/Plan artifacts, coexistence, and rollback. |
 | [Release verification](docs/releasing.md) | Deterministic ZIPs, checksums, SBOMs, and attestations. |
 | [Implementation matrix](docs/comprehensive-review-implementation.md) | How review recommendations map to executable capability and evidence. |
@@ -509,6 +546,22 @@ archive is `hengmu-<version>-agent-plugins.zip` and uses a root `plugin.json`.
 CI runs the supported Python boundary on Linux, macOS, and Windows. Tagged
 releases publish both deterministic ZIPs, their SHA-256 checksums and SPDX
 SBOMs, and GitHub provenance/SBOM attestations.
+
+## Feedback and compatibility reports
+
+Real user feedback is welcome, including reports that a Skill works differently
+across Codex, Cursor, or another Agent Plugins host. Open a
+[bug report](https://github.com/qingye-lab/hengmu/issues/new?template=bug_report.yml)
+for reproducible behavior or a
+[feature request](https://github.com/qingye-lab/hengmu/issues/new?template=feature_request.yml)
+for a focused improvement. Read [SUPPORT.md](SUPPORT.md) first.
+
+For an IDE or host report, include the package format, Hengmu version or commit,
+client name and version, operating system, installation path, Skill or prompt,
+expected result, observed result, and sanitized logs. Do not include credentials,
+private repository content, or personal data. We treat client support as
+evidence-backed and time-bound: a report can improve the compatibility record,
+but an untested client is not presented as verified support.
 
 ## Non-goals
 

@@ -7,6 +7,7 @@ Describe the user-visible result.
 - Affected Skill, schema, CLI, or policy:
 - Public or persisted contract impact:
 - Migration or rollback requirement:
+- Host/package compatibility impact and evidence, if applicable:
 
 ## Evidence
 
@@ -32,5 +33,7 @@ proves and what remains unverified.
 - [ ] `CHANGELOG.md` and public documentation are updated when required.
 - [ ] `README.md` and `README.zh-CN.md` remain equivalent when public behavior
       or commands change.
+- [ ] Client compatibility claims are based on recorded evidence or clearly
+      labeled as unverified.
 - [ ] Every changed README visual has matching `en/` and `zh-CN/` assets, and
       diagrams include editable source plus rendered outputs.

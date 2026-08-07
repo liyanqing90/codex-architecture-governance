@@ -1691,6 +1691,10 @@ class ArchitectureToolTests(unittest.TestCase):
                 [r"C:\Tools\run.bat"],
                 "forbidden package or shell runner",
             ),
+            (
+                [r"C:\msys64\usr\bin\bash.exe", "-c", "echo unsafe"],
+                "forbidden package or shell runner",
+            ),
         )
         for command, message in cases:
             config["providers"][0]["command"] = command

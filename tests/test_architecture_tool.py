@@ -1661,6 +1661,15 @@ class ArchitectureToolTests(unittest.TestCase):
         ):
             architecture_tool.validate_evidence_provider_config(config_path)
 
+    def test_provider_config_allows_absolute_python_on_all_platforms(self) -> None:
+        self.init_project()
+        config_path = self.root / ".architecture" / "evidence-providers.yaml"
+        config = architecture_tool.load_yaml(config_path)
+        config["providers"][0]["command"] = [sys.executable, "-c", "print('ok')"]
+        self.write_yaml(config_path, config)
+
+        architecture_tool.validate_evidence_provider_config(config_path)
+
     def test_deterministic_provider_requires_dependency_closure(self) -> None:
         self.init_project()
         config_path = self.root / ".architecture" / "evidence-providers.yaml"

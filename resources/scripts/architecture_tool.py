@@ -985,7 +985,6 @@ def validate_provider_command_safety(command: list[str], source: Path) -> None:
         executable in forbidden_wrappers
         or script_suffix.endswith("sh")
         or script_suffix in {".bat", ".cmd", ".nu", ".oil", ".ps1"}
-        or "\\" in command[0]
     ):
         raise ArchitectureError(
             f"{source} evidence provider command uses forbidden package or shell "

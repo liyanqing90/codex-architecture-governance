@@ -1,7 +1,7 @@
 {
   "name": "hengmu",
   "version": "1.0.0",
-  "description": "Evidence-bound architecture review and target design for Codex and compatible Agent Plugins: verification, decisions, remediation plans, portfolio review, and deterministic quality gates.",
+  "description": "Evidence-bound current-state assessment, open or constrained target-architecture design, decisions, planning, and deterministic governance for Codex.",
   "author": {
     "name": "Qingye Open Source",
     "url": "https://github.com/qingye-lab"
@@ -11,27 +11,20 @@
   "license": "MIT",
   "keywords": [
     "architecture",
-    "architecture-review",
-    "architecture-governance",
     "architecture-design",
     "target-architecture",
-    "architecture-decision",
-    "ai-agent-architecture",
-    "agent-plugins",
-    "agent-skills",
     "audit",
-    "codex",
-    "cursor",
     "governance",
     "quality-gate",
+    "architecture-decision",
     "technology-selection",
     "codex-skills"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Hengmu",
-    "shortDescription": "Evidence-bound architecture review for Codex and Agent Plugins",
-    "longDescription": "Assess repositories and portfolios, design open or constrained target architectures, compare architecture and technology options, verify evidence and provenance, record decisions, plan remediation or Greenfield implementation, and enforce trusted artifacts with layered deterministic policy. Hengmu ships a native Codex package and a portable Agent Plugins package for compatible hosts such as Cursor. It proposes artifacts; it does not accept decisions, implement application code, or run gates implicitly. Local helpers require Python 3.11–3.13 with PyYAML and jsonschema.",
+    "shortDescription": "Evidence-bound architecture design and governance",
+    "longDescription": "Assess repositories and portfolios, design open or constrained target architectures, compare architecture and technology options, verify evidence and provenance, record decisions, plan remediation or Greenfield implementation, and enforce trusted artifacts with layered deterministic policy. Hengmu proposes artifacts; it does not accept decisions, implement application code, or run gates implicitly. Local helpers require Python 3.11–3.13 with PyYAML and jsonschema.",
     "developerName": "Qingye",
     "category": "Developer Tools",
     "capabilities": [

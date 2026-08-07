@@ -463,13 +463,13 @@ excluded:
 inputs:
   skill: project-architecture-audit
   task: project-architecture
-  facts_sha256: a526d2f798bfe193ec4dc8c3f4d8f6f736e23e6170388b8fe60d3aed3552d4b6
+  facts_sha256: 2695a78f341dde921f9ef07f752fb79cf110d48e7e3263ddeb301a2e32e53f40
   maintainer_mode: false
   includes: []
   excludes: []
   decision_intents: []
-  project_commit: ad9f2877597f94eccaeb5da829e034698526e058
-  profile_sha256: 16eb2ed10b310108b07233178f861d2f11ab3fd1e911985aab54e12707b2143e
+  project_commit: 913a23532108a7ca8a6f1b06067da49653a78a38
+  profile_sha256: 8e6b2b4d846c6b96c95ba0916bf1a49e81d1c2fbae7cce9fc370ea0f0096fa99
 budget:
   maximum_entries: 14
   selected_entries: 7
@@ -539,4 +539,4 @@ selector:
   knowledge_tree_sha256: bab501b2017e889fd61471a0fcc2ba868e56f31cc2738c2efd67f2bdf4660696
   selection_policy_version: '1.0'
   replay_mode: creation-time-lock
-result_sha256: 0a06398da5e52de8be87ba67b21fc8da025f1aa0c8531abe2f2cf459f1b1d89c
+result_sha256: d6b24a631ea8ba990148f0ea54f7630ab6dc87be4949a5f9387b6073fba8ee9e

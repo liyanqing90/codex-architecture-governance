@@ -852,11 +852,23 @@ def validate_knowledge_context_artifact(
 
 
 def git_process(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    process = subprocess.run(
         ["git", "-C", str(root), *args],
-        text=True,
         capture_output=True,
         check=False,
+    )
+    try:
+        stdout = process.stdout.decode("utf-8")
+        stderr = process.stderr.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ArchitectureError(
+            f"git {' '.join(args)} produced non-UTF-8 output for {root}: {exc}"
+        ) from exc
+    return subprocess.CompletedProcess(
+        process.args,
+        process.returncode,
+        stdout,
+        stderr,
     )
 
 
@@ -968,7 +980,10 @@ def load_evidence_provider_catalog() -> tuple[Path, dict[str, dict[str, Any]]]:
 
 
 def validate_provider_command_safety(command: list[str], source: Path) -> None:
-    executable = Path(command[0]).name.lower()
+    executable = re.split(r"[\\/]", command[0])[-1].lower()
+    normalized_executable = (
+        executable[:-4] if executable.endswith(".exe") else executable
+    )
     arguments = [item.lower() for item in command[1:]]
     forbidden_wrappers = SHELL_INTERPRETERS | {
         "bunx",
@@ -983,6 +998,7 @@ def validate_provider_command_safety(command: list[str], source: Path) -> None:
     script_suffix = Path(executable).suffix.lower()
     if (
         executable in forbidden_wrappers
+        or normalized_executable in forbidden_wrappers
         or script_suffix.endswith("sh")
         or script_suffix in {".bat", ".cmd", ".nu", ".oil", ".ps1"}
     ):
@@ -1017,7 +1033,10 @@ def validate_provider_command_safety(command: list[str], source: Path) -> None:
         "yarn": {"add", "dlx", "install"},
         "yum": {"install"},
     }
-    if executable in package_actions and set(arguments) & package_actions[executable]:
+    if (
+        normalized_executable in package_actions
+        and set(arguments) & package_actions[normalized_executable]
+    ):
         raise ArchitectureError(
             f"{source} evidence provider command may install or download tools: "
             + " ".join(command)
@@ -1029,13 +1048,16 @@ def validate_provider_command_safety(command: list[str], source: Path) -> None:
         "mvn": {"--offline", "-o"},
         "mvn.cmd": {"--offline", "-o"},
     }
-    if executable in offline_tools and not set(arguments) & offline_tools[executable]:
+    if (
+        normalized_executable in offline_tools
+        and not set(arguments) & offline_tools[normalized_executable]
+    ):
         raise ArchitectureError(
             f"{source} evidence provider command must use offline mode: "
             + " ".join(command)
         )
     if (
-        executable in {"python", "python3", "py"}
+        normalized_executable in {"python", "python3", "py"}
         and len(arguments) >= 3
         and arguments[0:2] == ["-m", "pip"]
         and "install" in arguments[2:]

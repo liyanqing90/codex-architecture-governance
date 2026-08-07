@@ -1670,6 +1670,65 @@ class ArchitectureToolTests(unittest.TestCase):
 
         architecture_tool.validate_evidence_provider_config(config_path)
 
+    def test_provider_config_rejects_windows_absolute_installers(self) -> None:
+        self.init_project()
+        config_path = self.root / ".architecture" / "evidence-providers.yaml"
+        config = architecture_tool.load_yaml(config_path)
+        cases = (
+            (
+                [r"C:\Python\python.exe", "-m", "pip", "install", "archunit"],
+                "may install tools",
+            ),
+            (
+                [r"C:\Python\pip.exe", "install", "archunit"],
+                "may install or download tools",
+            ),
+            (
+                [r"C:\Rust\cargo.exe", "install", "archunit"],
+                "may install or download tools",
+            ),
+            (
+                [r"C:\Tools\run.bat"],
+                "forbidden package or shell runner",
+            ),
+        )
+        for command, message in cases:
+            config["providers"][0]["command"] = command
+            self.write_yaml(config_path, config)
+            with self.assertRaisesRegex(architecture_tool.ArchitectureError, message):
+                architecture_tool.validate_evidence_provider_config(config_path)
+
+    def test_git_utf8_output_preserves_coverage_evidence(self) -> None:
+        self.init_project()
+        evidence_path = self.root / "unicode-evidence.md"
+        evidence_path.write_text("架构证据\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "-C", str(self.root), "add", evidence_path.name],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(self.root), "commit", "-qm", "Add UTF-8 evidence"],
+            check=True,
+        )
+        commit = architecture_tool.current_git_commit(self.root)
+        blob_sha = architecture_tool.git_output(
+            self.root,
+            "rev-parse",
+            f"{commit}:unicode-evidence.md",
+        )
+        architecture_tool.validate_coverage_evidence_binding(
+            {
+                "path": "unicode-evidence.md",
+                "commit": commit,
+                "blob_sha": blob_sha,
+                "line_start": 1,
+                "line_end": 1,
+            },
+            self.root,
+            commit,
+            "UTF-8 evidence",
+        )
+
     def test_deterministic_provider_requires_dependency_closure(self) -> None:
         self.init_project()
         config_path = self.root / ".architecture" / "evidence-providers.yaml"

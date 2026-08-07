@@ -1277,6 +1277,11 @@ def provider_executable_reference(root: Path, executable_path: Path) -> str:
         return str(executable_path)
 
 
+def provider_path_reference(root: Path, path: Path) -> str:
+    """Return a portable repository-relative reference for a provider path."""
+    return path.relative_to(root).as_posix()
+
+
 def resolve_recorded_provider_executable(root: Path, recorded: str) -> Path:
     """Resolve a recorded provider executable in the current checkout."""
     path = Path(recorded)
@@ -1545,7 +1550,10 @@ def run_evidence_provider(
             "command": [
                 provider_executable_reference(root, executable_path)
                 if index == 0
-                else argument
+                else argument.replace(
+                    str(structured_path),
+                    provider_path_reference(root, structured_path),
+                )
                 for index, argument in enumerate(actual_command)
             ],
             "executable": provider_executable_reference(root, executable_path),
@@ -1702,7 +1710,17 @@ def validate_evidence_run(
         for argument in config["command"]
     ]
     expected_command[0] = str(executable_path)
-    recorded_command = list(data["run"]["command"])
+    output_path_reference = provider_path_reference(
+        root,
+        artifact_path.with_suffix(".result"),
+    )
+    recorded_command = [
+        argument.replace(
+            output_path_reference,
+            str(artifact_path.with_suffix(".result")),
+        )
+        for argument in data["run"]["command"]
+    ]
     recorded_command[0] = str(executable_path)
     if recorded_command != expected_command:
         raise ArchitectureError(f"{artifact_path} command does not match config")

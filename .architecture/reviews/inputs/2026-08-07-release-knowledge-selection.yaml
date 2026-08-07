@@ -462,16 +462,16 @@ excluded:
   reason: No project fact, profile domain, task trigger, or skill rule selected it.
 inputs:
   skill: project-architecture-audit
-  task: Cross-client architecture release verification
-  facts_sha256: cbe218b039ed64a50753f4550ea32addc5d6dd76ad0c1a75472a4c3be0d5ee7e
+  task: project-architecture
+  facts_sha256: a526d2f798bfe193ec4dc8c3f4d8f6f736e23e6170388b8fe60d3aed3552d4b6
   maintainer_mode: false
   includes: []
   excludes: []
   decision_intents: []
-  project_commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
-  profile_sha256: b16818e45a3a1913556924f99967fa6d1957c17024b80181d94bfec86dff4de7
+  project_commit: ad9f2877597f94eccaeb5da829e034698526e058
+  profile_sha256: 16eb2ed10b310108b07233178f861d2f11ab3fd1e911985aab54e12707b2143e
 budget:
-  maximum_entries: 24
+  maximum_entries: 14
   selected_entries: 7
   per_kind:
     foundation:
@@ -539,4 +539,4 @@ selector:
   knowledge_tree_sha256: bab501b2017e889fd61471a0fcc2ba868e56f31cc2738c2efd67f2bdf4660696
   selection_policy_version: '1.0'
   replay_mode: creation-time-lock
-result_sha256: dde15a33e2e1549d42fd95b77251e08a3560f82c512629a2e64a25807f266bf8
+result_sha256: 0a06398da5e52de8be87ba67b21fc8da025f1aa0c8531abe2f2cf459f1b1d89c

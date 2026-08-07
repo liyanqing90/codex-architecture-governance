@@ -8,7 +8,7 @@ review:
     name: Hengmu
     repository: .
   performed_at: '2026-08-07T01:09:01Z'
-  commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+  commit: ad9f2877597f94eccaeb5da829e034698526e058
   scope:
   - .
   verification_state: verified
@@ -16,7 +16,7 @@ review:
   - architecture-verifier
   profile: .architecture/reviews/inputs/2026-08-07-release-profile.yaml
   repository_identity: hengmu
-  profile_sha256: b16818e45a3a1913556924f99967fa6d1957c17024b80181d94bfec86dff4de7
+  profile_sha256: 16eb2ed10b310108b07233178f861d2f11ab3fd1e911985aab54e12707b2143e
   dirty_tree: false
   rule_packs:
   - id: project-core
@@ -31,16 +31,16 @@ review:
   scope_manifest:
   - .
   verification_run:
-    id: hengmu-cross-client-verifier-20260807-9e4dbde82d691fc8999801a71834cf7ad915de04
+    id: hengmu-release-verifier-20260807-ad9f2877597f
     model: gpt-5.6-sol
     surface: codex-agent
-    started_at: '2026-08-07T01:09:00Z'
-    completed_at: '2026-08-07T01:09:01Z'
+    started_at: '2026-08-07T03:20:42Z'
+    completed_at: '2026-08-07T03:22:18Z'
   source_candidate:
     path: .architecture/reviews/2026-08-07-release-project-candidates.yaml
     review_id: hengmu-20260807-release-candidates
-    sha256: cbd43d5d82a506a11a0c4ec803a9856602f16676404f08f3d88a066e0fa9c116
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    sha256: 0d10033a993a94c74bfe96ae0fe732671ee007e439bc9efeadcb035efcb2b143
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
 summary:
   architecture: Independent verification of the current 9e4dbde snapshot confirms
     the native Codex package, portable Agent Plugins projection, cross-platform evidence
@@ -59,7 +59,7 @@ coverage:
   evidence:
   - &id001
     path: skills/hengmu/SKILL.md
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 19f859ecd6778d7da2b19cfb65d2f2ded5b4f102
     line_start: 8
     line_end: 47
@@ -70,8 +70,8 @@ coverage:
   finding_ids: []
   evidence:
   - path: resources/scripts/architecture_tool.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
-    blob_sha: 48c1456da355f2207afcb6ec154d27098b32a195
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
+    blob_sha: ba5d455724cec13410e788fc07c38454dc07f85c
     line_start: 1323
     line_end: 1359
     observation: Evidence Provider execution composes validated profile, catalog,
@@ -92,7 +92,7 @@ coverage:
   evidence:
   - &id002
     path: resources/schemas/architecture-decision.schema.json
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 496778d92d9ffaec9b7a5b979d0f2d624ece4c6f
     line_start: 37
     line_end: 155
@@ -109,7 +109,7 @@ coverage:
   evidence:
   - &id012
     path: resources/schemas/review.schema.json
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: fb65714fe2a3261ed327a52ed8c92d4af7bb2673
     line_start: 1
     line_end: 40
@@ -126,8 +126,8 @@ coverage:
   evidence:
   - &id016
     path: resources/scripts/architecture_tool.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
-    blob_sha: 48c1456da355f2207afcb6ec154d27098b32a195
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
+    blob_sha: ba5d455724cec13410e788fc07c38454dc07f85c
     line_start: 4712
     line_end: 4864
     observation: Project initialization refuses overwrite, stages a complete control
@@ -138,8 +138,8 @@ coverage:
   evidence:
   - &id003
     path: resources/scripts/architecture_tool.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
-    blob_sha: 48c1456da355f2207afcb6ec154d27098b32a195
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
+    blob_sha: ba5d455724cec13410e788fc07c38454dc07f85c
     line_start: 1423
     line_end: 1549
     observation: Provider runs bind repository state, use bounded outputs and timeouts,
@@ -150,8 +150,8 @@ coverage:
   evidence:
   - &id013
     path: resources/scripts/architecture_tool.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
-    blob_sha: 48c1456da355f2207afcb6ec154d27098b32a195
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
+    blob_sha: ba5d455724cec13410e788fc07c38454dc07f85c
     line_start: 6308
     line_end: 6444
     observation: The Greenfield Gate validates the Brief to accepted Decision to active
@@ -162,22 +162,22 @@ coverage:
   evidence:
   - &id015
     path: resources/scripts/architecture_tool.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
-    blob_sha: 48c1456da355f2207afcb6ec154d27098b32a195
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
+    blob_sha: ba5d455724cec13410e788fc07c38454dc07f85c
     line_start: 5238
     line_end: 5292
     observation: Accepted artifacts are checked with detached SSH signatures, a policy
       namespace, an allowed-signers file, and an exact signer identity.
   - &id004
     path: resources/scripts/architecture_tool.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
-    blob_sha: 48c1456da355f2207afcb6ec154d27098b32a195
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
+    blob_sha: ba5d455724cec13410e788fc07c38454dc07f85c
     line_start: 1027
     line_end: 1165
     observation: Provider configuration rejects shells, downloading package runners,
       unsafe offline modes, and incomplete deterministic dependency closure.
   - path: .github/workflows/ci.yml
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 8561c75da263c1ab42adcc4d6740e09af1d18e40
     line_start: 63
     line_end: 74
@@ -188,7 +188,7 @@ coverage:
   finding_ids: []
   evidence:
   - path: SECURITY.md
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 6e3c00eaedb06d0a63ebdf1b5e65057ac9beb56d
     line_start: 27
     line_end: 58
@@ -210,7 +210,7 @@ coverage:
   evidence:
   - &id009
     path: scripts/run_behavior_benchmark.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: ccd202b5c8e2f8541a1aea3c2f5544c1e480416b
     line_start: 630
     line_end: 860
@@ -222,7 +222,7 @@ coverage:
   evidence:
   - &id010
     path: tests/test_architecture_tool.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: ea8fec43896712a1593c92a5c8db659b3a40b5f6
     line_start: 2049
     line_end: 2221
@@ -231,21 +231,21 @@ coverage:
       continue.
   - &id005
     path: tests/test_constrained_target_architecture.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 60e8a23a987889b9721e221411d3605f95cdef1f
     line_start: 442
     line_end: 550
     observation: Negative tests reject unknown interfaces, technologies, owners, trust
       boundaries, Knowledge mismatches, and Plan bindings.
   - path: tests/test_package_plugin.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 9d59e72fd476d64a3d23704fb01f1a4d5b2cf9c9
     line_start: 21
     line_end: 103
     observation: Tests prove deterministic Codex and Agent Plugins archives, portable
       manifest projection, runtime allowlisting, and fixed ZIP metadata.
   - path: tests/test_architecture_tool.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: ea8fec43896712a1593c92a5c8db659b3a40b5f6
     line_start: 1664
     line_end: 1745
@@ -258,28 +258,28 @@ coverage:
   evidence:
   - &id007
     path: scripts/package_plugin.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: e163f727619988c9301ff961f7dad4aef62ee5ad
     line_start: 14
     line_end: 275
     observation: Packaging uses a runtime allowlist, fixed ZIP metadata, atomic replacement,
       and a companion SHA-256 digest.
   - path: scripts/generate_sbom.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 6d5320a23c4904a119d671d7463f3047144e5f7f
     line_start: 87
     line_end: 213
     observation: SBOM generation binds each archive digest, manifest, runtime lock,
       license policy, file checksums, and deterministic document metadata.
   - path: .github/workflows/ci.yml
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 8561c75da263c1ab42adcc4d6740e09af1d18e40
     line_start: 89
     line_end: 107
     observation: CI builds both Codex and Agent Plugins archives, verifies checksums,
       and generates one SPDX SBOM per archive.
   - path: .github/workflows/release.yml
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 48ed8d02aecd272da6a178a99c59b396539ee151
     line_start: 86
     line_end: 130
@@ -291,14 +291,14 @@ coverage:
   evidence:
   - &id006
     path: docs/migrating-to-1.0.md
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 7d68a4a01a9e65c415f9a7a012fdb97e26d5e529
     line_start: 1
     line_end: 79
     observation: The 1.0 migration guide records contract versions, retained readable
       chains, rollback, rejection of silent downgrade, and exact validation commands.
   - path: .github/workflows/ci.yml
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 8561c75da263c1ab42adcc4d6740e09af1d18e40
     line_start: 63
     line_end: 74
@@ -306,14 +306,14 @@ coverage:
       so public-contract and security-path classification cannot be narrowed to governance-only
       changes.
   - path: README.md
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 5a93f2bcf0c4e548cdce18b7910ca4fcd99de183
     line_start: 1
     line_end: 120
     observation: The English public contract documents native Codex packaging, portable
       Agent Plugins packaging, host-specific compatibility limits, and feedback paths.
   - path: README.zh-CN.md
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 6bb4e101731057f9f9045d05a174d9ed8ada6ac6
     line_start: 1
     line_end: 140
@@ -330,7 +330,7 @@ coverage:
   evidence:
   - &id014
     path: skills/architecture-solution-advisor/SKILL.md
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: b4ac538bea02742135eda1000ac230ecd1ff0aaa
     line_start: 40
     line_end: 126
@@ -343,14 +343,14 @@ coverage:
   evidence:
   - &id011
     path: .codex-plugin/plugin.json
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: f048a54e3c5daf41ac2219b3389f754303741528
     line_start: 1
     line_end: 40
     observation: The manifest declares stable identity, version, Skill entry point,
       capabilities, descriptions, and public prompts.
   - path: scripts/package_plugin.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: e163f727619988c9301ff961f7dad4aef62ee5ad
     line_start: 70
     line_end: 145
@@ -378,14 +378,14 @@ coverage:
   evidence:
   - *id007
   - path: scripts/generate_sbom.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 6d5320a23c4904a119d671d7463f3047144e5f7f
     line_start: 87
     line_end: 213
     observation: The SBOM contract records archive and contained-file hashes against
       the locked runtime dependency and license set.
   - path: .github/workflows/release.yml
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 48ed8d02aecd272da6a178a99c59b396539ee151
     line_start: 115
     line_end: 130
@@ -397,7 +397,7 @@ coverage:
   evidence:
   - &id008
     path: resources/schemas/evidence-run.schema.json
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 9db83f888bd2f4f04bca189a3ef78ece42b67d17
     line_start: 53
     line_end: 188
@@ -405,7 +405,7 @@ coverage:
       executable and config hashes, dependency closure, cache mode, timing, and terminal
       result.
   - path: .github/workflows/ci.yml
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 8561c75da263c1ab42adcc4d6740e09af1d18e40
     line_start: 47
     line_end: 80
@@ -460,14 +460,14 @@ limitations:
 coverage_complete: true
 tool_evidence:
 - provider_id: test-results
-  run_path: .architecture/evidence/test-results-20260807t024635198930z-9e4dbde82d69.yaml
-  run_sha256: 1806fbe2bab81f43d42ed47b4fd88cba5649cb1e984283fcdd2d6e321bc889e3
+  run_path: .architecture/evidence/test-results-20260807t032043175332z-ad9f2877597f.yaml
+  run_sha256: cda6d40cf2377c440267f79c82f3c4ceafde0ed25efcf20369e4c88884457b51
 repository_facts:
   path: .architecture/reviews/inputs/2026-08-07-release-repository-facts.yaml
-  sha256: cbe218b039ed64a50753f4550ea32addc5d6dd76ad0c1a75472a4c3be0d5ee7e
+  sha256: a526d2f798bfe193ec4dc8c3f4d8f6f736e23e6170388b8fe60d3aed3552d4b6
 knowledge_selection:
   path: .architecture/reviews/inputs/2026-08-07-release-knowledge-selection.yaml
-  sha256: 07c0dd69e53fc137d977d50930b4d075cb8f2abfff20149594d3873faad69da4
+  sha256: 8a9d03f1b50dcb7284714bf2823001e64b47d686254babf0eddf0d4a2e1fdd72
 selected_knowledge:
 - id: foundation.data-ownership
   version: 1.0.0
@@ -506,7 +506,7 @@ critical_flow_coverage:
   - *id012
   - *id013
   - path: .github/workflows/ci.yml
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 8561c75da263c1ab42adcc4d6740e09af1d18e40
     line_start: 63
     line_end: 74
@@ -541,21 +541,21 @@ critical_flow_coverage:
   evidence:
   - *id007
   - path: .github/workflows/ci.yml
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 8561c75da263c1ab42adcc4d6740e09af1d18e40
     line_start: 89
     line_end: 107
     observation: CI exercises both deterministic package formats, checksum verification,
       and per-archive SPDX output.
   - path: .github/workflows/release.yml
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 48ed8d02aecd272da6a178a99c59b396539ee151
     line_start: 86
     line_end: 130
     observation: The release flow rebuilds, checksums, SBOMs, attests, and publishes
       both package formats.
   - path: tests/test_package_plugin.py
-    commit: 9e4dbde82d691fc8999801a71834cf7ad915de04
+    commit: ad9f2877597f94eccaeb5da829e034698526e058
     blob_sha: 9d59e72fd476d64a3d23704fb01f1a4d5b2cf9c9
     line_start: 21
     line_end: 103

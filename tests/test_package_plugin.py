@@ -93,6 +93,9 @@ class PackagePluginTests(unittest.TestCase):
                 package_plugin.AGENT_PLUGINS_SCHEMA,
             )
             self.assertEqual(manifest["name"], "hengmu")
+            self.assertIn("Agent Plugins", manifest["description"])
+            self.assertIn("agent-plugins", manifest["keywords"])
+            self.assertIn("cursor", manifest["keywords"])
             self.assertNotIn("skills", manifest)
             self.assertNotIn("interface", manifest)
             self.assertNotIn(".codex-plugin/plugin.json", names)

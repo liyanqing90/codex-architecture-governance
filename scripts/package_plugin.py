@@ -26,6 +26,23 @@ PORTABLE_MANIFEST_FIELDS = {
     "keywords",
     "extensions",
 }
+PORTABLE_DESCRIPTION = (
+    "Evidence-bound architecture review and target design for Codex and "
+    "compatible Agent Plugins, with verification, decisions, remediation "
+    "plans, and deterministic quality gates."
+)
+PORTABLE_KEYWORDS = (
+    "agent-plugins",
+    "agent-skills",
+    "architecture",
+    "architecture-governance",
+    "architecture-review",
+    "codex",
+    "cursor",
+    "developer-tools",
+    "governance",
+    "quality-gate",
+)
 COMMON_RUNTIME_FILES = (
     Path("LICENSE"),
     Path("NOTICE"),
@@ -73,15 +90,15 @@ def portable_manifest(codex_manifest: dict[str, object]) -> dict[str, object]:
     manifest: dict[str, object] = {
         "$schema": AGENT_PLUGINS_SCHEMA,
         "name": codex_manifest.get("name"),
+        "description": PORTABLE_DESCRIPTION,
+        "keywords": list(PORTABLE_KEYWORDS),
     }
     for key in (
         "version",
-        "description",
         "author",
         "homepage",
         "repository",
         "license",
-        "keywords",
         "extensions",
     ):
         if key in codex_manifest:

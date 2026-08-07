@@ -50,6 +50,11 @@ When adding a Skill, generate `agents/openai.yaml` with the Codex
 `skill-creator` helper and ensure `default_prompt` explicitly mentions the
 Skill as `$skill-name`.
 
+When changing packaging or host compatibility, update the compatibility matrix,
+both public README languages, and the archive tests. Distinguish the portable
+Agent Plugins format from a host-specific installation claim; only describe a
+client as verified when a reproducible client/version result is recorded.
+
 ## Changing schemas or the CLI
 
 - Treat artifact schemas and CLI exit codes as public contracts.
@@ -111,11 +116,12 @@ python3 -m ruff check .
 python3 -m ruff format --check .
 python3 -m pip_audit -r requirements-runtime.lock
 python3 scripts/audit_licenses.py
-python3 scripts/package_plugin.py --output-dir dist
+python3 scripts/package_plugin.py --format codex --output-dir dist
+python3 scripts/package_plugin.py --format agent-plugins --output-dir dist
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
-  --archive dist/hengmu-1.0.0.zip \
-  --output dist/hengmu-1.0.0.spdx.json
+  --archive dist/*.zip \
+  --output-dir dist
 ```
 
 The pull request should explain what each new test proves. A generated archive

@@ -58,14 +58,22 @@ providers:
     environment_allowlist: [PATH, LANG, LC_ALL, VIRTUAL_ENV]
     output_source: stdout
   - id: test-results
-    enabled: false
-    command: ["python", "-m", "pytest", "-q", "--junitxml={evidence_output}"]
+    enabled: true
+    command: ["scripts/run_test_evidence.py", "--junitxml={evidence_output}"]
     timeout_seconds: 1200
     success_exit_codes: [0]
     allow_without_detection: false
     environment_allowlist: [PATH, LANG, LC_ALL, VIRTUAL_ENV]
     output_source: file
     result_path: "{evidence_output}"
+    dependency_inputs:
+      - .architecture/evidence-providers.yaml
+      - pyproject.toml
+      - requirements-dev.lock
+      - resources/**
+      - scripts/**
+      - tests/**
+    cache_mode: isolated
   - id: opentelemetry
     enabled: false
     command: ["otel-cli", "status"]

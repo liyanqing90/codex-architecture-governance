@@ -111,7 +111,7 @@ project:
   - test-automation-platform
   repository_facts:
     path: .architecture/reviews/inputs/2026-08-07-release-repository-facts.yaml
-    sha256: cbe218b039ed64a50753f4550ea32addc5d6dd76ad0c1a75472a4c3be0d5ee7e
+    sha256: a526d2f798bfe193ec4dc8c3f4d8f6f736e23e6170388b8fe60d3aed3552d4b6
   profile_sources:
     detected:
     - .architecture/repository-facts.yaml

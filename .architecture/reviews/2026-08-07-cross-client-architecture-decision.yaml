@@ -1,8 +1,8 @@
 schema_version: '1.2'
 decision:
   id: ADR-HENGMU-CROSS-CLIENT-001
-  source_review: hengmu-20260807-cross-client-verified
-  source_review_sha256: 5b540bc73426870604acbfaf212538f36147ee372b9c0c488948fe881f64334e
+  source_review: hengmu-20260807-release-verified
+  source_review_sha256: eb25777d48814fc639a028d2a41242f40572462e4b5febfbf1f27d0e3bab13c0
   decided_at: '2026-08-07T01:10:08Z'
   decision_makers:
   - architecture-owner

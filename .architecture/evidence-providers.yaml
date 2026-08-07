@@ -75,16 +75,8 @@ providers:
       - resources/**/*.py
       - resources/**/*.yaml
       - resources/**/*.yml
-      - scripts/**/*.json
-      - scripts/**/*.md
       - scripts/**/*.py
-      - scripts/**/*.yaml
-      - scripts/**/*.yml
-      - tests/**/*.json
-      - tests/**/*.md
       - tests/**/*.py
-      - tests/**/*.yaml
-      - tests/**/*.yml
     cache_mode: isolated
   - id: opentelemetry
     enabled: false

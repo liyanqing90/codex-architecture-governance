@@ -1269,6 +1269,22 @@ def resolve_provider_executable(root: Path, command: str) -> Path:
     return resolved
 
 
+def provider_executable_reference(root: Path, executable_path: Path) -> str:
+    """Return a portable reference for a project-local provider executable."""
+    try:
+        return executable_path.relative_to(root).as_posix()
+    except ValueError:
+        return str(executable_path)
+
+
+def resolve_recorded_provider_executable(root: Path, recorded: str) -> Path:
+    """Resolve a recorded provider executable in the current checkout."""
+    path = Path(recorded)
+    if not path.is_absolute():
+        return (root / path).resolve()
+    return path.resolve()
+
+
 def provider_dependency_inputs(
     root: Path,
     configured_inputs: list[str],
@@ -1526,8 +1542,13 @@ def run_evidence_provider(
             "dirty_tree_after": dirty_tree_after,
             "started_at": started_at.isoformat(),
             "completed_at": completed_at.isoformat(),
-            "command": actual_command,
-            "executable": str(executable_path),
+            "command": [
+                provider_executable_reference(root, executable_path)
+                if index == 0
+                else argument
+                for index, argument in enumerate(actual_command)
+            ],
+            "executable": provider_executable_reference(root, executable_path),
             "executable_sha256": file_sha256(executable_path),
             "detect_matches": matches,
             "output_source": config["output_source"],
@@ -1629,8 +1650,11 @@ def validate_evidence_run(
         raise ArchitectureError(
             f"{artifact_path} success exit codes do not match config"
         )
-    executable_path = Path(data["run"]["executable"]).resolve()
     configured_executable = resolve_provider_executable(root, config["command"][0])
+    executable_path = resolve_recorded_provider_executable(
+        root,
+        data["run"]["executable"],
+    )
     if executable_path != configured_executable:
         raise ArchitectureError(
             f"{artifact_path} executable does not match current command resolution"
@@ -1678,7 +1702,9 @@ def validate_evidence_run(
         for argument in config["command"]
     ]
     expected_command[0] = str(executable_path)
-    if data["run"]["command"] != expected_command:
+    recorded_command = list(data["run"]["command"])
+    recorded_command[0] = str(executable_path)
+    if recorded_command != expected_command:
         raise ArchitectureError(f"{artifact_path} command does not match config")
     started_at = datetime.fromisoformat(
         data["run"]["started_at"].replace("Z", "+00:00")

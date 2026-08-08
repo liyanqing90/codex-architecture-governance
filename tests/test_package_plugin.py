@@ -105,6 +105,7 @@ class PackagePluginTests(unittest.TestCase):
                 json.loads((ROOT / "plugin.json").read_text(encoding="utf-8")),
             )
             self.assertIn("agent-plugins", manifest["keywords"])
+            self.assertIn("cursor", manifest["keywords"])
             self.assertNotIn("for Codex", manifest["description"])
             self.assertNotIn("skills", manifest)
             self.assertNotIn("interface", manifest)

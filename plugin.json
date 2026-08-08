@@ -4,18 +4,19 @@
     "name": "Qingye Open Source",
     "url": "https://github.com/qingye-lab"
   },
-  "description": "Evidence-bound architecture assessment, target design, decisions, planning, and deterministic governance across compatible agent clients.",
+  "description": "Evidence-bound architecture review and target design across compatible agent clients, with verification, decisions, remediation plans, and deterministic quality gates.",
   "homepage": "https://qingye-lab.github.io/hengmu/",
   "keywords": [
+    "agent-plugins",
+    "agent-skills",
     "architecture",
-    "architecture-design",
-    "target-architecture",
-    "audit",
+    "architecture-governance",
+    "architecture-review",
+    "codex",
+    "cursor",
+    "developer-tools",
     "governance",
-    "quality-gate",
-    "architecture-decision",
-    "technology-selection",
-    "agent-plugins"
+    "quality-gate"
   ],
   "license": "MIT",
   "name": "hengmu",

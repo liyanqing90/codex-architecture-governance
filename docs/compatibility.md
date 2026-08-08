@@ -35,17 +35,38 @@ Packaging has two explicit targets:
   instructions, but not Codex-specific UI metadata. It retains the hidden
   Codex manifest only as inert provenance data required by the shared selector.
 
-The portable package is intended for clients that support Agent Plugins. It
-does not promise identical invocation syntax or client UI: those remain
-client-specific. The runtime still requires CPython 3.11–3.13 and the locked
+The portable package targets the [Agent Plugins v1 specification](https://agent-plugins.org/specification):
+the root manifest and `skills/` location are portable, while installation,
+permissions, invocation syntax, UI, and marketplace behavior remain client
+specific. The runtime still requires CPython 3.11–3.13 and the locked
 dependencies described above. See [host compatibility](host-compatibility.md)
-for the precise capability and evidence boundary.
+for the precise capability and lifecycle boundary.
 
-Automated CI cannot launch every supported client surface. Before claiming
-support for a named host, maintainers install the applicable ZIP in a current
-version and record the application version, surface, operating system,
-installation path, routed Skill, and observed result. This manual evidence is
-time-bound and must not be represented as universal compatibility.
+## Host interoperability boundary
+
+| Host or surface | Package to use | Evidence status | Boundary |
+| --- | --- | --- | --- |
+| Codex | `codex` | Native manifest, Codex UI metadata, Skill/repository validation, deterministic packaging, and CI/release workflow are covered by this repository | A current installed Codex UI/CLI smoke test is release-time evidence and is not represented as a permanent universal guarantee |
+| Cursor | `agent-plugins` | Cursor documents that conformant Agent Plugins load without changes; Hengmu's portable manifest/layout and archive tests are covered | No Hengmu-specific installed Cursor smoke test is currently recorded; Cursor-specific rules, agents, commands, hooks, variables, and marketplace behavior are not included |
+| Other Agent Plugins clients | `agent-plugins` | Portable package is generated and tested against the standard layout | Use only when the host documents Agent Plugins or Agent Skills support; this repository does not claim host-specific support without a reproducible report |
+
+In particular, this release does not claim that VS Code, GitHub Copilot, Kiro, or
+another IDE has identical installation or invocation behavior. A host may accept
+the portable package while exposing different controls, permissions, Skill
+activation, or marketplace workflows. The portable archive currently contains
+Skills only; it has no `mcp.json` and therefore makes no MCP-server support claim.
+
+When adding a host-specific claim, record the client version, operating system,
+package format, installation path, Skill/prompt, observed result, and date in
+release evidence or a sanitized compatibility report. Treat that evidence as
+time-bound: host updates can change behavior without changing Hengmu's package.
+
+Automated CI cannot launch every Codex desktop, CLI, or ChatGPT plugin surface.
+Before a release, maintainers should install the built ZIP or local marketplace
+entry in at least one current Codex surface and, when claiming external-host
+support, in that host as well. Record the application version, surface,
+operating system, package format, and observed routing result. This manual
+evidence is time-bound and must not be represented as universal compatibility.
 
 ## Artifact compatibility and the 1.0 release
 

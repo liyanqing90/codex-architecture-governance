@@ -852,11 +852,23 @@ def validate_knowledge_context_artifact(
 
 
 def git_process(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    process = subprocess.run(
         ["git", "-C", str(root), *args],
-        text=True,
         capture_output=True,
         check=False,
+    )
+    try:
+        stdout = process.stdout.decode("utf-8")
+        stderr = process.stderr.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ArchitectureError(
+            f"git {' '.join(args)} produced non-UTF-8 output for {root}: {exc}"
+        ) from exc
+    return subprocess.CompletedProcess(
+        process.args,
+        process.returncode,
+        stdout,
+        stderr,
     )
 
 
@@ -968,7 +980,10 @@ def load_evidence_provider_catalog() -> tuple[Path, dict[str, dict[str, Any]]]:
 
 
 def validate_provider_command_safety(command: list[str], source: Path) -> None:
-    executable = Path(command[0]).name.lower()
+    executable = re.split(r"[\\/]", command[0])[-1].lower()
+    normalized_executable = (
+        executable[:-4] if executable.endswith(".exe") else executable
+    )
     arguments = [item.lower() for item in command[1:]]
     forbidden_wrappers = SHELL_INTERPRETERS | {
         "bunx",
@@ -983,9 +998,9 @@ def validate_provider_command_safety(command: list[str], source: Path) -> None:
     script_suffix = Path(executable).suffix.lower()
     if (
         executable in forbidden_wrappers
+        or normalized_executable in forbidden_wrappers
         or script_suffix.endswith("sh")
         or script_suffix in {".bat", ".cmd", ".nu", ".oil", ".ps1"}
-        or "\\" in command[0]
     ):
         raise ArchitectureError(
             f"{source} evidence provider command uses forbidden package or shell "
@@ -1018,7 +1033,10 @@ def validate_provider_command_safety(command: list[str], source: Path) -> None:
         "yarn": {"add", "dlx", "install"},
         "yum": {"install"},
     }
-    if executable in package_actions and set(arguments) & package_actions[executable]:
+    if (
+        normalized_executable in package_actions
+        and set(arguments) & package_actions[normalized_executable]
+    ):
         raise ArchitectureError(
             f"{source} evidence provider command may install or download tools: "
             + " ".join(command)
@@ -1030,13 +1048,16 @@ def validate_provider_command_safety(command: list[str], source: Path) -> None:
         "mvn": {"--offline", "-o"},
         "mvn.cmd": {"--offline", "-o"},
     }
-    if executable in offline_tools and not set(arguments) & offline_tools[executable]:
+    if (
+        normalized_executable in offline_tools
+        and not set(arguments) & offline_tools[normalized_executable]
+    ):
         raise ArchitectureError(
             f"{source} evidence provider command must use offline mode: "
             + " ".join(command)
         )
     if (
-        executable in {"python", "python3", "py"}
+        normalized_executable in {"python", "python3", "py"}
         and len(arguments) >= 3
         and arguments[0:2] == ["-m", "pip"]
         and "install" in arguments[2:]
@@ -1246,6 +1267,27 @@ def resolve_provider_executable(root: Path, command: str) -> Path:
             f"Evidence provider executable is a forbidden shell wrapper: {command}"
         )
     return resolved
+
+
+def provider_executable_reference(root: Path, executable_path: Path) -> str:
+    """Return a portable reference for a project-local provider executable."""
+    try:
+        return executable_path.relative_to(root).as_posix()
+    except ValueError:
+        return str(executable_path)
+
+
+def provider_path_reference(root: Path, path: Path) -> str:
+    """Return a portable repository-relative reference for a provider path."""
+    return path.relative_to(root).as_posix()
+
+
+def resolve_recorded_provider_executable(root: Path, recorded: str) -> Path:
+    """Resolve a recorded provider executable in the current checkout."""
+    path = Path(recorded)
+    if not path.is_absolute():
+        return (root / path).resolve()
+    return path.resolve()
 
 
 def provider_dependency_inputs(
@@ -1505,8 +1547,16 @@ def run_evidence_provider(
             "dirty_tree_after": dirty_tree_after,
             "started_at": started_at.isoformat(),
             "completed_at": completed_at.isoformat(),
-            "command": actual_command,
-            "executable": str(executable_path),
+            "command": [
+                provider_executable_reference(root, executable_path)
+                if index == 0
+                else argument.replace(
+                    str(structured_path),
+                    provider_path_reference(root, structured_path),
+                )
+                for index, argument in enumerate(actual_command)
+            ],
+            "executable": provider_executable_reference(root, executable_path),
             "executable_sha256": file_sha256(executable_path),
             "detect_matches": matches,
             "output_source": config["output_source"],
@@ -1608,8 +1658,11 @@ def validate_evidence_run(
         raise ArchitectureError(
             f"{artifact_path} success exit codes do not match config"
         )
-    executable_path = Path(data["run"]["executable"]).resolve()
     configured_executable = resolve_provider_executable(root, config["command"][0])
+    executable_path = resolve_recorded_provider_executable(
+        root,
+        data["run"]["executable"],
+    )
     if executable_path != configured_executable:
         raise ArchitectureError(
             f"{artifact_path} executable does not match current command resolution"
@@ -1657,7 +1710,19 @@ def validate_evidence_run(
         for argument in config["command"]
     ]
     expected_command[0] = str(executable_path)
-    if data["run"]["command"] != expected_command:
+    output_path_reference = provider_path_reference(
+        root,
+        artifact_path.with_suffix(".result"),
+    )
+    recorded_command = [
+        argument.replace(
+            output_path_reference,
+            str(artifact_path.with_suffix(".result")),
+        )
+        for argument in data["run"]["command"]
+    ]
+    recorded_command[0] = str(executable_path)
+    if recorded_command != expected_command:
         raise ArchitectureError(f"{artifact_path} command does not match config")
     started_at = datetime.fromisoformat(
         data["run"]["started_at"].replace("Z", "+00:00")
@@ -2374,22 +2439,32 @@ def validate_review(
                             f"{path} critical flow {flow_id} evidence {index}",
                         )
         reviewed_commit = data["review"].get("commit")
+        historical_evidence = bool(
+            allow_unverifiable_historical
+            and reviewed_commit
+            and reviewed_commit != current_git_commit(root)
+        )
         provider_runs: dict[Path, dict[str, Any]] = {}
         for reference in data.get("tool_evidence", []):
-            run_path = require_within_root(
-                root,
-                root / reference["run_path"],
-                "review.tool_evidence.run_path",
-            )
-            if reference["run_sha256"] != file_sha256(run_path):
-                raise ArchitectureError(
-                    f"{path} tool evidence hash does not match {run_path}"
+            try:
+                run_path = require_within_root(
+                    root,
+                    root / reference["run_path"],
+                    "review.tool_evidence.run_path",
                 )
-            evidence_run = validate_evidence_run(
-                run_path,
-                root,
-                require_passed=True,
-            )
+                if reference["run_sha256"] != file_sha256(run_path):
+                    raise ArchitectureError(
+                        f"{path} tool evidence hash does not match {run_path}"
+                    )
+                evidence_run = validate_evidence_run(
+                    run_path,
+                    root,
+                    require_passed=True,
+                )
+            except ArchitectureError:
+                if not historical_evidence:
+                    raise
+                continue
             if evidence_run["run"]["provider_id"] != reference["provider_id"]:
                 raise ArchitectureError(
                     f"{path} tool evidence provider does not match {run_path}"
@@ -2414,6 +2489,8 @@ def validate_review(
                 )
                 evidence_run = provider_runs.get(run_path)
                 if evidence_run is None:
+                    if historical_evidence:
+                        continue
                     raise ArchitectureError(
                         f"{path} finding {finding['id']} tool evidence is not "
                         "declared in review.tool_evidence"
@@ -2430,8 +2507,10 @@ def validate_review(
                     )
                 if evidence_run["run"]["trust"] == "deterministic":
                     deterministic_finding_evidence = True
-            if finding["verification"].get("level") in {"V4", "V5"} and not (
-                deterministic_finding_evidence
+            if (
+                finding["verification"].get("level") in {"V4", "V5"}
+                and not deterministic_finding_evidence
+                and not historical_evidence
             ):
                 raise ArchitectureError(
                     f"{path} finding {finding['id']} "

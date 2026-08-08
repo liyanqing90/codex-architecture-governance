@@ -1,0 +1,326 @@
+schema_version: '1.2'
+decision:
+  id: ADR-HENGMU-RELEASE-1.0.2-001
+  source_review: hengmu-20260808-release-1.0.2-verified
+  source_review_sha256: ef19039ac856055939eaed74c88a890a12f7820faf8e421127aa09dec59f52a7
+  decided_at: '2026-08-08T07:40:00Z'
+  decision_makers:
+  - architecture-owner
+  status: accepted
+  knowledge_selection_path: .architecture/reviews/inputs/2026-08-08-release-1.0.2-decision-knowledge-selection.yaml
+  knowledge_selection_sha256: 2e0d5933f4229de4316aa0d6d15af9d880c37ae5b535bd875a5667404149ec1c
+problem:
+  quality_attributes:
+  - compatibility
+  - deterministic-enforcement
+  - safety
+  - traceability
+  constraints:
+  - The native Codex manifest, public Skill identities, and local CLI remain authoritative
+    compatibility contracts.
+  - The Agent Plugins archive is an additive portable projection and must not imply
+    unverified host-specific activation.
+  - Evidence Provider validation must remain offline, bounded, and fail closed across
+    POSIX and Windows executable spellings.
+  - CI and release workflows must bind package, checksum, SBOM, and attestation behavior
+    to immutable source and explicit comparison boundaries.
+  - Documentation and repository metadata must describe observed capabilities and
+    invite real user feedback without fabricated adoption claims.
+  finding_ids: []
+  assumptions:
+  - Hengmu remains an installable local Codex plugin and local Python CLI rather than
+    a hosted runtime.
+  - Downstream host activation is validated through explicit host-specific evidence
+    and user feedback rather than inferred from archive shape.
+  known_facts:
+  - The independent verified Review for 0fa530b found no unresolved architecture Finding.
+  - The repository already declares native Codex contracts, portable Agent Plugins
+    packaging, full offline operation, and three required project Rule Packs.
+  - The final code has focused regression coverage for portable manifest identity,
+    extracted runtime execution, and duplicate, escaped, traversing, absolute, or
+    symlink ZIP entries.
+  unknowns:
+  - No Hengmu-specific Cursor installation smoke test has been observed.
+  - GitHub-hosted release attestations and downstream adoption remain external evidence
+    until their workflows run and users report results.
+knowledge_snapshot:
+- id: style.microservices
+  version: 1.0.0
+  sha256: 0533dbcda24b99313c8fe8fccd64ea2ce08bd020e60571ad561c04a800ececf6
+- id: style.modular-monolith
+  version: 1.0.0
+  sha256: 3f97c548665d8e6c4159c5f6ecee4a5d099a2ac4def69fba2b0a5d6d6703c3c0
+- id: technology.import-linter
+  version: 1.0.0
+  sha256: 8a1dd4ac1887df7f0236750899809449062448196851b76a86e3bd9979eb17ee
+- id: foundation.evolutionary-architecture
+  version: 1.0.0
+  sha256: b9b125fa34bdeb346145f926210f7052d60d8f3b5f4e225cf1aa0fdb6a7888e5
+- id: foundation.proportional-design
+  version: 1.0.0
+  sha256: ccfa63d523fab3503c47dbf73fc7a9ae85c7fc516856bcf422322c0d92a409df
+- id: foundation.quality-attributes
+  version: 1.0.0
+  sha256: 50d92ab7563d70605408ba4592d9445f79f6eb0cecb50195471b56e42418b680
+- id: foundation.technology-selection
+  version: 1.0.0
+  sha256: ce43c17d29cc79ad65c0f1a551a938f3fec642d1e75070b98d4aa3336ddf882d
+- id: foundation.tradeoff-analysis
+  version: 1.0.0
+  sha256: 058c9756ba4d9306f42e0fb49365aff3564f3545e103c05812040ce2c9f8b9d5
+- id: domain.plugin-platform
+  version: 1.0.0
+  sha256: b72a0e3b6959464b32c9a4d44b50baa40b4baf13b5b14f65f99d094f301bf58c
+- id: domain.test-automation-platform
+  version: 1.0.0
+  sha256: 7ce2621239bad831f4a6689a1718b5dd1cdbbf1d6d2e3bb9a6d043457a70e016
+- id: decision.workflow-vs-agent
+  version: 2.0.0
+  sha256: f8fc79dfd6cbe7824c9bafe120e116dd1e7c681dd84f27806dbed4bf5bf9b36d
+- id: decision.single-agent-vs-multi-agent
+  version: 2.0.0
+  sha256: c45be66e4d490f31c66e912f96d9b36f284cf6e91336ea462110beeabe4cefec
+options:
+- id: keep-current
+  title: Keep the local-first plugin architecture
+  complexity_tier: keep-current
+  architecture_styles: []
+  patterns: []
+  technologies: []
+  benefits:
+  - Preserves the verified workflow, knowledge, schema, and deterministic-tool boundaries.
+  - Avoids migration and operating cost unsupported by a confirmed finding or measured
+    demand.
+  liabilities:
+  - Continued growth still depends on maintainers preserving ownership boundaries
+    through tests and review.
+  assumptions:
+  - The plugin and local CLI remain the product and deployment boundary.
+  quality_attribute_effects:
+  - attribute: compatibility
+    effect: neutral
+    rationale: Preserves the native package and public Skill contract while adding
+      only an explicit projection.
+  - attribute: deterministic-enforcement
+    effect: improves
+    rationale: Keeps validation and packaging under the existing deterministic local
+      toolchain.
+  - attribute: safety
+    effect: improves
+    rationale: Retains local fail-closed provider and evidence controls.
+  - attribute: traceability
+    effect: improves
+    rationale: Binds docs, archives, checksums, SBOMs, and workflow comparisons to
+      explicit source evidence.
+  business_fit: Matches the current installable open-source product and constrained
+    operating budget.
+  team_fit: Uses the repository and Python capabilities already owned by the maintainers.
+  evolution_fit: Keeps compatible internal extraction seams available when measured
+    change pressure appears.
+  implementation_complexity: low
+  operational_complexity: low
+  migration_risk: low
+  reversibility: easy
+  cost: low
+  technical_maturity: mature
+  lock_in: none
+  tradeoff_scores:
+    business_fit: 2
+    quality_fit: 1
+    team_fit: 2
+    implementation: 2
+    operations: 2
+    migration: 2
+    reversibility: 2
+    cost: 2
+    maturity: 2
+    lock_in: 2
+    evolution: 1
+  rejected_reasons: []
+- id: internal-modules
+  title: Enforce smaller internal modules and import boundaries
+  complexity_tier: low
+  architecture_styles:
+  - style.modular-monolith
+  patterns: []
+  technologies:
+  - technology.import-linter
+  benefits:
+  - Makes internal ownership and allowed dependency directions machine-checkable.
+  - Creates clearer extraction seams without adding a distributed runtime.
+  liabilities:
+  - Requires a staged refactor, new configuration, and ongoing dependency-policy maintenance.
+  assumptions:
+  - Change coupling or contributor growth becomes measurable enough to justify enforcement.
+  quality_attribute_effects:
+  - attribute: compatibility
+    effect: neutral
+    rationale: Introduces an additional contract boundary that requires migration
+      evidence.
+  - attribute: deterministic-enforcement
+    effect: improves
+    rationale: Keeps validation and packaging under the existing deterministic local
+      toolchain.
+  - attribute: safety
+    effect: improves
+    rationale: Retains local fail-closed provider and evidence controls.
+  - attribute: traceability
+    effect: improves
+    rationale: Requires additional cross-boundary evidence and ownership to preserve
+      traceability.
+  business_fit: Remains compatible with one package and one release flow.
+  team_fit: Requires manageable repository-level tooling but diverts time from product
+    capabilities.
+  evolution_fit: Provides the preferred next step if internal dependency pressure
+    becomes material.
+  implementation_complexity: medium
+  operational_complexity: low
+  migration_risk: medium
+  reversibility: moderate
+  cost: medium
+  technical_maturity: mature
+  lock_in: low
+  tradeoff_scores:
+    business_fit: 1
+    quality_fit: 2
+    team_fit: 1
+    implementation: 0
+    operations: 2
+    migration: 0
+    reversibility: 1
+    cost: 1
+    maturity: 2
+    lock_in: 1
+    evolution: 2
+  rejected_reasons:
+  - No verified finding or measured change-coupling threshold currently justifies
+    the migration cost.
+- id: hosted-services
+  title: Extract governance capabilities into hosted services
+  complexity_tier: high
+  architecture_styles:
+  - style.microservices
+  patterns: []
+  technologies: []
+  benefits:
+  - Could centralize policy, execution, and organization-wide governance for a validated
+    multi-user service.
+  - Could scale selected workloads independently if hosted demand and operating ownership
+    emerge.
+  liabilities:
+  - Adds network, identity, tenancy, availability, deployment, and on-call concerns
+    absent from the current product.
+  - Breaks the current full-offline operating constraint and increases cost and failure
+    modes.
+  assumptions:
+  - A funded multi-user hosted product and an accountable operating team exist.
+  quality_attribute_effects:
+  - attribute: compatibility
+    effect: degrades
+    rationale: Introduces an additional contract boundary that requires migration
+      evidence.
+  - attribute: deterministic-enforcement
+    effect: degrades
+    rationale: Adds remote execution and provenance dependencies outside the current
+      deterministic boundary.
+  - attribute: safety
+    effect: degrades
+    rationale: Expands identity, network, and operational attack surfaces without
+      current ownership evidence.
+  - attribute: traceability
+    effect: degrades
+    rationale: Requires additional cross-boundary evidence and ownership to preserve
+      traceability.
+  business_fit: Does not fit the current installable plugin product or constrained
+    budget.
+  team_fit: Requires service operations, identity, security, and on-call ownership
+    not declared by the project.
+  evolution_fit: Protects hypothetical hosted scale but constrains current local and
+    offline evolution.
+  implementation_complexity: high
+  operational_complexity: high
+  migration_risk: high
+  reversibility: difficult
+  cost: high
+  technical_maturity: mature
+  lock_in: medium
+  tradeoff_scores:
+    business_fit: -2
+    quality_fit: -1
+    team_fit: -2
+    implementation: -2
+    operations: -2
+    migration: -2
+    reversibility: -1
+    cost: -2
+    maturity: 2
+    lock_in: 0
+    evolution: -1
+  rejected_reasons:
+  - It violates the required local-first and no-hosted-runtime constraints.
+  - No validated demand or accountable operating model offsets the distributed-system
+    cost.
+selected_option: keep-current
+rationale: The current verified review found no architecture risk requiring a new
+  runtime boundary. Release one local-first Skills and deterministic tooling core through
+  the native Codex archive and the Agent Plugins projection, with explicit CI/release
+  evidence and truthful host-specific installation contracts. This preserves compatibility
+  and rollback without claiming lifecycle, permission, or installed-host behavior that
+  has not been observed.
+revisit_triggers:
+- A downstream host installation report identifies a reproducible package or Skill
+  activation incompatibility.
+- A verified finding shows that the portable projection weakens source, evidence,
+  or release provenance.
+- The project adopts a hosted runtime or a host-specific adapter requiring new identity,
+  network, or operational ownership.
+- Measured contributor or change coupling justifies an internal module-boundary decision
+  beyond the additive package projection.
+acceptance_evidence:
+- The repository architecture-owner role accepts this bounded additive package, CI,
+  release, and documentation scope while retaining the native Codex runtime as authoritative.
+- The independent verified Review is bound to 0fa530b, reports no unresolved Finding,
+  and includes a passed 157-test deterministic Evidence Provider run; downstream host
+  activation remains an explicit unknown rather than an inferred success.
+hard_eliminations:
+- option_id: hosted-services
+  rule: The Profile requires full offline operation and prohibits a required hosted
+    runtime.
+  evidence:
+  - .architecture/profile.yaml declares full offline operation and a prohibited required
+    hosted runtime.
+  - .architecture/constraints.md requires no network, credentials, telemetry, or external
+    service for runtime behavior.
+migration:
+  affected_paths:
+  - .github/workflows/ci.yml
+  - .github/workflows/release.yml
+  - docs/compatibility.md
+  - README.md
+  - README.zh-CN.md
+  - scripts/package_plugin.py
+  - scripts/generate_sbom.py
+  - scripts/smoke_test_package.py
+  - plugin.json
+  - docs/host-compatibility.md
+  - tests/test_package_plugin.py
+  - tests/test_repository_contract.py
+  - resources/scripts/architecture_tool.py
+  slices:
+  - Keep .codex-plugin/plugin.json and native Codex packaging unchanged while emitting
+    a validated Agent Plugins projection.
+  - Run the six-platform CI matrix and deterministic package/SBOM checks before treating
+    portable support as released.
+  - Collect real downstream host feedback and add host-specific smoke evidence before
+    making stronger compatibility claims.
+  rollback: Remove the additive Agent Plugins archive and documentation projection
+    while retaining the native Codex archive, source-bound governance chain, and fail-closed
+    provider fixes.
+  validation:
+  - Validate the candidate and verified Review against the exact 0fa530b evidence
+    commit and selected Knowledge bytes.
+  - Pass repository validation, tests, lint, formatting, architecture change Gate,
+    both deterministic package builds, checksums, license audit, and per-archive SBOM
+    generation.
+  - Record downstream host installation results as explicit user or release evidence
+    before expanding the compatibility matrix.

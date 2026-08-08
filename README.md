@@ -190,9 +190,10 @@ the Agent Plugins ZIP and register its absolute directory in VS Code settings:
 }
 ```
 
-Open **Chat: Open Customizations → Plugins** to confirm installation. Invoke
-`/hengmu audit this repository` in Copilot Chat or use natural language. The
-same package can be installed directly in GitHub Copilot CLI:
+Open **Chat: Open Customizations → Plugins** to confirm installation. VS Code
+namespaces plugin-provided Skills with the plugin name, so invoke
+`/hengmu:hengmu audit this repository` in Copilot Chat or use natural language.
+The same package can be installed directly in GitHub Copilot CLI:
 
 ```bash
 copilot plugin install qingye-lab/hengmu

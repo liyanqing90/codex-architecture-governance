@@ -169,9 +169,10 @@ Plugins ZIP，并在 VS Code Settings 中登记它的绝对路径：
 }
 ```
 
-打开 **Chat: Open Customizations → Plugins** 确认安装。在 Copilot Chat 中使用
-`/hengmu audit this repository` 或自然语言调用。同一个包也可以直接安装到
-GitHub Copilot CLI：
+打开 **Chat: Open Customizations → Plugins** 确认安装。VS Code 会给插件内的
+Skill 加上插件名前缀，因此在 Copilot Chat 中使用
+`/hengmu:hengmu audit this repository`，也可以直接用自然语言调用。同一个包
+也可以直接安装到 GitHub Copilot CLI：
 
 ```bash
 copilot plugin install qingye-lab/hengmu

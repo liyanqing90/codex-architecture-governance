@@ -3,9 +3,11 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import stat
 import sys
 import tempfile
 import unittest
+import warnings
 import zipfile
 from pathlib import Path
 
@@ -139,6 +141,46 @@ class PackagePluginTests(unittest.TestCase):
                 r"missing required runtime paths: \.codex-plugin/plugin\.json",
             ):
                 smoke_test_package.smoke_test(broken)
+
+    def test_agent_plugins_smoke_rejects_unsafe_zip_entries(self) -> None:
+        cases: tuple[tuple[str, zipfile.ZipInfo | str, str], ...] = (
+            ("duplicate", "plugin.json", "duplicate entry names"),
+            ("backslash", r"unsafe\entry", "uses a backslash"),
+            ("absolute", "/unsafe", "Unsafe archive entry"),
+            ("traversal", "../unsafe", "Unsafe archive entry"),
+            (
+                "symlink",
+                self._symlink_info("unsafe-link"),
+                "contains a symlink",
+            ),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            temp_root = Path(temporary)
+            for name, unsafe_entry, expected in cases:
+                with self.subTest(name=name):
+                    archive_path = temp_root / f"{name}.zip"
+                    with (
+                        warnings.catch_warnings(),
+                        zipfile.ZipFile(archive_path, "w") as archive,
+                    ):
+                        warnings.simplefilter("ignore", UserWarning)
+                        for required in smoke_test_package.REQUIRED_RUNTIME_PATHS:
+                            archive.writestr(required, b"{}")
+                        archive.writestr(unsafe_entry, b"target")
+                    destination = temp_root / f"extract-{name}"
+                    destination.mkdir()
+                    with self.assertRaisesRegex(
+                        smoke_test_package.SmokeTestError,
+                        expected,
+                    ):
+                        smoke_test_package.safe_extract(archive_path, destination)
+
+    @staticmethod
+    def _symlink_info(name: str) -> zipfile.ZipInfo:
+        info = zipfile.ZipInfo(name)
+        info.create_system = 3
+        info.external_attr = (stat.S_IFLNK | 0o777) << 16
+        return info
 
     def test_agent_plugins_manifest_projection_rejects_identity_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

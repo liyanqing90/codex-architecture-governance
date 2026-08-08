@@ -7,6 +7,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-08
+
 ### Added
 
 - A host-compatibility matrix and accepted cross-host equivalence decision that

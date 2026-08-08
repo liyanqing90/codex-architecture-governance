@@ -16,6 +16,13 @@ SPEC = importlib.util.spec_from_file_location("package_plugin", SCRIPT_PATH)
 assert SPEC and SPEC.loader
 package_plugin = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(package_plugin)
+SMOKE_SCRIPT_PATH = ROOT / "scripts" / "smoke_test_package.py"
+SMOKE_SPEC = importlib.util.spec_from_file_location(
+    "smoke_test_package", SMOKE_SCRIPT_PATH
+)
+assert SMOKE_SPEC and SMOKE_SPEC.loader
+smoke_test_package = importlib.util.module_from_spec(SMOKE_SPEC)
+SMOKE_SPEC.loader.exec_module(smoke_test_package)
 
 
 class PackagePluginTests(unittest.TestCase):
@@ -93,14 +100,90 @@ class PackagePluginTests(unittest.TestCase):
                 package_plugin.AGENT_PLUGINS_SCHEMA,
             )
             self.assertEqual(manifest["name"], "hengmu")
+            self.assertEqual(
+                manifest,
+                json.loads((ROOT / "plugin.json").read_text(encoding="utf-8")),
+            )
+            self.assertIn("agent-plugins", manifest["keywords"])
+            self.assertNotIn("for Codex", manifest["description"])
             self.assertNotIn("skills", manifest)
             self.assertNotIn("interface", manifest)
-            self.assertNotIn(".codex-plugin/plugin.json", names)
+            self.assertIn(".codex-plugin/plugin.json", names)
             self.assertIn("skills/hengmu/SKILL.md", names)
             self.assertFalse(
                 any(name.endswith("/agents/openai.yaml") for name in names)
             )
             self.assertEqual(timestamps, {package_plugin.FIXED_ZIP_TIME})
+            smoke_test_package.smoke_test(first)
+
+    def test_agent_plugins_smoke_rejects_missing_provenance_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temp_root = Path(temporary)
+            archive, _ = package_plugin.build_package(
+                ROOT,
+                temp_root / "dist",
+                "agent-plugins",
+            )
+            broken = temp_root / "broken.zip"
+            with (
+                zipfile.ZipFile(archive) as source,
+                zipfile.ZipFile(broken, "w") as target,
+            ):
+                for info in source.infolist():
+                    if info.filename != ".codex-plugin/plugin.json":
+                        target.writestr(info, source.read(info))
+
+            with self.assertRaisesRegex(
+                smoke_test_package.SmokeTestError,
+                r"missing required runtime paths: \.codex-plugin/plugin\.json",
+            ):
+                smoke_test_package.smoke_test(broken)
+
+    def test_agent_plugins_manifest_projection_rejects_identity_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temp_root = Path(temporary)
+            manifest = json.loads((ROOT / "plugin.json").read_text(encoding="utf-8"))
+            manifest["version"] = "9.9.9"
+            (temp_root / "plugin.json").write_text(
+                json.dumps(manifest),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                package_plugin.PackageError,
+                "shared identity does not match",
+            ):
+                package_plugin.load_portable_source_manifest(
+                    temp_root,
+                    package_plugin.load_codex_manifest(ROOT),
+                )
+
+    def test_agent_plugins_manifest_owns_portable_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temp_root = Path(temporary)
+            manifest = json.loads((ROOT / "plugin.json").read_text(encoding="utf-8"))
+            manifest["description"] = "Updated host-neutral architecture workflows."
+            (temp_root / "plugin.json").write_text(
+                json.dumps(manifest),
+                encoding="utf-8",
+            )
+
+            loaded = package_plugin.load_portable_source_manifest(
+                temp_root,
+                package_plugin.load_codex_manifest(ROOT),
+            )
+            self.assertEqual(loaded["description"], manifest["description"])
+
+    def test_package_smoke_times_out_stalled_command(self) -> None:
+        with self.assertRaisesRegex(
+            smoke_test_package.SmokeTestError,
+            "timed out after",
+        ):
+            smoke_test_package.run_step(
+                [sys.executable, "-c", "import time; time.sleep(60)"],
+                ROOT,
+                timeout_seconds=0.05,
+            )
 
 
 if __name__ == "__main__":

@@ -143,7 +143,7 @@ class SupplyChainTests(unittest.TestCase):
             self.assertEqual(agent_sbom["spdxVersion"], "SPDX-2.3")
             with zipfile.ZipFile(agent_archive) as bundle:
                 self.assertIn("plugin.json", bundle.namelist())
-                self.assertNotIn(".codex-plugin/plugin.json", bundle.namelist())
+                self.assertIn(".codex-plugin/plugin.json", bundle.namelist())
 
             audit = audit_licenses.audit(
                 ROOT / "requirements-runtime.lock",

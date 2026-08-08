@@ -424,6 +424,7 @@ python3 resources/scripts/architecture_tool.py validate-knowledge-context \
 | [评估指南](docs/evaluation.md) | 行为 Benchmark、消融、评分和解释边界。 |
 | [Knowledge 编写](docs/knowledge-authoring.md) | 来源质量、新鲜度、Frontmatter 和策展规则。 |
 | [兼容性](docs/compatibility.md) | 支持的 Python、Schema、产物和版本边界。 |
+| [宿主兼容性](docs/host-compatibility.md) | 跨 IDE 目标等价、分发路径和宿主专属能力边界。 |
 | [迁移到 1.0](docs/migrating-to-1.0.md) | 开放/受约束 Brief/Decision/Plan 产物、共存和回滚。 |
 | [发布验证](docs/releasing.md) | 确定性 ZIP、校验和、SBOM 和 Attestation。 |
 | [实施矩阵](docs/comprehensive-review-implementation.md) | 审核建议如何映射为可执行能力与证据。 |
@@ -457,6 +458,8 @@ python3 scripts/audit_licenses.py
 ```bash
 python3 scripts/package_plugin.py --format codex --output-dir dist
 python3 scripts/package_plugin.py --format agent-plugins --output-dir dist
+python3 scripts/smoke_test_package.py \
+  --archive "dist/hengmu-*-agent-plugins.zip"
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
   --archive dist/*.zip \
@@ -464,7 +467,9 @@ python3 scripts/generate_sbom.py \
 ```
 
 Codex 压缩包是 `hengmu-<version>.zip`；可移植的 Agent Plugins 压缩包是
-`hengmu-<version>-agent-plugins.zip`，使用根目录 `plugin.json`。
+`hengmu-<version>-agent-plugins.zip`，使用宿主中立的根目录 `plugin.json`。
+它还把 `.codex-plugin/plugin.json` 作为共享 Knowledge 选择器所需的惰性
+溯源数据保留在包内，但不包含 Codex 专属 UI 元数据。
 
 CI 会在 Linux、macOS 和 Windows 上验证支持的 Python 边界。带 Tag 的发布
 会同时提供两种确定性 ZIP、对应的 SHA-256 校验和、SPDX SBOM，以及 GitHub

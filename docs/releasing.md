@@ -1,7 +1,8 @@
 # Releasing
 
-1. Update `CHANGELOG.md` and `.codex-plugin/plugin.json`. The Agent Plugins
-   manifest is projected from the Codex manifest during packaging.
+1. Update `CHANGELOG.md`, `.codex-plugin/plugin.json`, and root `plugin.json`.
+   Shared identity fields must remain aligned; the portable description and
+   keywords remain host-neutral.
 2. Regenerate `requirements-runtime.lock` and `requirements-dev.lock` with
    `pip-compile --generate-hashes` when dependency ranges change.
 3. Run the full gate from `AGENTS.md`, including `validate-knowledge`,
@@ -45,14 +46,21 @@
    unzip -l dist/hengmu-<version>-agent-plugins.zip
    ```
 
-10. Verify the checksums on any supported platform:
+10. Exercise the extracted portable runtime through Knowledge Selection:
+
+   ```bash
+   python3 scripts/smoke_test_package.py \
+     --archive "dist/hengmu-*-agent-plugins.zip"
+   ```
+
+11. Verify the checksums on any supported platform:
 
    ```bash
    python3 scripts/verify_checksum.py \
      dist/*.zip.sha256
    ```
 
-11. Generate and inspect both SPDX SBOMs:
+12. Generate and inspect both SPDX SBOMs:
 
    ```bash
    python3 scripts/generate_sbom.py \
@@ -60,17 +68,19 @@
      --output-dir dist
    ```
 
-12. Confirm every dependency package in both SPDX documents has a declared
+13. Confirm every dependency package in both SPDX documents has a declared
    license and exactly matches `resources/supply-chain/runtime-licenses.json`.
-13. Complete one current Codex installation smoke test and record the surface,
-   application version, operating system, and observed Skill routing.
-14. If a behavioral quality claim is planned, preserve three trials per case
+14. Complete one current Codex installation smoke test. For every named
+   Agent Plugins host support claim, also test that current client. Record the
+   client, version, operating system, installation path, routed Skill, and
+   observed result as described in [host compatibility](host-compatibility.md).
+15. If a behavioral quality claim is planned, preserve three trials per case
    from at least two identified models, with surface, exact plugin version, and
    scorer output.
-15. Confirm migration evidence never preserves a legacy verified label as
+16. Confirm migration evidence never preserves a legacy verified label as
     current 1.2 verification.
-16. Create a signed or annotated `v<version>` tag.
-17. Push the tag. The release workflow re-runs validation, tests, lint,
+17. Create a signed or annotated `v<version>` tag.
+18. Push the tag. The release workflow re-runs validation, tests, lint,
    formatting, dependency audit, deterministic packaging, checksum, and SBOM
    generation. It creates GitHub provenance and SBOM attestations before
    publishing the ZIP, checksum, and SBOM.

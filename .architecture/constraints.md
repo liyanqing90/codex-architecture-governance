@@ -23,8 +23,16 @@ Maintainers review them with every release that changes a public contract.
   jsonschema. Owner: maintainers. Source: CI boundary matrix and requirements.
   Review each minor release.
 - The plugin keeps Skills as direct children of `skills/` and shared runtime
-  contracts under root `resources/`. Owner: maintainers. Source: Codex plugin
-  validation. Review when the Codex packaging contract changes.
+  contracts under root `resources/`. Native Codex and Agent Plugins packages
+  expose the same workflow and CLI outcomes through separate identity
+  manifests. Owner: maintainers. Source: package validation and the accepted
+  cross-host equivalence decision. Review when either packaging contract
+  changes.
+- Host lifecycle, permission, rules, and steering integrations remain explicit
+  opt-in adapters. They cannot silently install dependencies, broaden
+  permissions, or change the portable Skill/CLI contract. The current product
+  makes no SessionStart, dangerous-operation interception, or automatic
+  completion-gate claim.
 - Artifact schemas and CLI exit codes are public contracts. Schema `1.0`
   remains readable; trusted `1.1` remains compatible; new project artifacts
   use facts/selection-bound Review schema `1.2`; Knowledge selections use

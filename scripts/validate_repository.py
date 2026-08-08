@@ -29,6 +29,7 @@ EXPECTED_SKILLS = (
 EVAL_KINDS = ("direct", "indirect", "incomplete", "negative", "edge")
 REQUIRED_FILES = (
     ".codex-plugin/plugin.json",
+    "plugin.json",
     ".architecture/baseline.yaml",
     ".architecture/constraints.md",
     ".architecture/critical-flows.md",
@@ -54,6 +55,7 @@ REQUIRED_FILES = (
     "docs/governance-modes.md",
     "docs/assurance-model.md",
     "docs/compatibility.md",
+    "docs/host-compatibility.md",
     "docs/comprehensive-review-implementation.md",
     "docs/knowledge-authoring.md",
     "docs/releasing.md",
@@ -85,6 +87,7 @@ REQUIRED_FILES = (
     "requirements-runtime.lock",
     "requirements.txt",
     "scripts/generate_sbom.py",
+    "scripts/smoke_test_package.py",
     "scripts/curate_golden_knowledge.py",
     "scripts/codex_benchmark_adapter.py",
     "scripts/audit_licenses.py",
@@ -161,6 +164,19 @@ HTML_I18N_RE = re.compile(
 )
 COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 SITE_URL = "https://qingye-lab.github.io/hengmu/"
+AGENT_PLUGINS_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+PORTABLE_MANIFEST_FIELDS = {
+    "$schema",
+    "name",
+    "version",
+    "description",
+    "author",
+    "homepage",
+    "repository",
+    "license",
+    "keywords",
+    "extensions",
+}
 FORBIDDEN_MARKERS = (
     "[" + "TODO:",
     "OWNER" + "/REPOSITORY",
@@ -303,6 +319,63 @@ def validate_manifest(root: Path, errors: list[str]) -> dict[str, Any] | None:
                     f"plugin.interface.defaultPrompt[{index}] exceeds 128 characters"
                 )
     return manifest
+
+
+def validate_portable_manifest(
+    root: Path,
+    codex_manifest: dict[str, Any] | None,
+    errors: list[str],
+) -> None:
+    """Validate the checked-in Agent Plugins discovery and identity contract."""
+
+    manifest_path = root / "plugin.json"
+    manifest = load_json(manifest_path, errors)
+    if manifest is None:
+        return
+    unknown = sorted(set(manifest) - PORTABLE_MANIFEST_FIELDS)
+    if unknown:
+        errors.append(
+            "portable plugin.json has unknown top-level fields: " + ", ".join(unknown)
+        )
+    if manifest.get("$schema") != AGENT_PLUGINS_SCHEMA:
+        errors.append("portable plugin.json has the wrong Agent Plugins $schema")
+    version = require_string(manifest, "version", "portable plugin", errors)
+    description = require_string(manifest, "description", "portable plugin", errors)
+    require_string(manifest, "name", "portable plugin", errors)
+    if version is not None and SEMVER_RE.fullmatch(version) is None:
+        errors.append(
+            f"portable plugin.version {version!r} is not strict Semantic Versioning"
+        )
+    if description is not None and "for Codex" in description:
+        errors.append("portable plugin.description must be host-neutral")
+    keywords = manifest.get("keywords")
+    if (
+        not isinstance(keywords, list)
+        or "agent-plugins" not in keywords
+        or not all(isinstance(item, str) and item.strip() for item in keywords)
+    ):
+        errors.append(
+            "portable plugin.keywords must contain agent-plugins and only "
+            "non-empty strings"
+        )
+    if "skills" in manifest or "interface" in manifest:
+        errors.append(
+            "portable plugin.json must use fixed Agent Plugins discovery, not "
+            "Codex-only skills or interface fields"
+        )
+    if codex_manifest is not None:
+        for key in (
+            "name",
+            "version",
+            "author",
+            "homepage",
+            "repository",
+            "license",
+        ):
+            if manifest.get(key) != codex_manifest.get(key):
+                errors.append(
+                    f"portable plugin.{key} must match .codex-plugin/plugin.json"
+                )
 
 
 def validate_selector_source(
@@ -1103,6 +1176,7 @@ def validate_repository(root: Path) -> list[str]:
     errors: list[str] = []
     validate_repository_hygiene(root, errors)
     manifest = validate_manifest(root, errors)
+    validate_portable_manifest(root, manifest, errors)
     validate_selector_source(root, manifest, errors)
     validate_skills(root, errors)
     validate_reference_paths(root, errors)

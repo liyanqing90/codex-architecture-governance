@@ -7,6 +7,25 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- A host-compatibility matrix and accepted cross-host equivalence decision that
+  distinguish portable workflow outcomes from client-specific lifecycle and
+  permission controls.
+- An extracted Agent Plugins archive smoke test that runs the primary audit
+  path through deterministic Knowledge Selection in CI and release builds.
+
+### Changed
+
+- The Agent Plugins discovery manifest is now checked in at repository root,
+  host-neutral, and identity-aligned with the native Codex manifest.
+
+### Fixed
+
+- Portable archives now retain the native manifest as inert provenance data,
+  preventing Knowledge Selection from failing after extraction while
+  preserving existing selector hashes and artifact contracts.
+
 ## [1.0.0] - 2026-08-06
 
 ### Added

@@ -15,14 +15,16 @@ formatting, packaging, and checksum verification on:
 `requirements.txt` contains supported dependency ranges. The lock is the
 reproducible installation boundary used by CI and release packaging.
 
-## Codex and plugin surface
+## Plugin surfaces
 
 The repository validates:
 
-- plugin manifest and runtime layout with the official plugin validator;
-- every Skill with the official Skill validator;
+- both plugin manifests and runtime layout with schema-aligned repository
+  validation;
+- every Skill's metadata, references, and activation boundaries;
 - routing metadata and five activation/boundary cases per Skill;
-- deterministic archive contents independent of local marketplace state.
+- deterministic archive contents independent of local marketplace state; and
+- the extracted portable audit path through Knowledge Selection.
 
 Packaging has two explicit targets:
 
@@ -30,17 +32,19 @@ Packaging has two explicit targets:
   Codex-specific `agents/openai.yaml` metadata;
 - `agent-plugins`: the portable package with a root `plugin.json` and the
   standard `skills/` layout. It contains the same runtime CLI and Skill
-  instructions, but not Codex-specific UI metadata.
+  instructions, but not Codex-specific UI metadata. It retains the hidden
+  Codex manifest only as inert provenance data required by the shared selector.
 
 The portable package is intended for clients that support Agent Plugins. It
 does not promise identical invocation syntax or client UI: those remain
 client-specific. The runtime still requires CPython 3.11–3.13 and the locked
-dependencies described above.
+dependencies described above. See [host compatibility](host-compatibility.md)
+for the precise capability and evidence boundary.
 
-Automated CI cannot launch every Codex desktop, CLI, or ChatGPT plugin surface.
-Before a release, maintainers should install the built ZIP or local marketplace
-entry in at least one current Codex surface and record the application version,
-surface, operating system, and observed routing result. This manual evidence is
+Automated CI cannot launch every supported client surface. Before claiming
+support for a named host, maintainers install the applicable ZIP in a current
+version and record the application version, surface, operating system,
+installation path, routed Skill, and observed result. This manual evidence is
 time-bound and must not be represented as universal compatibility.
 
 ## Artifact compatibility and the 1.0 release

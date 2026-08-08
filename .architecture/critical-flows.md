@@ -3,12 +3,13 @@
 ## Plugin discovery and Skill execution
 
 - Trigger: a user installs the plugin and requests an architecture workflow.
-- Actor: Codex or ChatGPT with the installed plugin enabled.
+- Actor: Codex or a compatible Agent Plugins client with the plugin enabled.
 - Preconditions: the manifest, selected Skill, and referenced resources exist.
 - Control/data path: manifest → Skill routing metadata → `SKILL.md` → explicit
   references, templates, schemas, and optional local CLI.
-- Authoritative owner: `.codex-plugin/plugin.json` for bundle identity; each
-  Skill for its workflow; `resources/` for shared contracts.
+- Authoritative owner: `.codex-plugin/plugin.json` for native and provenance
+  identity; root `plugin.json` for portable discovery; each Skill for its
+  workflow; `resources/` for shared contracts.
 - Side effects: none unless the user requests review artifacts or initialization.
 - Failure and recovery behavior: fail visibly on missing resources or invalid
   artifacts; reinstall a validated package after correcting the source.
@@ -16,10 +17,10 @@
   refuses an existing target.
 - Security/privacy boundary: repository evidence remains local and must be
   redacted in published reports.
-- Observability evidence: plugin validator, Skill validators, and evaluation
-  case records.
-- Acceptance tests: official validators pass and all bundled paths exist in the
-  release ZIP.
+- Observability evidence: schema-aligned manifest validation, Skill contract
+  checks, evaluation cases, and extracted package smoke logs.
+- Acceptance tests: both manifests are identity-aligned, all bundled paths
+  exist, and the extracted portable audit path reaches Knowledge Selection.
 
 ## Finding verification and policy enforcement
 
@@ -129,19 +130,21 @@
 - Trigger: a maintainer or CI builds versioned release assets.
 - Actor: `scripts/package_plugin.py`.
 - Preconditions: repository contracts pass and all runtime allowlist files exist.
-- Control/data path: manifest identity → exact dependency lock → sorted runtime
-  allowlist and license policy → fixed ZIP metadata → versioned archive →
-  SHA-256 → license-complete SPDX SBOM → GitHub provenance and SBOM
-  attestations.
-- Authoritative owner: plugin manifest version and packaging script.
+- Control/data path: native identity plus portable discovery projection → exact
+  dependency lock → sorted runtime allowlist and license policy → fixed ZIP
+  metadata → extracted audit-path smoke → versioned archive → SHA-256 →
+  license-complete SPDX SBOM → GitHub provenance and SBOM attestations.
+- Authoritative owner: native manifest version, portable discovery manifest,
+  and packaging script.
 - Side effects: replaces generated assets only in the explicit output directory.
 - Failure and recovery behavior: missing files or symlinks stop packaging;
   caches and development artifacts are excluded from the runtime allowlist.
 - Idempotency boundary: identical source bytes produce identical archive bytes.
 - Security/privacy boundary: tests, evals, caches, repository guidance, and
   private review artifacts are excluded.
-- Observability evidence: archive inventory, checksum, SBOM, CI matrix logs,
-  attestation records, and release tag.
+- Observability evidence: archive inventory, extracted workflow artifacts,
+  checksum, SBOM, CI matrix logs, attestation records, and release tag.
 - Acceptance tests: two independent builds compare byte-for-byte and the
-  checksum verifies cross-platform; the dependency license audit passes; every
-  SBOM package has a declared license; SBOM file inventory matches the archive.
+  portable audit path runs through Knowledge Selection; the checksum verifies
+  cross-platform; the dependency license audit passes; every SBOM package has
+  a declared license; SBOM file inventory matches the archive.

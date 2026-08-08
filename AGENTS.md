@@ -2,13 +2,14 @@
 
 ## Purpose
 
-Maintain a distributable Codex plugin containing focused architecture
-assessment, target-design, decision-governance Skills, and deterministic
-artifact tooling.
+Maintain distributable native Codex and portable Agent Plugins packages
+containing focused architecture assessment, target-design,
+decision-governance Skills, and deterministic artifact tooling.
 
 ## Layout
 
 - `.codex-plugin/plugin.json`: installable plugin manifest.
+- `plugin.json`: host-neutral Agent Plugins discovery manifest.
 - `.architecture/`: this repository's own architecture profile and policy.
 - `skills/hengmu/`: stable public navigation for all user-facing workflows.
 - `skills/<focused-skill-name>/`: one authoritative user goal per focused Skill.
@@ -54,6 +55,8 @@ python3 -m pip_audit -r requirements-runtime.lock
 python3 scripts/audit_licenses.py
 python3 scripts/package_plugin.py --format codex --output-dir dist
 python3 scripts/package_plugin.py --format agent-plugins --output-dir dist
+python3 scripts/smoke_test_package.py \
+  --archive "dist/hengmu-*-agent-plugins.zip"
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
   --archive dist/*.zip \
@@ -62,7 +65,9 @@ python3 scripts/generate_sbom.py \
 
 The accepted target boundary is recorded in
 `docs/decisions/2026-07-29-adopt-workflow-knowledge-script-separation.md` and
-`docs/decisions/2026-08-01-add-hengmu-routing-entry.md`.
+`docs/decisions/2026-08-01-add-hengmu-routing-entry.md`. The cross-host
+packaging boundary is recorded in
+`docs/decisions/2026-08-08-adopt-cross-host-workflow-equivalence.md`.
 
 ## Code review rules
 

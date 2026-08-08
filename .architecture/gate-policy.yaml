@@ -84,6 +84,7 @@ change_requirements:
     - resources/rules/**
     - resources/references/**
     - .codex-plugin/plugin.json
+    - plugin.json
   migration_paths:
     - docs/migrating-to-*.md
     - resources/schemas/**
@@ -94,6 +95,7 @@ change_requirements:
     - resources/scripts/select_knowledge.py
     - resources/scripts/inspect_repository.py
     - scripts/package_plugin.py
+    - scripts/smoke_test_package.py
     - scripts/validate_repository.py
     - resources/evidence-providers/**
     - resources/rules/**

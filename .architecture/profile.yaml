@@ -4,6 +4,7 @@ project:
   name: Hengmu
   type:
   - architecture-governance
+  - agent-plugins-package
   - codex-plugin
   - developer-tooling
   lifecycle: active
@@ -95,12 +96,13 @@ project:
     data_volume: Repository-scale YAML, JSON, Markdown, and source evidence.
     consistency: Artifact hashes and deterministic policy are authoritative.
     offline_requirement: full
-    deployment_model: Installable Codex plugin and local Python CLI.
+    deployment_model: Installable Codex and Agent Plugins packages plus a local
+      Python CLI.
     budget: constrained
     deadlines: Release only after all local and CI contracts pass.
     required_stack:
     - Python 3.11 through 3.13
-    - Codex plugin Skill format
+    - Codex plugin and Agent Plugins Skill formats
     prohibited_services:
     - Required hosted runtime
     migration_limits:
@@ -130,6 +132,7 @@ project:
       confidence: 1.0
       basis:
       - .codex-plugin/plugin.json
+      - plugin.json
       - .architecture/constraints.md
   required_reviews:
   - project-architecture

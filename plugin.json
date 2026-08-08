@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "author": {
+    "name": "Qingye Open Source",
+    "url": "https://github.com/qingye-lab"
+  },
+  "description": "Evidence-bound architecture assessment, target design, decisions, planning, and deterministic governance across compatible agent clients.",
+  "homepage": "https://qingye-lab.github.io/hengmu/",
+  "keywords": [
+    "architecture",
+    "architecture-design",
+    "target-architecture",
+    "audit",
+    "governance",
+    "quality-gate",
+    "architecture-decision",
+    "technology-selection",
+    "agent-plugins"
+  ],
+  "license": "MIT",
+  "name": "hengmu",
+  "repository": "https://github.com/qingye-lab/hengmu",
+  "version": "1.0.0"
+}

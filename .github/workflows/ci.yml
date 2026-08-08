@@ -88,6 +88,11 @@ jobs:
           --format agent-plugins
           --output-dir dist
 
+      - name: Smoke test Agent Plugins archive
+        run: >-
+          python scripts/smoke_test_package.py
+          --archive "dist/hengmu-*-agent-plugins.zip"
+
       - name: Verify archive checksum
         shell: bash
         run: python scripts/verify_checksum.py dist/*.zip.sha256

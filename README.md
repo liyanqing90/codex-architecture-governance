@@ -464,6 +464,7 @@ invoked gate always evaluates its policy.
 | [Evaluation guide](docs/evaluation.md) | Behavior benchmarks, ablation, scoring, and interpretation limits. |
 | [Knowledge authoring](docs/knowledge-authoring.md) | Source quality, freshness, frontmatter, and curation rules. |
 | [Compatibility](docs/compatibility.md) | Supported Python, schemas, artifacts, and version boundaries. |
+| [Host compatibility](docs/host-compatibility.md) | Cross-IDE outcome equivalence, package paths, and host-specific boundaries. |
 | [1.0 migration](docs/migrating-to-1.0.md) | Open/constrained Brief/Decision/Plan artifacts, coexistence, and rollback. |
 | [Release verification](docs/releasing.md) | Deterministic ZIPs, checksums, SBOMs, and attestations. |
 | [Implementation matrix](docs/comprehensive-review-implementation.md) | How review recommendations map to executable capability and evidence. |
@@ -497,6 +498,8 @@ Build and verify both deterministic plugin archives:
 ```bash
 python3 scripts/package_plugin.py --format codex --output-dir dist
 python3 scripts/package_plugin.py --format agent-plugins --output-dir dist
+python3 scripts/smoke_test_package.py \
+  --archive "dist/hengmu-*-agent-plugins.zip"
 python3 scripts/verify_checksum.py dist/*.zip.sha256
 python3 scripts/generate_sbom.py \
   --archive dist/*.zip \
@@ -504,7 +507,9 @@ python3 scripts/generate_sbom.py \
 ```
 
 The Codex archive is `hengmu-<version>.zip`. The portable Agent Plugins
-archive is `hengmu-<version>-agent-plugins.zip` and uses a root `plugin.json`.
+archive is `hengmu-<version>-agent-plugins.zip` and uses the host-neutral root
+`plugin.json`. It also retains `.codex-plugin/plugin.json` as inert provenance
+data required by the shared Knowledge selector; Codex UI metadata is excluded.
 
 CI runs the supported Python boundary on Linux, macOS, and Windows. Tagged
 releases publish both deterministic ZIPs, their SHA-256 checksums and SPDX

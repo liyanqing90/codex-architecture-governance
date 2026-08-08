@@ -13,6 +13,7 @@ from pathlib import Path
 
 FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)
 CODEX_MANIFEST_PATH = Path(".codex-plugin/plugin.json")
+PORTABLE_MANIFEST_PATH = Path("plugin.json")
 AGENT_PLUGINS_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 PORTABLE_MANIFEST_FIELDS = {
     "$schema",
@@ -26,6 +27,14 @@ PORTABLE_MANIFEST_FIELDS = {
     "keywords",
     "extensions",
 }
+SHARED_IDENTITY_FIELDS = (
+    "name",
+    "version",
+    "author",
+    "homepage",
+    "repository",
+    "license",
+)
 COMMON_RUNTIME_FILES = (
     Path("LICENSE"),
     Path("NOTICE"),
@@ -67,26 +76,40 @@ def load_identity(root: Path) -> tuple[str, str]:
     return name, version
 
 
-def portable_manifest(codex_manifest: dict[str, object]) -> dict[str, object]:
-    """Project the Codex manifest onto the Agent Plugins portable contract."""
+def load_portable_source_manifest(
+    root: Path,
+    codex_manifest: dict[str, object],
+) -> dict[str, object]:
+    """Load the checked-in Agent Plugins manifest and reject projection drift."""
 
-    manifest: dict[str, object] = {
-        "$schema": AGENT_PLUGINS_SCHEMA,
-        "name": codex_manifest.get("name"),
-    }
-    for key in (
-        "version",
-        "description",
-        "author",
-        "homepage",
-        "repository",
-        "license",
-        "keywords",
-        "extensions",
-    ):
-        if key in codex_manifest:
-            manifest[key] = codex_manifest[key]
+    manifest_path = root / PORTABLE_MANIFEST_PATH
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise PackageError(
+            f"Missing portable plugin manifest: {manifest_path}"
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise PackageError(f"Invalid portable plugin manifest: {exc}") from exc
+    if not isinstance(manifest, dict):
+        raise PackageError(
+            f"Portable plugin manifest must be an object: {manifest_path}"
+        )
     validate_portable_manifest(manifest)
+    description = manifest.get("description")
+    if isinstance(description, str) and "for Codex" in description:
+        raise PackageError("Portable plugin manifest description must be host-neutral")
+    keywords = manifest.get("keywords")
+    if not isinstance(keywords, list) or "agent-plugins" not in keywords:
+        raise PackageError(
+            "Portable plugin manifest keywords must include 'agent-plugins'"
+        )
+    for key in SHARED_IDENTITY_FIELDS:
+        if manifest.get(key) != codex_manifest.get(key):
+            raise PackageError(
+                "Portable plugin manifest shared identity does not match "
+                f"{CODEX_MANIFEST_PATH}: {key}"
+            )
     return manifest
 
 
@@ -157,9 +180,9 @@ def assert_runtime_file(root: Path, path: Path) -> None:
 def collect_runtime_files(root: Path, package_format: str = "codex") -> list[Path]:
     root = root.expanduser().resolve()
     files = list(COMMON_RUNTIME_FILES)
-    if package_format == "codex":
+    if package_format in {"codex", "agent-plugins"}:
         files.append(CODEX_MANIFEST_PATH)
-    elif package_format != "agent-plugins":
+    else:
         raise PackageError(f"Unsupported package format: {package_format}")
     for directory in RUNTIME_DIRECTORIES:
         source = root / directory
@@ -208,9 +231,10 @@ def build_package(
     files = collect_runtime_files(root, package_format)
     payloads = {path.as_posix(): (root / path).read_bytes() for path in files}
     if package_format == "agent-plugins":
+        manifest = load_portable_source_manifest(root, codex_manifest)
         payloads["plugin.json"] = (
             json.dumps(
-                portable_manifest(codex_manifest),
+                manifest,
                 indent=2,
                 sort_keys=True,
             ).encode("utf-8")

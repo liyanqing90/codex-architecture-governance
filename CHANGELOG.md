@@ -7,6 +7,20 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-08-08
+
+### Added
+
+- Versioned installation and invocation instructions for Codex and ChatGPT
+  desktop, Cursor, VS Code and GitHub Copilot, and Kiro in both English and
+  Simplified Chinese READMEs.
+
+### Changed
+
+- The compatibility boundary now distinguishes full Agent Plugins installation
+  from Kiro's complete Agent Skills and shared-resources projection, and names
+  the host-specific controls that remain outside Hengmu's portable core.
+
 ## [1.0.1] - 2026-08-08
 
 ### Added

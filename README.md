@@ -16,7 +16,7 @@
     <img alt="CI" src="https://github.com/qingye-lab/hengmu/actions/workflows/ci.yml/badge.svg?branch=main">
   </a>
   <a href="https://github.com/qingye-lab/hengmu/releases">
-    <img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-173FBE">
+    <img alt="Version 1.0.2" src="https://img.shields.io/badge/version-1.0.2-173FBE">
   </a>
   <img alt="Python 3.11–3.13" src="https://img.shields.io/badge/python-3.11%E2%80%933.13-161719">
   <a href="LICENSE">
@@ -26,6 +26,7 @@
 
 <p align="center">
   <a href="#why-hengmu">Why Hengmu</a> ·
+  <a href="#install-in-your-ide">Install</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#workflows">Workflows</a> ·
@@ -86,7 +87,7 @@ local architecture runtime.
 | Package | Manifest and contents | Intended host | What this repository verifies |
 | --- | --- | --- | --- |
 | Codex package | `.codex-plugin/plugin.json` plus Codex `agents/openai.yaml` metadata | Codex | Native manifest, Skill contracts, deterministic archive, and CI/release packaging |
-| Agent Plugins package | Root `plugin.json` plus standard `skills/` directories | Clients that support Agent Plugins, including Cursor's Agent Plugin loader | Standard manifest/layout projection, deterministic archive, and exclusion of Codex-only UI metadata |
+| Agent Plugins package | Root `plugin.json` plus standard `skills/` directories | Cursor, VS Code/GitHub Copilot, and other Agent Plugins 1.0 clients | Standard manifest/layout projection, deterministic archive, and exclusion of Codex-only UI metadata |
 
 The portable package contains Agent Skills and does not include `mcp.json` or a
 Cursor-specific `.cursor-plugin` extension. [Cursor's plugin documentation](https://cursor.com/docs/plugins.md)
@@ -96,9 +97,153 @@ external IDE. For that reason, format compatibility is not presented as a
 guarantee of identical commands, permissions, UI, or marketplace behavior.
 
 Use the [compatibility matrix](docs/compatibility.md) for the current evidence
-boundary. For another IDE, first confirm that the host documents support for
-Agent Plugins or Agent Skills, then report the actual result with the client
-version and package format.
+boundary. Kiro currently consumes the same Skills through its Agent Skills
+locations rather than the root Agent Plugins manifest. Host-specific Hooks,
+permissions, rules, steering, and automatic lifecycle behavior are not installed
+by either Hengmu package.
+
+## Install in your IDE
+
+Download the two ZIP files and their `.sha256` files from the same
+[GitHub release](https://github.com/qingye-lab/hengmu/releases). Use
+`hengmu-<version>.zip` for Codex and
+`hengmu-<version>-agent-plugins.zip` for the other hosts below. Verify the
+download before extracting it:
+
+From the download directory, use `shasum` on macOS or `sha256sum` on Linux:
+
+```bash
+shasum -a 256 -c hengmu-<version>.zip.sha256
+shasum -a 256 -c hengmu-<version>-agent-plugins.zip.sha256
+```
+
+Keep the extracted directory at a stable absolute path and call it
+`HENGMU_ROOT`. Each host needs the complete directory, not only
+`skills/hengmu`, because the router, focused Skills, schemas, Knowledge, and
+deterministic CLI use relative paths across `skills/` and `resources/`.
+
+### Codex and ChatGPT desktop
+
+Extract the Codex ZIP into a personal plugin directory, for example
+`~/.codex/plugins/hengmu`. Then add this entry to the `plugins` array in
+`~/.agents/plugins/marketplace.json` (merge it with any existing marketplace
+instead of replacing the file):
+
+```json
+{
+  "name": "hengmu-local",
+  "interface": { "displayName": "Hengmu Local" },
+  "plugins": [
+    {
+      "name": "hengmu",
+      "source": {
+        "source": "local",
+        "path": "./.codex/plugins/hengmu"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
+```
+
+Restart ChatGPT desktop, open **Plugins**, select **Hengmu Local**, and install
+Hengmu. In Codex CLI, run `/plugins`, install Hengmu from the same marketplace,
+and start a new session. Invoke the router with `$hengmu audit this repository`
+or describe the outcome naturally. In ChatGPT Work mode, select it with
+`@hengmu`. The Codex IDE extension can use standalone Skills but does not
+currently provide the plugin browser; install the full Hengmu plugin through
+ChatGPT desktop or Codex CLI. See the
+[official OpenAI plugin installation documentation](https://developers.openai.com/codex/plugins/).
+
+### Cursor
+
+Extract the Agent Plugins ZIP into `~/.cursor/plugins/local/hengmu`, then
+restart Cursor or run **Developer: Reload Window**. Open **Customize** and
+confirm that the Hengmu Skills are enabled. You can also symlink a checked-out
+Hengmu repository while developing:
+
+```bash
+mkdir -p ~/.cursor/plugins/local
+ln -s /absolute/path/to/hengmu ~/.cursor/plugins/local/hengmu
+```
+
+Invoke `/hengmu audit this repository`, or ask for the same outcome in natural
+language. Cursor loads the portable Skills, but this package does not install
+Cursor-specific rules, agents, commands, Hooks, or variables. See
+[Cursor's Agent Plugins installation guide](https://cursor.com/docs/plugins.md#installing-plugins).
+
+### VS Code and GitHub Copilot
+
+Enable `chat.plugins.enabled`, run **Chat: Install Plugin From Source**, and
+enter `https://github.com/qingye-lab/hengmu`. For a pinned local build, extract
+the Agent Plugins ZIP and register its absolute directory in VS Code settings:
+
+```json
+{
+  "chat.pluginLocations": {
+    "/absolute/path/to/hengmu": true
+  }
+}
+```
+
+Open **Chat: Open Customizations → Plugins** to confirm installation. Invoke
+`/hengmu audit this repository` in Copilot Chat or use natural language. The
+same package can be installed directly in GitHub Copilot CLI:
+
+```bash
+copilot plugin install qingye-lab/hengmu
+copilot plugin list
+copilot
+```
+
+Start a new Copilot CLI session after installation and invoke `/hengmu ...`.
+See the official [VS Code Agent Plugins](https://code.visualstudio.com/docs/agent-customization/agent-plugins)
+and [GitHub Copilot CLI plugin](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference)
+documentation.
+
+### Kiro
+
+Kiro discovers workspace Skills under `.kiro/skills/`; it does not use Hengmu's
+root `plugin.json` for this installation path. Extract the Agent Plugins ZIP to
+a stable `HENGMU_ROOT`, then project both the Skills and their shared resources
+into the repository. Run these commands only when `.kiro/resources` is unused,
+or merge the directories deliberately:
+
+```bash
+mkdir -p .kiro/skills .kiro/resources
+cp -R "$HENGMU_ROOT/skills/." .kiro/skills/
+cp -R "$HENGMU_ROOT/resources/." .kiro/resources/
+```
+
+Open **Agent Steering & Skills** in Kiro and confirm all nine Hengmu Skills are
+visible. Invoke `/hengmu audit this repository` or use natural language. Do not
+import only `skills/hengmu`: the router delegates to eight sibling Skills and
+those Skills require the shared runtime. See the official
+[Kiro Agent Skills guide](https://kiro.dev/docs/skills/).
+
+### Prepare the shared Python runtime
+
+Hengmu's Skills are portable, while its deterministic helpers require Python
+3.11–3.13, PyYAML, and jsonschema. Install the locked dependencies into the
+`python3` environment exposed to the IDE agent, or launch the IDE from this
+activated environment:
+
+```bash
+cd "$HENGMU_ROOT"
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --require-hashes -r requirements-runtime.lock
+python3 resources/scripts/architecture_tool.py --version
+```
+
+The last command should print `architecture_tool.py 1.0.2`. On Windows
+PowerShell, activate with `.venv\Scripts\Activate.ps1`. Installation does not
+grant permissions or enable Hooks; review each host's agent permissions before
+allowing repository writes or shell execution.
 
 ## Why Hengmu
 

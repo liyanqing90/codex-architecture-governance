@@ -65,6 +65,34 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("explicitly invokes a focused Skill", entry)
         self.assertIn("activate this router", entry)
 
+    def test_readmes_document_each_supported_host_installation(self) -> None:
+        expectations = {
+            "README.md": (
+                "## Install in your IDE",
+                "### Codex and ChatGPT desktop",
+                "### Cursor",
+                "### VS Code and GitHub Copilot",
+                "### Kiro",
+                '"chat.pluginLocations"',
+                "copilot plugin install qingye-lab/hengmu",
+                'cp -R "$HENGMU_ROOT/resources/." .kiro/resources/',
+            ),
+            "README.zh-CN.md": (
+                "## 在不同 IDE 中安装",
+                "### Codex 与 ChatGPT 桌面端",
+                "### Cursor",
+                "### VS Code 与 GitHub Copilot",
+                "### Kiro",
+                '"chat.pluginLocations"',
+                "copilot plugin install qingye-lab/hengmu",
+                'cp -R "$HENGMU_ROOT/resources/." .kiro/resources/',
+            ),
+        }
+        for path, required_text in expectations.items():
+            readme = (ROOT / path).read_text(encoding="utf-8")
+            for text in required_text:
+                self.assertIn(text, readme, f"{path} must document {text!r}")
+
 
 if __name__ == "__main__":
     unittest.main()

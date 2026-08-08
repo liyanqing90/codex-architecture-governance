@@ -48,13 +48,17 @@ for the precise capability and lifecycle boundary.
 | --- | --- | --- | --- |
 | Codex | `codex` | Native manifest, Codex UI metadata, Skill/repository validation, deterministic packaging, and CI/release workflow are covered by this repository | A current installed Codex UI/CLI smoke test is release-time evidence and is not represented as a permanent universal guarantee |
 | Cursor | `agent-plugins` | Cursor documents that conformant Agent Plugins load without changes; Hengmu's portable manifest/layout and archive tests are covered | No Hengmu-specific installed Cursor smoke test is currently recorded; Cursor-specific rules, agents, commands, hooks, variables, and marketplace behavior are not included |
+| VS Code / GitHub Copilot CLI | `agent-plugins` | Both clients document Agent Plugins 1.0 discovery, direct Git or local-path installation, and Skill invocation; Hengmu's portable manifest/layout and archive tests are covered | No Hengmu-specific installed VS Code or Copilot CLI smoke test is currently recorded; client-specific agents, hooks, commands, and marketplace policy are not included |
+| Kiro | Agent Skills projection from `agent-plugins` | Kiro documents workspace Skills under `.kiro/skills/`; Hengmu's package contains conformant Skills | Kiro does not consume Hengmu's root manifest on this path. Install all nine Skills together with shared `resources/`; no Hengmu-specific installed Kiro smoke test is currently recorded |
 | Other Agent Plugins clients | `agent-plugins` | Portable package is generated and tested against the standard layout | Use only when the host documents Agent Plugins or Agent Skills support; this repository does not claim host-specific support without a reproducible report |
 
-In particular, this release does not claim that VS Code, GitHub Copilot, Kiro, or
-another IDE has identical installation or invocation behavior. A host may accept
-the portable package while exposing different controls, permissions, Skill
+These installation paths do not claim identical behavior across Codex, Cursor,
+VS Code, GitHub Copilot, Kiro, or another IDE. A host may accept the portable
+package or Skills while exposing different controls, permissions, Skill
 activation, or marketplace workflows. The portable archive currently contains
 Skills only; it has no `mcp.json` and therefore makes no MCP-server support claim.
+Follow the versioned, host-specific instructions in the repository README and
+do not import only the `hengmu` router into a Skills-only client.
 
 When adding a host-specific claim, record the client version, operating system,
 package format, installation path, Skill/prompt, observed result, and date in

@@ -16,7 +16,7 @@
     <img alt="CI" src="https://github.com/qingye-lab/hengmu/actions/workflows/ci.yml/badge.svg?branch=main">
   </a>
   <a href="https://github.com/qingye-lab/hengmu/releases">
-    <img alt="版本 1.0.0" src="https://img.shields.io/badge/version-1.0.0-173FBE">
+    <img alt="版本 1.0.2" src="https://img.shields.io/badge/version-1.0.2-173FBE">
   </a>
   <img alt="Python 3.11–3.13" src="https://img.shields.io/badge/python-3.11%E2%80%933.13-161719">
   <a href="LICENSE">
@@ -26,6 +26,7 @@
 
 <p align="center">
   <a href="#为什么选择衡木">为什么选择衡木</a> ·
+  <a href="#在不同-ide-中安装">安装</a> ·
   <a href="#快速开始">快速开始</a> ·
   <a href="#工作原理">工作原理</a> ·
   <a href="#工作流">工作流</a> ·
@@ -76,7 +77,7 @@
 | 压缩包 | Manifest 与内容 | 目标宿主 | 本仓库已验证的内容 |
 | --- | --- | --- | --- |
 | Codex 压缩包 | `.codex-plugin/plugin.json` 加 Codex `agents/openai.yaml` 元数据 | Codex | 原生 Manifest、Skill 契约、确定性压缩包及 CI/发布流程 |
-| Agent Plugins 压缩包 | 根目录 `plugin.json` 加标准 `skills/` 目录 | 支持 Agent Plugins 的客户端，包括 Cursor 的 Agent Plugin 加载器 | 标准 Manifest/目录投影、确定性压缩包，以及排除 Codex 专用 UI 元数据 |
+| Agent Plugins 压缩包 | 根目录 `plugin.json` 加标准 `skills/` 目录 | Cursor、VS Code/GitHub Copilot 及其他 Agent Plugins 1.0 客户端 | 标准 Manifest/目录投影、确定性压缩包，以及排除 Codex 专用 UI 元数据 |
 
 可移植压缩包只包含 Agent Skills，不包含 `mcp.json`，也不包含 Cursor 专用的
 `.cursor-plugin` 扩展。[Cursor 插件文档](https://cursor.com/docs/plugins.md)
@@ -84,9 +85,140 @@
 在 Cursor 或其他外部 IDE 中安装后的专项冒烟测试。
 因此，格式兼容不等同于命令、权限、UI 或市场行为完全一致。
 
-当前证据边界请见[兼容性矩阵](docs/compatibility.md)。对于其他 IDE，请先确认宿主
-文档明确支持 Agent Plugins 或 Agent Skills，再带上客户端版本和压缩包格式报告实际
-结果。
+当前证据边界请见[兼容性矩阵](docs/compatibility.md)。Kiro 当前通过 Agent Skills
+目录加载同一组 Skill，而不是读取根目录 Agent Plugins Manifest。两种衡木压缩包都
+不会安装宿主专用 Hook、权限、Rules、Steering 或自动生命周期行为。
+
+## 在不同 IDE 中安装
+
+从同一个 [GitHub Release](https://github.com/qingye-lab/hengmu/releases) 下载两个
+ZIP 及对应的 `.sha256` 文件。Codex 使用 `hengmu-<version>.zip`；下面其他宿主使用
+`hengmu-<version>-agent-plugins.zip`。解压前验证下载文件：
+
+在下载目录中，macOS 使用 `shasum`；Linux 可把命令替换为 `sha256sum -c`：
+
+```bash
+shasum -a 256 -c hengmu-<version>.zip.sha256
+shasum -a 256 -c hengmu-<version>-agent-plugins.zip.sha256
+```
+
+把解压目录放在稳定的绝对路径，并记为 `HENGMU_ROOT`。每个宿主都需要完整目录，
+不能只复制 `skills/hengmu`；Router、八个聚焦 Skill、Schema、Knowledge 和确定性
+CLI 会通过相对路径共同使用 `skills/` 与 `resources/`。
+
+### Codex 与 ChatGPT 桌面端
+
+把 Codex ZIP 解压到个人插件目录，例如 `~/.codex/plugins/hengmu`。然后把下面条目
+加入 `~/.agents/plugins/marketplace.json` 的 `plugins` 数组；如果文件已有内容，
+请合并，不要覆盖：
+
+```json
+{
+  "name": "hengmu-local",
+  "interface": { "displayName": "Hengmu Local" },
+  "plugins": [
+    {
+      "name": "hengmu",
+      "source": {
+        "source": "local",
+        "path": "./.codex/plugins/hengmu"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
+```
+
+重启 ChatGPT 桌面端，打开 **Plugins**，选择 **Hengmu Local** 并安装。在 Codex CLI
+中运行 `/plugins`，从同一 Marketplace 安装后新建会话。Codex 使用
+`$hengmu audit this repository` 或自然语言调用；ChatGPT Work 模式使用 `@hengmu`。
+Codex IDE 扩展可以使用独立 Skill，但当前不提供插件浏览器；完整衡木插件请通过
+ChatGPT 桌面端或 Codex CLI 安装。参见
+[OpenAI 官方插件安装文档](https://developers.openai.com/codex/plugins/)。
+
+### Cursor
+
+把 Agent Plugins ZIP 解压到 `~/.cursor/plugins/local/hengmu`，然后重启 Cursor，
+或运行 **Developer: Reload Window**。打开 **Customize**，确认衡木 Skill 已启用。
+开发时也可以把检出的仓库链接到本地插件目录：
+
+```bash
+mkdir -p ~/.cursor/plugins/local
+ln -s /absolute/path/to/hengmu ~/.cursor/plugins/local/hengmu
+```
+
+使用 `/hengmu audit this repository` 或自然语言调用。Cursor 会加载可移植 Skill，
+但本包不安装 Cursor 专用 Rules、Agents、Commands、Hooks 或 Variables。参见
+[Cursor Agent Plugins 安装文档](https://cursor.com/docs/plugins.md#installing-plugins)。
+
+### VS Code 与 GitHub Copilot
+
+启用 `chat.plugins.enabled`，运行 **Chat: Install Plugin From Source**，输入
+`https://github.com/qingye-lab/hengmu`。如需固定到本地构建版本，请解压 Agent
+Plugins ZIP，并在 VS Code Settings 中登记它的绝对路径：
+
+```json
+{
+  "chat.pluginLocations": {
+    "/absolute/path/to/hengmu": true
+  }
+}
+```
+
+打开 **Chat: Open Customizations → Plugins** 确认安装。在 Copilot Chat 中使用
+`/hengmu audit this repository` 或自然语言调用。同一个包也可以直接安装到
+GitHub Copilot CLI：
+
+```bash
+copilot plugin install qingye-lab/hengmu
+copilot plugin list
+copilot
+```
+
+安装后新建 Copilot CLI 会话，再调用 `/hengmu ...`。参见官方
+[VS Code Agent Plugins](https://code.visualstudio.com/docs/agent-customization/agent-plugins)
+和 [GitHub Copilot CLI Plugin](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference)
+文档。
+
+### Kiro
+
+Kiro 从 `.kiro/skills/` 发现工作区 Skill；这一安装路径不会读取衡木根目录的
+`plugin.json`。把 Agent Plugins ZIP 解压到稳定的 `HENGMU_ROOT` 后，把 Skill 与
+共享资源一起投影到目标仓库。仅当 `.kiro/resources` 未被占用时执行；否则请有意识
+地合并目录：
+
+```bash
+mkdir -p .kiro/skills .kiro/resources
+cp -R "$HENGMU_ROOT/skills/." .kiro/skills/
+cp -R "$HENGMU_ROOT/resources/." .kiro/resources/
+```
+
+在 Kiro 中打开 **Agent Steering & Skills**，确认九个衡木 Skill 都可见。使用
+`/hengmu audit this repository` 或自然语言调用。不要只导入 `skills/hengmu`：
+Router 会委派给八个同级 Skill，而这些 Skill 还需要共享运行时。参见
+[Kiro Agent Skills 官方文档](https://kiro.dev/docs/skills/)。
+
+### 准备共享 Python 运行时
+
+衡木 Skill 可跨宿主复用，但确定性 Helper 需要 Python 3.11–3.13、PyYAML 和
+jsonschema。请把锁定依赖安装到 IDE Agent 可见的 `python3` 环境，或从下面已激活
+的环境启动 IDE：
+
+```bash
+cd "$HENGMU_ROOT"
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --require-hashes -r requirements-runtime.lock
+python3 resources/scripts/architecture_tool.py --version
+```
+
+最后一条命令应输出 `architecture_tool.py 1.0.2`。Windows PowerShell 使用
+`.venv\Scripts\Activate.ps1` 激活。安装不会授予权限或启用 Hook；在允许仓库写入
+或 Shell 执行前，请检查对应宿主的 Agent 权限。
 
 ## 为什么选择衡木
 

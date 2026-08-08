@@ -11,10 +11,13 @@ and lifecycle events remain properties of each agent client.
 | --- | --- | --- | --- |
 | Codex | `hengmu-<version>.zip` with `.codex-plugin/plugin.json` | deterministic inventory, unit tests, checksum, and SBOM | install and route a current Codex surface |
 | Agent Plugins clients | `hengmu-<version>-agent-plugins.zip` with root `plugin.json` | schema-aligned source validation plus an extracted audit-path smoke test | install, route, and run the workflow in each named client/version |
+| Agent Skills-only clients | Complete `skills/` plus sibling `resources/` projection | Skill contracts and the same extracted runtime smoke test | confirm the host's discovery location, route all nine Skills, and run one deterministic helper |
 | Repository/source consumers | repository root `plugin.json`, `skills/`, and `resources/` | the same source and packaging tests | client-specific source-install test |
 
-Cursor, VS Code/Copilot, and Kiro can be evaluated through the Agent Plugins
-distribution when their current versions accept the standard. Passing Hengmu's
+Cursor and VS Code/Copilot can consume the Agent Plugins distribution through
+their documented plugin installation paths. Kiro consumes its Agent Skills
+projection: all nine `skills/` children and the sibling `resources/` directory
+must remain together so relative runtime references resolve. Passing Hengmu's
 archive smoke test proves package completeness and runtime execution; it does
 not by itself prove a particular client version installs or renders the plugin.
 Release evidence must therefore name the client, version, operating system,

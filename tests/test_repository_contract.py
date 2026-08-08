@@ -76,6 +76,8 @@ class RepositoryContractTests(unittest.TestCase):
                 '"chat.pluginLocations"',
                 "/hengmu:hengmu audit this repository",
                 "copilot plugin install qingye-lab/hengmu",
+                "complete `.codex-plugin/plugin.json`",
+                "`skills/*/agents/openai.yaml`",
                 'cp -R "$HENGMU_ROOT/resources/." .kiro/resources/',
             ),
             "README.zh-CN.md": (
@@ -87,6 +89,8 @@ class RepositoryContractTests(unittest.TestCase):
                 '"chat.pluginLocations"',
                 "/hengmu:hengmu audit this repository",
                 "copilot plugin install qingye-lab/hengmu",
+                "完整的 `.codex-plugin/plugin.json`",
+                "`skills/*/agents/openai.yaml`",
                 'cp -R "$HENGMU_ROOT/resources/." .kiro/resources/',
             ),
         }

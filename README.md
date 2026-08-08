@@ -81,13 +81,13 @@ It works at two levels:
 ## Packages and IDE compatibility
 
 Hengmu publishes two packages from the same source. The package choice changes
-the host manifest and UI metadata; it does not fork the underlying Skills or
-local architecture runtime.
+the discovery manifest and active host UI projection; it does not fork the
+underlying Skills or local architecture runtime.
 
 | Package | Manifest and contents | Intended host | What this repository verifies |
 | --- | --- | --- | --- |
 | Codex package | `.codex-plugin/plugin.json` plus Codex `agents/openai.yaml` metadata | Codex | Native manifest, Skill contracts, deterministic archive, and CI/release packaging |
-| Agent Plugins package | Root `plugin.json` plus standard `skills/` directories | Cursor, VS Code/GitHub Copilot, and other Agent Plugins 1.0 clients | Standard manifest/layout projection, deterministic archive, and exclusion of Codex-only UI metadata |
+| Agent Plugins package | Host-neutral root `plugin.json`, standard `skills/` and `resources/`, plus an inert Codex manifest retained for selector provenance | Cursor, VS Code/GitHub Copilot, and other Agent Plugins 1.0 clients | Standard manifest/layout projection, deterministic archive, and exclusion of Codex-only `agents/openai.yaml` files |
 
 The portable package contains Agent Skills and does not include `mcp.json` or a
 Cursor-specific `.cursor-plugin` extension. [Cursor's plugin documentation](https://cursor.com/docs/plugins.md)
@@ -691,8 +691,10 @@ python3 scripts/generate_sbom.py \
 
 The Codex archive is `hengmu-<version>.zip`. The portable Agent Plugins
 archive is `hengmu-<version>-agent-plugins.zip` and uses the host-neutral root
-`plugin.json`. It also retains `.codex-plugin/plugin.json` as inert provenance
-data required by the shared Knowledge selector; Codex UI metadata is excluded.
+`plugin.json`. It also retains the complete `.codex-plugin/plugin.json`,
+including its Codex-only `interface` fields, as inert provenance data required
+by the shared Knowledge selector. Codex-specific `skills/*/agents/openai.yaml`
+files are excluded from the portable archive.
 
 CI runs the supported Python boundary on Linux, macOS, and Windows. Tagged
 releases publish both deterministic ZIPs, their SHA-256 checksums and SPDX

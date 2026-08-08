@@ -71,15 +71,15 @@
 
 ## Packages and IDE compatibility
 
-衡木从同一份源码发布两种压缩包。两种压缩包的宿主 Manifest 和 UI 元数据不同，
-但底层 Skill 和本地架构运行时不分叉。
+衡木从同一份源码发布两种压缩包。两种压缩包的发现 Manifest 和实际生效的宿主
+UI 投影不同，但底层 Skill 和本地架构运行时不分叉。
 
 | 压缩包 | Manifest 与内容 | 目标宿主 | 本仓库已验证的内容 |
 | --- | --- | --- | --- |
 | Codex 压缩包 | `.codex-plugin/plugin.json` 加 Codex `agents/openai.yaml` 元数据 | Codex | 原生 Manifest、Skill 契约、确定性压缩包及 CI/发布流程 |
-| Agent Plugins 压缩包 | 根目录 `plugin.json` 加标准 `skills/` 目录 | Cursor、VS Code/GitHub Copilot 及其他 Agent Plugins 1.0 客户端 | 标准 Manifest/目录投影、确定性压缩包，以及排除 Codex 专用 UI 元数据 |
+| Agent Plugins 压缩包 | 宿主中立的根目录 `plugin.json`、标准 `skills/` 与 `resources/`，以及为 Selector 溯源保留的惰性 Codex Manifest | Cursor、VS Code/GitHub Copilot 及其他 Agent Plugins 1.0 客户端 | 标准 Manifest/目录投影、确定性压缩包，以及排除 Codex 专用的 `agents/openai.yaml` 文件 |
 
-可移植压缩包只包含 Agent Skills，不包含 `mcp.json`，也不包含 Cursor 专用的
+可移植压缩包包含 Agent Skills 和共享运行时资源，不包含 `mcp.json`，也不包含 Cursor 专用的
 `.cursor-plugin` 扩展。[Cursor 插件文档](https://cursor.com/docs/plugins.md)
 说明符合规范的 Agent Plugin 可以不经修改加载；但本仓库目前还没有记录 Hengmu
 在 Cursor 或其他外部 IDE 中安装后的专项冒烟测试。
@@ -632,8 +632,9 @@ python3 scripts/generate_sbom.py \
 
 Codex 压缩包是 `hengmu-<version>.zip`；可移植的 Agent Plugins 压缩包是
 `hengmu-<version>-agent-plugins.zip`，使用宿主中立的根目录 `plugin.json`。
-它还把 `.codex-plugin/plugin.json` 作为共享 Knowledge 选择器所需的惰性
-溯源数据保留在包内，但不包含 Codex 专属 UI 元数据。
+它还把完整的 `.codex-plugin/plugin.json`（包括 Codex 专用的 `interface` 字段）
+作为共享 Knowledge Selector 所需的惰性溯源数据保留在包内；Codex 专用的
+`skills/*/agents/openai.yaml` 文件不会进入可移植压缩包。
 
 CI 会在 Linux、macOS 和 Windows 上验证支持的 Python 边界。带 Tag 的发布
 会同时提供两种确定性 ZIP、对应的 SHA-256 校验和、SPDX SBOM，以及 GitHub

@@ -32,8 +32,10 @@ Packaging has two explicit targets:
   Codex-specific `agents/openai.yaml` metadata;
 - `agent-plugins`: the portable package with a root `plugin.json` and the
   standard `skills/` layout. It contains the same runtime CLI and Skill
-  instructions, but not Codex-specific UI metadata. It retains the hidden
-  Codex manifest only as inert provenance data required by the shared selector.
+  instructions. It retains the complete hidden Codex manifest, including its
+  Codex-only `interface` fields, solely as inert provenance data required by
+  the shared selector; Codex-specific `skills/*/agents/openai.yaml` files are
+  excluded.
 
 The portable package targets the [Agent Plugins v1 specification](https://agent-plugins.org/specification):
 the root manifest and `skills/` location are portable, while installation,
